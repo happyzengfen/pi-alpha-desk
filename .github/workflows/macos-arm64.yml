@@ -1,0 +1,60 @@
+name: macOS arm64
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-and-smoke-test:
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run quality gates
+        run: npm test && npx tsc --noEmit && npm run lint
+
+      - name: Build unsigned macOS arm64 application
+        run: |
+          npm run icons
+          npm run build
+          npx electron-builder --mac dir --arm64 --publish never
+
+      - name: Verify macOS arm64 package
+        run: node scripts/verify-macos-package.mjs
+
+      - name: Smoke test packaged application
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_binary="$(find release -path '*.app/Contents/MacOS/*' -type f -perm -111 | head -n 1)"
+          test -n "$app_binary"
+          metrics_file="$RUNNER_TEMP/pi-web-macos-startup.log"
+          agent_dir="$RUNNER_TEMP/pi-web-agent"
+          user_data="$RUNNER_TEMP/pi-web-user-data"
+          mkdir -p "$agent_dir" "$user_data"
+          PI_WEB_BENCHMARK=1 \
+          PI_WEB_BENCHMARK_USER_DATA="$user_data" \
+          PI_CODING_AGENT_DIR="$agent_dir" \
+          "$app_binary" >"$metrics_file" 2>&1
+          grep 'PI_WEB_STARTUP_METRIC.*renderer-interactive' "$metrics_file"
+
+      - name: Upload unpacked macOS application
+        uses: actions/upload-artifact@v6
+        with:
+          name: macos-arm64-unpacked
+          if-no-files-found: error
+          path: release/mac-arm64/*.app

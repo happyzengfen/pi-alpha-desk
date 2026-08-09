@@ -1,0 +1,235 @@
+{
+  "archive": {
+    "tweet_id": "2079863575007420562",
+    "url": "https://x.com/langfuse/status/2079863575007420562",
+    "archived_at": "2026-08-07",
+    "retrieval": "X public post API + linked Langfuse documentation snapshot",
+    "discovered_via": null,
+    "related_document": "https://langfuse.com/changelog/2026-07-17-dashboard-and-widget-operations-in-api",
+    "tags": [
+      "dashboards",
+      "api",
+      "cli",
+      "mcp"
+    ]
+  },
+  "source": {
+    "code": 200,
+    "message": "OK",
+    "tweet": {
+      "url": "https://x.com/langfuse/status/2079863575007420562",
+      "id": "2079863575007420562",
+      "text": "manage dashboards via API, CLI, MCP & Langfuse Assistant\n\ncreate and manage dashboards and widgets via the public API, let agents build them through the MCP server or CLI, or ask the Langfuse Assistant in the UI.\n\nhttps://langfuse.com/changelog/2026-07-17-dashboard-and-widget-operations-in-api",
+      "raw_text": {
+        "text": "manage dashboards via API, CLI, MCP &amp; Langfuse Assistant\n\ncreate and manage dashboards and widgets via the public API, let agents build them through the MCP server or CLI, or ask the Langfuse Assistant in the UI.\n\nhttps://t.co/Zq0frBAJDp https://t.co/Cti6VR61To",
+        "display_text_range": [
+          0,
+          241
+        ],
+        "facets": [
+          {
+            "type": "url",
+            "indices": [
+              218,
+              241
+            ],
+            "original": "https://t.co/Zq0frBAJDp",
+            "replacement": "https://langfuse.com/changelog/2026-07-17-dashboard-and-widget-operations-in-api",
+            "display": "langfuse.com/changelog/2026…"
+          },
+          {
+            "type": "media",
+            "indices": [
+              242,
+              265
+            ],
+            "id": "2079863556032339968",
+            "display": "pic.x.com/Cti6VR61To",
+            "original": "https://t.co/Cti6VR61To",
+            "replacement": "https://x.com/langfuse/status/2079863575007420562/video/1"
+          }
+        ]
+      },
+      "author": {
+        "screen_name": "langfuse",
+        "url": "https://x.com/langfuse",
+        "id": "1675948293291929675",
+        "followers": 5745,
+        "following": 678,
+        "likes": 3860,
+        "media_count": 172,
+        "name": "langfuse.com",
+        "description": "Open source AI engineering platform. Now part of @clickhousedb. We're hiring: http://langfuse.com/join-us",
+        "raw_description": {
+          "text": "Open source AI engineering platform. Now part of @clickhousedb. We're hiring: https://t.co/k6dgv4dws2",
+          "facets": [
+            {
+              "type": "url",
+              "indices": [
+                78,
+                101
+              ],
+              "original": "https://t.co/k6dgv4dws2",
+              "replacement": "http://langfuse.com/join-us",
+              "display": "langfuse.com/join-us"
+            }
+          ]
+        },
+        "location": "github.com/langfuse/langfuse",
+        "banner_url": "https://pbs.twimg.com/profile_banners/1675948293291929675/1777512250",
+        "avatar_url": "https://pbs.twimg.com/profile_images/2044396073561550848/qCtNGUmN_200x200.jpg",
+        "joined": "Mon Jul 03 19:23:27 +0000 2023",
+        "protected": false,
+        "website": {
+          "url": "https://langfuse.com/",
+          "display_url": "langfuse.com"
+        },
+        "verification": {
+          "verified": true,
+          "verified_at": null,
+          "type": "organization"
+        },
+        "avatar_color": null
+      },
+      "replies": 7,
+      "retweets": 2,
+      "likes": 18,
+      "bookmarks": 4,
+      "quotes": 0,
+      "created_at": "Wed Jul 22 09:38:12 +0000 2026",
+      "created_timestamp": 1784713092,
+      "possibly_sensitive": false,
+      "views": 1128,
+      "is_note_tweet": false,
+      "community_note": null,
+      "lang": "en",
+      "replying_to": null,
+      "replying_to_status": null,
+      "media": {
+        "all": [
+          {
+            "id": "2079863556032339968",
+            "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/vid/avc1/1284x720/vGkZecRPJ7a0VZAq.mp4?tag=12",
+            "thumbnail_url": "https://pbs.twimg.com/ext_tw_video_thumb/2079863556032339968/pu/img/QbV3k9VyF1aIb_vz.jpg",
+            "duration": 41.2,
+            "width": 1928,
+            "height": 1080,
+            "format": "video/mp4",
+            "type": "video",
+            "formats": [
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/pl/OjnlSROdARL_xd54.m3u8?tag=12",
+                "container": "m3u8"
+              },
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/vid/avc1/482x270/6hQDabmsvt-KFIXe.mp4?tag=12",
+                "bitrate": 256000,
+                "container": "mp4",
+                "codec": "h264"
+              },
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/vid/avc1/642x360/GNv0pf9-NpJCl9z6.mp4?tag=12",
+                "bitrate": 832000,
+                "container": "mp4",
+                "codec": "h264"
+              },
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/vid/avc1/1284x720/vGkZecRPJ7a0VZAq.mp4?tag=12",
+                "bitrate": 2176000,
+                "container": "mp4",
+                "codec": "h264"
+              }
+            ],
+            "publisher": null,
+            "variants": [
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/pl/OjnlSROdARL_xd54.m3u8?tag=12",
+                "bitrate": 0,
+                "content_type": "application/x-mpegURL"
+              },
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/vid/avc1/482x270/6hQDabmsvt-KFIXe.mp4?tag=12",
+                "bitrate": 256000,
+                "content_type": "video/mp4"
+              },
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/vid/avc1/642x360/GNv0pf9-NpJCl9z6.mp4?tag=12",
+                "bitrate": 832000,
+                "content_type": "video/mp4"
+              },
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/vid/avc1/1284x720/vGkZecRPJ7a0VZAq.mp4?tag=12",
+                "bitrate": 2176000,
+                "content_type": "video/mp4"
+              }
+            ]
+          }
+        ],
+        "videos": [
+          {
+            "id": "2079863556032339968",
+            "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/vid/avc1/1284x720/vGkZecRPJ7a0VZAq.mp4?tag=12",
+            "thumbnail_url": "https://pbs.twimg.com/ext_tw_video_thumb/2079863556032339968/pu/img/QbV3k9VyF1aIb_vz.jpg",
+            "duration": 41.2,
+            "width": 1928,
+            "height": 1080,
+            "format": "video/mp4",
+            "type": "video",
+            "formats": [
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/pl/OjnlSROdARL_xd54.m3u8?tag=12",
+                "container": "m3u8"
+              },
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/vid/avc1/482x270/6hQDabmsvt-KFIXe.mp4?tag=12",
+                "bitrate": 256000,
+                "container": "mp4",
+                "codec": "h264"
+              },
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/vid/avc1/642x360/GNv0pf9-NpJCl9z6.mp4?tag=12",
+                "bitrate": 832000,
+                "container": "mp4",
+                "codec": "h264"
+              },
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/vid/avc1/1284x720/vGkZecRPJ7a0VZAq.mp4?tag=12",
+                "bitrate": 2176000,
+                "container": "mp4",
+                "codec": "h264"
+              }
+            ],
+            "publisher": null,
+            "variants": [
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/pl/OjnlSROdARL_xd54.m3u8?tag=12",
+                "bitrate": 0,
+                "content_type": "application/x-mpegURL"
+              },
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/vid/avc1/482x270/6hQDabmsvt-KFIXe.mp4?tag=12",
+                "bitrate": 256000,
+                "content_type": "video/mp4"
+              },
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/vid/avc1/642x360/GNv0pf9-NpJCl9z6.mp4?tag=12",
+                "bitrate": 832000,
+                "content_type": "video/mp4"
+              },
+              {
+                "url": "https://video.twimg.com/ext_tw_video/2079863556032339968/pu/vid/avc1/1284x720/vGkZecRPJ7a0VZAq.mp4?tag=12",
+                "bitrate": 2176000,
+                "content_type": "video/mp4"
+              }
+            ]
+          }
+        ]
+      },
+      "source": "Ordinal - Social Media",
+      "twitter_card": "player",
+      "color": null,
+      "provider": "twitter",
+      "reposted_by": null
+    }
+  }
+}

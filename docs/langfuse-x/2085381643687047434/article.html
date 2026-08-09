@@ -1,0 +1,128 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Scoping and curating eval datasets</title><style>:root{color-scheme:light dark;--bg:#fff;--text:#111827;--muted:#64748b;--line:#dbe3ec;--card:#f8fafc;--link:#2563eb;--code:#eef2f7}
+@media(prefers-color-scheme:dark){:root{--bg:#0b0f14;--text:#e5e7eb;--muted:#94a3b8;--line:#263241;--card:#121923;--link:#60a5fa;--code:#17202b}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.75}
+main{width:min(100% - 32px,860px);margin:auto;padding:44px 0 72px}h1{font-size:clamp(30px,5vw,46px);line-height:1.16}h2{margin-top:44px}h3{margin-top:32px}a{color:var(--link)}
+.meta,.note{padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--muted)}img{display:block;max-width:100%;height:auto;margin:24px auto;border-radius:12px}
+pre{overflow:auto;padding:16px;border-radius:12px;background:var(--code)}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}blockquote{margin:24px 0;padding-left:18px;border-left:4px solid var(--link);color:var(--muted)}
+table{display:block;overflow:auto;border-collapse:collapse;margin:20px 0}th,td{padding:8px 12px;border:1px solid var(--line);text-align:left}.footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}</style></head><body><main><article><h1>Scoping and curating eval datasets</h1><section class="meta"><div>Author: Annabell (@annabellschfr)</div><div>X source: <a href="https://x.com/annabellschfr/status/2085381643687047434">https://x.com/annabellschfr/status/2085381643687047434</a></div><div>Archived: 2026-08-07</div></section><section class="note">This offline copy preserves source material from X and explicitly linked Langfuse documentation.</section><img src="./images/cover.jpg" alt="Cover" loading="lazy">
+<p>Your agent is running and yielding first results, but at some point you realize: 'vibe-fixing my application does not cut it anymore'. You need a structured and strategic way to make sure your agent consistently does what it is supposed to do. You need an eval dataset.</p>
+<p>An eval dataset is a repeatable set of examples that represent the scope of your application, and that you use to measure and improve your system. By running your application against the same inputs over time, you can track quality with metrics, compare changes, and catch regressions before they affect production users.</p>
+<p>This guide focuses on the design work that happens before and while you create datasets and dataset items. To learn more about the basic building blocks you can check out our academy section on <a href="https://langfuse.com/academy/datasets" target="_blank" rel="noopener noreferrer">datasets</a></p>
+<img src="./images/media-2085278921042325504.jpg" alt="Article media" loading="lazy">
+<p>Dataset design is iterative. A good starting point is a minimally complete dataset: about 15-30 rows that can run through your application, cover the most important input slices, and have an evaluator or review rubric. Run that version early, fix the schema and evaluator, then expand into the gaps you see from those runs or from production input.</p>
+<p>Your application will very likely have more than one evaluation dataset. Datasets are often scoped to a specific part of the system or to one sub-step the agent takes.</p>
+<h2><a href="https://langfuse.com/academy/datasets/designing-great-datasets#1-start-with-the-goal-of-the-dataset" target="_blank" rel="noopener noreferrer">1. Start with the goal of the dataset</a></h2>
+<p>Before writing rows, define the smallest useful goal the dataset should support. This keeps the dataset from becoming a vague bucket of interesting examples.</p>
+<img src="./images/media-2085279510123941888.jpg" alt="Article media" loading="lazy">
+<p>A good early starting point for a dataset is looking at the most common examples end to end. This gives you the foundation and the general understanding from which you can expand.</p>
+<p>Over time, teams add datasets for single steps, adversarial cases, red teaming, or specific sub-use cases in their application. We have even seen datasets for checking company name spelling.</p>
+<p>The goal you set for your dataset defines boundary and job: end-to-end datasets use the payload the application receives, while step-level datasets use the structured state a step sees in production.</p>
+<p>If two jobs need different inputs, evaluators, or release decisions, split them. A stable regression dataset and an adversarial-input dataset can both be useful, but combining them without a clear split makes aggregate scores harder to interpret.</p>
+<h2><a href="https://langfuse.com/academy/datasets/designing-great-datasets#2-inspect-available-sources" target="_blank" rel="noopener noreferrer">2. Inspect available sources</a></h2>
+<p>Before selecting examples or writing dataset items, inspect a small sample of the material you could use. The goal is to understand what exists and how it's different from what you expected.</p>
+<p>Start with three source types:</p>
+<ul>
+<li><strong>Production traces:</strong> show realistic usage, common paths, and observed failures. Scores, user feedback, tickets, and complaints are discovery signals for useful traces; they are not a separate source type.</li>
+</ul>
+<ul>
+<li><strong>Existing assets:</strong> old datasets, FAQs, policies, docs, support macros, CSVs, JSON files, and benchmarks can bootstrap known coverage quickly.</li>
+</ul>
+<ul>
+<li><strong>Synthetic cases:</strong> expert-written and AI-generated examples can fill gaps and give you an idea of what your application is expected to face.</li>
+</ul>
+<p>For each source, review input topics, input and output shapes, and failure modes. You might learn that production traces lack the retrieval context your evaluator needs, that tickets from legacy systems expose better failure labels than traces, or that there is already a good set of end-to-end examples, because support created a 'FAQ' at some point.</p>
+<p>Use these sources to choose the distribution of inputs, evaluators, and item schema in the next steps.</p>
+<h2><a href="https://langfuse.com/academy/datasets/designing-great-datasets#3-choose-the-input-distribution" target="_blank" rel="noopener noreferrer">3. Choose the input distribution</a></h2>
+<p>For a first dataset, keep the input distribution simple. Start with the few slices that tell you what to do after a run:</p>
+<ul>
+<li><strong>Scenario type:</strong> the main jobs, intents, routes, or task families. For a support-routing dataset, this might be billing, account access, technical issue, and sales request.</li>
+</ul>
+<ul>
+<li><strong>Difficulty or risk:</strong> routine, ambiguous, hard, adversarial, or business-critical cases. Include more than happy paths, but do not make the first dataset all edge cases.</li>
+</ul>
+<ul>
+<li><strong>Dataset role:</strong> why the row exists: typical case, known regression, observed failure, or synthetic gap-fill.</li>
+</ul>
+<p>For a support-routing dataset, the first version might use a simple scenario-by-difficulty matrix:</p>
+<img src="./images/media-2085279092971061248.jpg" alt="Article media" loading="lazy">
+<p>Input distribution is the deliberate mix of cases in the dataset: which scenarios appear, how difficult they are, and why each row is included. It is the coverage plan that helps you interpret experiment results by slice.</p>
+<p>The distribution does not have to mirror production frequency exactly. A regression dataset may intentionally overrepresent failures, edge cases, or high-value paths. What counts is that the mix is deliberate and visible in metadata.</p>
+<p>Add more dimensions only when they change behavior or help interpret results. Channel, language, customer segment, region, context availability, and product area can be useful metadata, but they should not all become balancing constraints on day one.</p>
+<h2><a href="https://langfuse.com/academy/datasets/designing-great-datasets#4-decide-how-evaluation-will-work" target="_blank" rel="noopener noreferrer">4. Decide how evaluation will work</a></h2>
+<p>Choose the evaluation style before you write expected outputs. This determines what the dataset item needs to contain and how useful the first results will be.</p>
+<p>Use <a href="https://langfuse.com/academy/evaluate#reference-based-vs-reference-free" target="_blank" rel="noopener noreferrer">reference-based evaluation</a> when each item has a known target: a correct label, expected tool call, required fact, structured output, reference answer, or expected next action. This is the best fit for regression tests and CI gates because failures are easier to inspect. The trade-off is that references take work to write and can become brittle if they over-specify wording instead of behavior.</p>
+<p>Use <a href="https://langfuse.com/academy/evaluate#reference-based-vs-reference-free" target="_blank" rel="noopener noreferrer">reference-free evaluation</a> when there is no stable expected output, but every item can be judged against the same rule or rubric. This works for checks such as valid JSON, language match, grounding in provided context, safety, or tone. The trade-off is that the evaluator or rubric carries more weight, so ambiguous rubrics produce ambiguous results.</p>
+<p>For example, a docs chatbot dataset can use either approach:</p>
+<img src="./images/media-2085279186134999040.jpg" alt="Article media" loading="lazy">
+<p>Choose the cheapest evaluator that captures the requirement: <a href="https://langfuse.com/docs/evaluation/evaluation-methods/code-evaluators" target="_blank" rel="noopener noreferrer">code evaluators</a> for deterministic checks, <a href="https://langfuse.com/docs/evaluation/evaluation-methods/llm-as-a-judge" target="_blank" rel="noopener noreferrer">LLM-as-a-judge</a> for language-quality judgments, and <a href="https://langfuse.com/academy/evaluate#how-evaluation-typically-evolves" target="_blank" rel="noopener noreferrer">manual evaluation</a> while you are still learning what good and bad outputs look like.</p>
+<p>At this stage, you only need to decide how each dataset item will be reviewed: by an automated evaluator, manual annotation, or both. For the deeper work of designing the evaluator itself, see the <a href="https://langfuse.com/academy/evaluate" target="_blank" rel="noopener noreferrer">Academy page on evaluation</a>.</p>
+<p>If you cannot yet name the evaluator or review rubric that will score each row, go for a review workflow first and use <a href="https://langfuse.com/docs/evaluation/evaluation-methods/annotation-queues" target="_blank" rel="noopener noreferrer">annotation queues</a> to label examples manually.</p>
+<h2><a href="https://langfuse.com/academy/datasets/designing-great-datasets#5-design-the-item-schema" target="_blank" rel="noopener noreferrer">5. Design the item schema</a></h2>
+<p>The <a href="https://langfuse.com/academy/datasets#the-dataset-item" target="_blank" rel="noopener noreferrer">three dataset item fields</a> are flexible JSON. Here, define them as a concrete contract that your experiment runner, evaluators, and reviewers can all consume.</p>
+<p>Define:</p>
+<ul>
+<li>input: the object you will pass into the system boundary</li>
+</ul>
+<ul>
+<li>expectedOutput: only the reference data the evaluator or reviewer needs; omit it for deliberate reference-free evaluation</li>
+</ul>
+<ul>
+<li>metadata: stable slice and provenance fields such as source, scenario type, difficulty, dataset role, and review status</li>
+</ul>
+<p>Once you have decided on an item schema, enforce it so your team can effectively collaborate on adding items <a href="https://langfuse.com/docs/evaluation/experiments/datasets#schema-enforcement" target="_blank" rel="noopener noreferrer">in the right structure</a>.</p>
+<p>For a support-routing dataset, one row could look like this:</p>
+<img src="./images/media-2085279272961187840.jpg" alt="Article media" loading="lazy">
+<p>The input keeps only the context the router needs. The expectedOutput states the behavior to check: route to billing, ask for the invoice ID, and do not promise a refund before review. The metadata records the row's source, scenario, difficulty, and role.</p>
+<p>Keep the schema stable before collecting rows in bulk. Preserve behavior-shaping fields such as conversation history, retrieved context, tool state, routing metadata, or user attributes, but avoid arbitrary per-row fields or natural-language summaries of structured context.</p>
+<h2><a href="https://langfuse.com/academy/datasets/designing-great-datasets#6-draft-a-first-version" target="_blank" rel="noopener noreferrer">6. Draft a first version</a></h2>
+<p>Once the goal, distribution, evaluation method, and schema are concrete, start turning selected source examples into dataset items. Use the sources you inspected earlier, and add them in a format that matches the defined schema.</p>
+<p>For a minimally complete first version, choose enough rows to test the whole contract along your input distribution:</p>
+<ul>
+<li>common scenarios that should work reliably</li>
+</ul>
+<ul>
+<li>a few ambiguous or high-risk scenarios</li>
+</ul>
+<ul>
+<li>known failures or regressions you want to prevent</li>
+</ul>
+<ul>
+<li>synthetic gap fills only where production traces or existing assets do not cover the distribution</li>
+</ul>
+<p>Do not wait until the dataset feels complete. Run the first coherent version in an experiment before adding more rows.</p>
+<h2><a href="https://langfuse.com/academy/datasets/designing-great-datasets#7-run-the-first-experiment-and-expand-deliberately" target="_blank" rel="noopener noreferrer">7. Run the first experiment and expand deliberately</a></h2>
+<p>Use the first run to check whether the input shape works with the real application path, if the evaluator outcomes make sense, and if the expected output shape works for the intended purpose.</p>
+<p>After the first run, expand and iterate until you arrive at scope and shape that helps you feel confident about shipping changes.</p>
+<ul>
+<li>Add rows when a failure reveals a missing scenario, difficulty level, or source.</li>
+</ul>
+<ul>
+<li>Edit rows when the expected output, rubric, input shape, or metadata is ambiguous.</li>
+</ul>
+<ul>
+<li>Archive rows when they no longer match current prompts, tools, policies, or product behavior.</li>
+</ul>
+<h2><a href="https://langfuse.com/academy/datasets/designing-great-datasets#how-datasets-evolve-over-time" target="_blank" rel="noopener noreferrer">How datasets evolve over time</a></h2>
+<p>Datasets have to evolve with your application. By <a href="https://langfuse.com/academy/monitoring" target="_blank" rel="noopener noreferrer">monitoring production</a> and frequently reviewing data through structured <a href="https://langfuse.com/academy/monitoring/error-analysis" target="_blank" rel="noopener noreferrer">error analysis</a>, your datasets can evolve over time to represent the production scope of your system. There are three useful expansion patterns:</p>
+<ul>
+<li><strong>Production-mirroring</strong>: add interesting cases from production no matter if good or bad, to expand the coverage of your dataset over time.</li>
+</ul>
+<ul>
+<li><strong>Bad-trace expansion:</strong> add a reviewed dataset item whenever you find a serious production failure. This works well once the system is live and you can continuously mine traces. For scoring, use automated evaluators such as <a href="https://langfuse.com/docs/evaluation/evaluation-methods/llm-as-a-judge" target="_blank" rel="noopener noreferrer">LLM-as-a-judge</a> or <a href="https://langfuse.com/docs/evaluation/evaluation-methods/code-evaluators" target="_blank" rel="noopener noreferrer">code evaluators</a>, or send examples to <a href="https://langfuse.com/docs/evaluation/evaluation-methods/annotation-queues" target="_blank" rel="noopener noreferrer">annotation queues</a> for manual review.</li>
+</ul>
+<ul>
+<li><strong>Purpose-specific datasets:</strong> build separate datasets for stable regression, adversarial inputs, single-step evaluations.</li>
+</ul>
+<h2><a href="https://langfuse.com/academy/datasets/designing-great-datasets#put-it-into-practice" target="_blank" rel="noopener noreferrer">Put it into practice</a></h2>
+<ul>
+<li><strong>Start with one release question.</strong> Pick a product area and the smallest end-to-end dataset that can answer whether a specific change can ship.</li>
+</ul>
+<ul>
+<li><strong>Use 15-30 rows.</strong> Cover the most common scenarios, a few high-risk cases, and one or two known failures.</li>
+</ul>
+<ul>
+<li><strong>Keep every row runnable and evaluable.</strong> Each input should pass through the application path and be scorable by the evaluator or review rubric.</li>
+</ul>
+<ul>
+<li><strong>Expand after the first run.</strong> Add bad traces for production failures you want to prevent from coming back, create purpose-specific datasets when one dataset starts mixing different jobs, and add synthetic rows only for named gaps.</li>
+</ul><footer class="footer">Source JSON is stored alongside this file.</footer></article></main></body></html>

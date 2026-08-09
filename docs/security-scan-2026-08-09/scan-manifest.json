@@ -1,0 +1,120 @@
+{
+  "documentType": "codex-security.scan-manifest",
+  "scan": {
+    "artifacts": [
+      {
+        "mediaType": "application/json",
+        "path": "findings.json",
+        "sha256": "19ac755c2c9144f10c1518b10cf259e879ced0a386736c80a4c35aa3cdf9114d"
+      },
+      {
+        "mediaType": "application/json",
+        "path": "coverage.json",
+        "sha256": "bee0505ccb0d720f4886e1f5c2bc4a8d2b1cd10744b3133b463fadfcfc2c0139"
+      }
+    ],
+    "completedAt": "2026-08-09T09:31:16Z",
+    "coverageRef": "coverage.json",
+    "findingsRef": "findings.json",
+    "id": "scan_pi_web_desktop_20260809_t2",
+    "producer": {
+      "name": "codex-security-plugin",
+      "version": "0.1.18"
+    },
+    "scope": {
+      "excludePaths": [
+        "ref-repos/",
+        "release/",
+        "node_modules/"
+      ],
+      "includePaths": [
+        "proxy.ts",
+        "next.config.ts",
+        "electron/",
+        "app/api/agent/",
+        "app/api/auth/",
+        "app/api/cwd/",
+        "app/api/default-cwd/",
+        "app/api/file-index/",
+        "app/api/files/",
+        "app/api/git/",
+        "app/api/models-config/",
+        "app/api/plugins/",
+        "app/api/project-trust/",
+        "app/api/sessions/",
+        "app/api/skills/",
+        "app/api/themes/",
+        "app/api/worktrees/",
+        "lib/allowed-roots.ts",
+        "lib/atomic-file.ts",
+        "lib/bounded-form-data.ts",
+        "lib/file-access.ts",
+        "lib/file-upload.ts",
+        "lib/git-changes.ts",
+        "lib/npx.ts",
+        "lib/project-trust.ts",
+        "lib/provider-credential-store.ts",
+        "lib/request-security.ts",
+        "lib/rpc-manager.ts",
+        "lib/session-file-references.ts",
+        "lib/session-file-references-core.ts",
+        "lib/skill-updates.ts",
+        "lib/theme-access.ts",
+        "lib/theme.ts",
+        "lib/worktree.ts"
+      ],
+      "limitations": [
+        "Pure presentation components and generated release artifacts were outside this security-focused scope.",
+        "Windows runtime behavior is covered by source and packaging tests but was not executed on a Windows host in this scan."
+      ],
+      "runtimeStatus": "Parent-led fallback; independent scan workers were unavailable by runtime policy.",
+      "summary": "Single-pass review of the Electron boundary, HTTP trust controls, filesystem authorization, uploads, credentials, executable entry points, project resources, sessions, themes, and production dependency exposure.",
+      "validationMode": "Static source review plus targeted negative tests, full project tests, TypeScript, ESLint, dependency audit, and diff validation."
+    },
+    "sealedAt": "2026-08-09T09:31:16Z",
+    "startedAt": "2026-08-09T09:20:00Z",
+    "status": "completed",
+    "target": {
+      "displayName": "@iswitthere/pi-web-desktop",
+      "kind": "git_worktree",
+      "revision": "81b71ffee143b617b77fd9dcaa2ab04980cc1145",
+      "snapshotDigest": "codex-security-snapshot/v1:sha256:58ca27432b85fa92f425fc6dfe26de10a60a3dc029a168cb768dc2e2e9c2dc6b",
+      "targetId": "pi-web-desktop-81b71ffee143-security-remediation"
+    },
+    "threatModel": {
+      "assets": [
+        "Files under authorized workspace and session roots",
+        "Provider API keys and OAuth credentials",
+        "Agent sessions and model configuration",
+        "Desktop process privileges and operating-system shell actions"
+      ],
+      "assumptions": [
+        "The local operating-system account is trusted to access its own Pi data",
+        "LAN exposure remains disabled unless separately security-reviewed",
+        "Project resources execute only after the existing project-trust gate"
+      ],
+      "attackerCapabilities": [
+        "Supply chat, Markdown, Mermaid, file, path, upload, theme, and package inputs",
+        "Control files and symbolic links inside an authorized project",
+        "Attempt cross-origin loopback requests or renderer navigation",
+        "Influence repository-local Pi resources before project trust is granted"
+      ],
+      "securityObjectives": [
+        "Keep API access loopback-scoped and origin-validated",
+        "Prevent filesystem access outside canonical authorized roots",
+        "Prevent untrusted renderer content from invoking privileged IPC or arbitrary protocols",
+        "Keep credentials private and updates crash-safe",
+        "Avoid shell interpretation of package and Git arguments"
+      ],
+      "summary": "A loopback-first Electron application exposes a Next.js API with broad local filesystem, process, credential, session, plugin, and model capabilities; untrusted inputs include renderer content, chat/model output, project files, browser requests, uploaded files, package identifiers, and OAuth callbacks.",
+      "trustBoundaries": [
+        "Renderer to Electron main process IPC",
+        "Browser or renderer to loopback Next.js API",
+        "Requested paths to canonical filesystem objects",
+        "Repository-controlled resources to the Pi runtime",
+        "Package and command inputs to child processes"
+      ]
+    }
+  },
+  "schemaVersion": "1.0"
+}

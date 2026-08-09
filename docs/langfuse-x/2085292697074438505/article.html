@@ -1,0 +1,81 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tracing agent memory operations in Langfuse with EverOS</title><style>:root{color-scheme:light dark;--bg:#fff;--text:#111827;--muted:#64748b;--line:#dbe3ec;--card:#f8fafc;--link:#2563eb;--code:#eef2f7}
+@media(prefers-color-scheme:dark){:root{--bg:#0b0f14;--text:#e5e7eb;--muted:#94a3b8;--line:#263241;--card:#121923;--link:#60a5fa;--code:#17202b}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.75}
+main{width:min(100% - 32px,860px);margin:auto;padding:44px 0 72px}h1{font-size:clamp(30px,5vw,46px);line-height:1.16}h2{margin-top:44px}h3{margin-top:32px}a{color:var(--link)}
+.meta,.note{padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--muted)}img{display:block;max-width:100%;height:auto;margin:24px auto;border-radius:12px}
+pre{overflow:auto;padding:16px;border-radius:12px;background:var(--code)}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}blockquote{margin:24px 0;padding-left:18px;border-left:4px solid var(--link);color:var(--muted)}
+table{display:block;overflow:auto;border-collapse:collapse;margin:20px 0}th,td{padding:8px 12px;border:1px solid var(--line);text-align:left}.footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}</style></head><body><main><article><h1>Tracing agent memory operations in Langfuse with EverOS</h1><section class="meta"><div>Author: langfuse.com (@langfuse)</div><div>X source: <a href="https://x.com/langfuse/status/2085292697074438505">https://x.com/langfuse/status/2085292697074438505</a></div><div>Archived: 2026-08-07</div></section><section class="note">This offline copy preserves source material from X and explicitly linked Langfuse documentation.</section><h2>X 原帖</h2>
+<p>Memory is the one layer of the agent stack observability often can't see.</p>
+<p>EverOS now speaks OTel natively, so memory operations land in Langfuse: what got stored, what got recalled, how confident that recall was, how conflicting memories got merged, and what it cost.</p>
+<h2>关联官方文档快照</h2>
+<p>Memory is the one layer of the agent stack that observability usually can't see. This integration makes an agent's <strong>memory operations</strong> visible in Langfuse: what got stored, what a question recalled, how confident that recall was, when two memories were reconciled into one, and what all of it cost.</p>
+<p>EverOS emits OpenTelemetry natively as of 1.2.0. There is no wrapper and no instrumentation code to write: enable it in your config and the traces appear.</p>
+<p><a href="https://github.com/EverMind-AI/EverOS" target="_blank" rel="noopener noreferrer">EverOS</a> is an open-source (Apache-2.0), local-first memory runtime for AI agents. Conversations and agent trajectories are extracted by an LLM into user profiles, episodic memories, agent cases and reusable agent skills; stored as human-readable Markdown; indexed in SQLite + LanceDB; retrieved via hybrid BM25 + vector recall with reranking; and consolidated over time by an offline reflection engine. It runs as an HTTP service (<code>pip install everos</code>).</p>
+<p><a href="https://langfuse.com/" target="_blank" rel="noopener noreferrer">Langfuse</a> is the open-source platform for LLM observability, evaluation, and prompt management. It ingests OpenTelemetry traces natively, so any system that speaks OTLP, including EverOS, shows up next to the rest of your agent's traces, with model-usage and cost views, scores, and dashboards.</p>
+<p>A write. The memory EverOS distilled from the conversation is the output of the <code>everos.extract</code> generation. Boundary detection, extraction and each reflection strategy carry their own tokens and cost, so the price of remembering one thing is itemised rather than lumped together.</p>
+<img src="./images/everos_extract_trace.png" alt="Image 1: An EverOS write traced in Langfuse: episode extraction as a generation with its token usage and cost, alongside the reflection strategies that follow it" loading="lazy">
+<p>A read: the question, what came back, and the recall-quality scores on the retriever observation.</p>
+<img src="./images/everos_search_trace.png" alt="Image 2: An EverOS search traced in Langfuse, showing the query, the recalled episodes, and recall-quality scores on the retriever observation" loading="lazy">
+<p>The scores themselves, each tagged with the retrieval method that produced it.</p>
+<img src="./images/everos_scores.png" alt="Image 3: The Scores tab for an EverOS search, listing recall_hit and recall_top_score with the retrieval method in each score&#x27;s metadata" loading="lazy">
+<p>Every figure above is a real trace, not a mock-up. To get an interactive one in your own project, replay the recording the EverOS repo ships (<a href="http://langfuse.com/integrations/other/everos#try-it-without-installing-everos" target="_blank" rel="noopener noreferrer">below</a>) — no EverOS install required.</p>
+<p>*   <strong>The memory lifecycle as trace trees.</strong><code>flush</code> → <code>boundary</code> → <code>extract</code> → <code>persist</code>, with the reflection strategies fanning out behind it, and <code>search</code> → <code>recall</code> → <code>rank</code> with the query embedding nested inside <code>recall</code>. Every stage timed and costed.<br>
+*   <strong>The cost of remembering.</strong> LLM and embedding calls are <code>generation</code> and <code>embedding</code> observations carrying model and token usage, so Langfuse computes cost in its model-usage views. EverOS sends no cost of its own.<br>
+*   <strong>Recall quality over time.</strong> Each search attaches two numbers: how relevant the best hit looked, and whether that cleared a threshold. These are useful to plot and trend, but they are proxies, not ground-truth relevance. For real relevance evaluation, run an <a href="https://langfuse.com/docs/evaluation/overview" target="_blank" rel="noopener noreferrer">LLM-as-judge</a> over the query and recalled content in the trace.<br>
+*   <strong>Conflicting memories getting resolved.</strong> When two memories say different things about the same subject — a plan that changed, a preference that was updated — reflection merges them and retires the outdated one, which then stops coming back from search. This is the part of a memory system that usually happens invisibly, and it is the hardest to debug when it goes wrong. Here it is an observation of its own, inside the write that triggered it.<br>
+*   <strong>Filtering by conversation and by user.</strong> Write traces are tagged with the conversation they belong to, so Langfuse groups a whole conversation into one session. Search traces record whose memory was searched, so you can filter searches by user.</p>
+<p>Each EverOS API call becomes one Langfuse trace, with the server-side pipeline stages as typed child observations:</p>
+<p>| EverOS operation | Langfuse observation | What becomes visible |<br>
+| --- | --- | --- |<br>
+| <code>POST /api/v2/memory/add</code> · <code>flush</code> | span <code>everos.memory.add</code> / <code>everos.memory.flush</code> | the whole write in one trace, with its total time and cost |<br>
+| memcell boundary detection (LLM) | generation <code>everos.memcell.boundary</code> | model + tokens spent finding a memory's edges |<br>
+| episode extraction (LLM) | generation <code>everos.extract</code> | the memory that was written, model + tokens |<br>
+| Markdown persistence | span <code>everos.persist.markdown</code> | the <code>.md</code> file it landed in |<br>
+| <code>POST /api/v2/memory/search</code> | retriever <code>everos.memory.search</code>, over <code>everos.search.recall</code> and <code>everos.search.rank</code> | query → episodes returned, plus the recall score |<br>
+| query / recall embedding | embedding <code>everos.embedding</code> | embedding model + tokens |<br>
+| reflection and extraction strategies | agent <code>everos.ome.&lt;strategy&gt;</code> | which strategy ran, model + tokens |<br>
+| consolidating related memories | span <code>everos.reflect.consolidate</code> | memories merged, and outdated ones retired |</p>
+<p>Reflection runs after the request that triggered it has already returned, but its spans still land inside that request's trace instead of a separate one. So a write and everything it set off in the background stay in one place, and you can tell which write caused which piece of work.</p>
+<p>Recall quality is pushed to the Langfuse <strong>scores</strong> API, attached to the search observation. Calibrated and uncalibrated retrieval methods report under different score names, because their values are on different scales and averaging them together would be meaningless. The <a href="https://github.com/EverMind-AI/EverOS/blob/main/examples/langfuse/README.md" target="_blank" rel="noopener noreferrer">span and score reference</a> in the EverOS repo lists the exact names and what each one means.</p>
+<h3><a href="http://langfuse.com/integrations/other/everos#try-it-without-installing-everos" target="_blank" rel="noopener noreferrer">Try it without installing EverOS</a></h3>
+<p>The EverOS repo ships a recording of a real run under <a href="https://github.com/EverMind-AI/EverOS/tree/main/examples/langfuse" target="_blank" rel="noopener noreferrer"><code>examples/langfuse/</code></a>, plus a script that replays it into your own project. Span names, attributes, token usage, structure and durations are the server's own output. Ids and timestamps are rewritten so repeated runs do not collide, and each trace gets a <code>replay</code> tag so a recording is never mistaken for live traffic.</p>
+<pre><code>pip install opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
+export LANGFUSE_PUBLIC_KEY=&quot;pk-lf-...&quot;
+export LANGFUSE_SECRET_KEY=&quot;sk-lf-...&quot;
+export LANGFUSE_HOST=&quot;https://cloud.langfuse.com&quot;  # 🇺🇸 US: https://us.cloud.langfuse.com
+python replay.py</code></pre>
+<p>Open your Langfuse project and filter on the <code>replay</code> tag.</p>
+<h3><a href="http://langfuse.com/integrations/other/everos#point-your-own-everos-at-langfuse" target="_blank" rel="noopener noreferrer">Point your own EverOS at Langfuse</a></h3>
+<p>Install the OpenTelemetry extra and add one config block. The Langfuse keys derive the OTLP endpoint and auth for you:</p>
+<p><code>pip install "everos[otel]"</code></p>
+<pre><code>[observability]
+enabled             = true
+langfuse_public_key = &quot;pk-lf-...&quot;
+langfuse_secret_key = &quot;sk-lf-...&quot;
+langfuse_host       = &quot;https://cloud.langfuse.com&quot;  # 🇺🇸 US: https://us.cloud.langfuse.com
+# capture_content   = true   # opt-in: also record query and extracted memory text</code></pre>
+<p>Every field has an <code>EVEROS_OBSERVABILITY__*</code> environment variable equivalent for containers and CI, and <code>langfuse_host</code> can point at a <a href="https://langfuse.com/self-hosting" target="_blank" rel="noopener noreferrer">self-hosted Langfuse</a> instead of the cloud. Tracing is off by default, and with it off there is no overhead.</p>
+<blockquote><strong>Privacy.</strong> Traces carry metadata only by default — latency, token counts, model names, scores. Recording the query text or the extracted memory itself is opt-in via <code>capture_content</code>, with a redaction hook you can install for what does get recorded. Turn it on deliberately.</blockquote>
+<p>To bring up a server, follow the <a href="https://github.com/EverMind-AI/EverOS/blob/main/QUICKSTART.md" target="_blank" rel="noopener noreferrer">EverOS quickstart</a>.</p>
+<h3><a href="http://langfuse.com/integrations/other/everos#drive-some-memory-through-it" target="_blank" rel="noopener noreferrer">Drive some memory through it</a></h3>
+<pre><code>everos server start
+python demo.py     # from examples/langfuse/</code></pre>
+<p><code>demo.py</code> uses only the standard library and contains no instrumentation code — the spans come from the server. It ingests a handful of conversations, triggers reflection, and asks questions of the resulting memory.</p>
+<p>*   <a href="https://github.com/EverMind-AI/EverOS" target="_blank" rel="noopener noreferrer">EverOS on GitHub</a><br>
+*   <a href="https://github.com/EverMind-AI/EverOS/tree/main/examples/langfuse" target="_blank" rel="noopener noreferrer">Integration example and span/score reference</a><br>
+*   <a href="https://github.com/EverMind-AI/Raven" target="_blank" rel="noopener noreferrer">Raven, the self-improving agent harness built on EverOS</a><br>
+*   <a href="https://langfuse.com/integrations/native/opentelemetry" target="_blank" rel="noopener noreferrer">Langfuse OpenTelemetry docs</a></p>
+<p>You can use this integration together with the Langfuse <a href="https://langfuse.com/docs/observability/sdk/overview" target="_blank" rel="noopener noreferrer">SDKs</a> to add additional attributes to the observation.</p>
+<p>No observations appearing<br>
+First, enable <a href="https://langfuse.com/docs/observability/sdk/advanced-features#logging--debugging" target="_blank" rel="noopener noreferrer">debug mode</a> in the Python SDK:</p>
+<p><code>export LANGFUSE_DEBUG="True"</code></p>
+<p>Then run your application and check the debug logs:</p>
+<p>*   <strong>OTel observations appear in the logs:</strong> Your application is instrumented correctly but observations are not reaching Langfuse. To resolve this:<br>
+    1.   Call <a href="https://langfuse.com/docs/observability/sdk/instrumentation#client-lifecycle--flushing" target="_blank" rel="noopener noreferrer"><code>langfuse.flush()</code></a> at the end of your application to ensure all observations are exported.<br>
+    2.   Verify that you are using the correct API keys and base URL.</p>
+<p>*   <strong>No OTel spans in the logs:</strong> Your application is not instrumented correctly. Make sure the instrumentation runs before your application code.</p>
+<p>Unwanted observations in Langfuse<br>
+The Langfuse SDK is based on OpenTelemetry. Other libraries in your application may emit OTel spans that are not relevant to you. These still count toward your <a href="https://langfuse.com/docs/administration/billable-units" target="_blank" rel="noopener noreferrer">billable units</a>, so you should filter them out. See <a href="https://langfuse.com/faq/all/unwanted-http-database-spans" target="_blank" rel="noopener noreferrer">Unwanted spans in Langfuse</a> for details.</p>
+<p>Missing attributes<br>
+Some attributes may be stored in the metadata object of the observation rather than being mapped to the Langfuse data model. If a mapping or integration does not work as expected, please <a href="https://langfuse.com/issues" target="_blank" rel="noopener noreferrer">raise an issue on GitHub</a>.</p>
+<p>Once you have instrumented your code, you can manage, evaluate and debug your application:</p><footer class="footer">Source JSON is stored alongside this file.</footer></article></main></body></html>

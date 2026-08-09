@@ -1,0 +1,36 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Manage Langfuse dashboards via API, CLI, and MCP</title><style>:root{color-scheme:light dark;--bg:#fff;--text:#111827;--muted:#64748b;--line:#dbe3ec;--card:#f8fafc;--link:#2563eb;--code:#eef2f7}
+@media(prefers-color-scheme:dark){:root{--bg:#0b0f14;--text:#e5e7eb;--muted:#94a3b8;--line:#263241;--card:#121923;--link:#60a5fa;--code:#17202b}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.75}
+main{width:min(100% - 32px,860px);margin:auto;padding:44px 0 72px}h1{font-size:clamp(30px,5vw,46px);line-height:1.16}h2{margin-top:44px}h3{margin-top:32px}a{color:var(--link)}
+.meta,.note{padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--muted)}img{display:block;max-width:100%;height:auto;margin:24px auto;border-radius:12px}
+pre{overflow:auto;padding:16px;border-radius:12px;background:var(--code)}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}blockquote{margin:24px 0;padding-left:18px;border-left:4px solid var(--link);color:var(--muted)}
+table{display:block;overflow:auto;border-collapse:collapse;margin:20px 0}th,td{padding:8px 12px;border:1px solid var(--line);text-align:left}.footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}</style></head><body><main><article><h1>Manage Langfuse dashboards via API, CLI, and MCP</h1><section class="meta"><div>Author: langfuse.com (@langfuse)</div><div>X source: <a href="https://x.com/langfuse/status/2079863575007420562">https://x.com/langfuse/status/2079863575007420562</a></div><div>Archived: 2026-08-07</div></section><section class="note">This offline copy preserves source material from X and explicitly linked Langfuse documentation.</section><h2>X 原帖</h2>
+<p>manage dashboards via API, CLI, MCP &amp; Langfuse Assistant</p>
+<p>create and manage dashboards and widgets via the public API, let agents build them through the MCP server or CLI, or ask the Langfuse Assistant in the UI.</p>
+<p>https://langfuse.com/changelog/2026-07-17-dashboard-and-widget-operations-in-api</p>
+<img src="./images/tweet-media-1.jpg" alt="X post media" loading="lazy">
+<h2>关联官方文档快照</h2>
+<h1>Manage dashboards via API, CLI, and MCP</h1>
+<p><img src="./images/lysanderkiesel.jpeg" alt="Image 5: Picture Lysander Kiesel">Lysander Kiesel</p>
+<p><a href="https://static.langfuse.com/docs-videos/dashboard-widget-api.mp4" target="_blank" rel="noopener noreferrer">Video 2</a></p>
+<p>Create and manage dashboards and widgets programmatically through the public API and Langfuse CLI, let AI agents build them via the Langfuse MCP server, or ask the Langfuse Assistant in the UI.</p>
+<p>You can now create and manage dashboards end-to-end in code and through your agent. New endpoints under <code>/api/public/unstable</code> cover dashboards, the placements on their grid, and the reusable widgets those placements reference. The <a href="http://langfuse.com/docs/api-and-data-platform/features/cli" target="_blank" rel="noopener noreferrer">Langfuse CLI</a> picks the endpoints up automatically, and the <a href="http://langfuse.com/docs/api-and-data-platform/features/mcp-server" target="_blank" rel="noopener noreferrer">Langfuse MCP server</a> exposes the same operations as tools.</p>
+<p>This opens up a few workflows beyond the dashboard editor in the UI:</p>
+<p>*   <strong>Dashboards as code</strong>: keep dashboard definitions in version control and apply the same monitoring setup across projects and environments.<br>
+*   <strong>Agent-built dashboards</strong>: ask an AI agent for a dashboard, e.g. error traces for a certain feature over time. Reads run automatically, and every change goes through human-in-the-loop approval.<br>
+*   <strong>Incremental edits</strong>: add, move, or resize a single tile through the placement endpoints without resubmitting the whole layout. Omit the position and the server appends the tile for you.</p>
+<p>The same tools power the <a href="http://langfuse.com/docs/langfuse-assistant" target="_blank" rel="noopener noreferrer">Langfuse Assistant</a> in the UI, so you can ask it to create or update dashboards and widgets directly. The Assistant is available when AI features are enabled for your organization (org admins can enable them in the organization settings).</p>
+<h2><a href="http://langfuse.com/changelog/2026-07-17-dashboard-and-widget-operations-in-api#new-endpoints" target="_blank" rel="noopener noreferrer">New endpoints</a></h2>
+<p>*   <code>/dashboards</code> — list, create, read, update, and delete dashboards, including their filters and full layout definition. See the <a href="https://api.reference.langfuse.com/#tag/unstabledashboards" target="_blank" rel="noopener noreferrer">dashboards API reference</a>.<br>
+*   <code>/dashboards/{dashboardId}/placements</code> — add, move or resize, and remove individual tiles on a dashboard's grid, documented alongside the <a href="https://api.reference.langfuse.com/#tag/unstabledashboards" target="_blank" rel="noopener noreferrer">dashboards API reference</a>.<br>
+*   <code>/dashboard-widgets</code> — list, create, read, update, and delete the reusable widgets that placements reference. See the <a href="https://api.reference.langfuse.com/#tag/unstabledashboardwidgets" target="_blank" rel="noopener noreferrer">dashboard widgets API reference</a>.</p>
+<h2><a href="http://langfuse.com/changelog/2026-07-17-dashboard-and-widget-operations-in-api#new-mcp-tools" target="_blank" rel="noopener noreferrer">New MCP tools</a></h2>
+<p><strong>Dashboards</strong></p>
+<p><code>listDashboards</code><code>getDashboard</code><code>createDashboard</code><code>updateDashboard</code><code>deleteDashboard</code><br>
+<strong>Placements</strong></p>
+<p><code>addDashboardPlacement</code><code>updateDashboardPlacement</code><code>deleteDashboardPlacement</code><br>
+<strong>Widgets</strong></p>
+<p><code>listDashboardWidgets</code><code>getDashboardWidget</code><code>createDashboardWidget</code><code>updateDashboardWidget</code><code>deleteDashboardWidget</code></p>
+<p>These endpoints and MCP tools are <strong>unstable</strong> and may change while the dashboard and widget contract is being finalized. The dashboard editor in the UI remains fully supported.</p>
+<h2><a href="http://langfuse.com/changelog/2026-07-17-dashboard-and-widget-operations-in-api#get-started" target="_blank" rel="noopener noreferrer">Get started</a></h2>
+<h3><a href="http://langfuse.com/docs/metrics/features/custom-dashboards" target="_blank" rel="noopener noreferrer">Custom dashboards</a>### <a href="https://api.reference.langfuse.com/#tag/unstabledashboards" target="_blank" rel="noopener noreferrer">API reference</a>### <a href="http://langfuse.com/docs/api-and-data-platform/features/mcp-server" target="_blank" rel="noopener noreferrer">MCP server documentation</a></h3><footer class="footer">Source JSON is stored alongside this file.</footer></article></main></body></html>

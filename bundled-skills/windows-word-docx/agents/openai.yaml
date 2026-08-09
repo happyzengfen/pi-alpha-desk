@@ -1,0 +1,4 @@
+interface:
+  display_name: "Windows Word 文档"
+  short_description: "在 Windows 上离线创建可由 Word 打开的 DOCX 文档"
+  default_prompt: "Use $windows-word-docx to create a formatted Word document from my content."

@@ -1,0 +1,1300 @@
+{
+  "archive": {
+    "tweet_id": "2085161454668513642",
+    "url": "https://x.com/lotte_verheyden/status/2085161454668513642",
+    "archived_at": "2026-08-07",
+    "retrieval": "X public article API fallback (OpenCLI unavailable)",
+    "discovered_via": "https://x.com/langfuse/status/2085163050722873581",
+    "related_document": null,
+    "tags": [
+      "evaluation",
+      "llm-as-a-judge",
+      "monitoring"
+    ]
+  },
+  "source": {
+    "code": 200,
+    "message": "OK",
+    "tweet": {
+      "url": "https://x.com/lotte_verheyden/status/2085161454668513642",
+      "id": "2085161454668513642",
+      "text": "Wrote a piece on writing good evaluators, main take-aways: \n- go for a code evaluator when you can\n- don't rely on what the agent said it did, you need to actually verify\n- calibrate your LLM as a judge against labeled data",
+      "raw_text": {
+        "text": "Wrote a piece on writing good evaluators, main take-aways: \n- go for a code evaluator when you can\n- don't rely on what the agent said it did, you need to actually verify\n- calibrate your LLM as a judge against labeled data https://t.co/3wWoS5eDh6",
+        "display_text_range": [
+          0,
+          247
+        ],
+        "facets": []
+      },
+      "author": {
+        "screen_name": "lotte_verheyden",
+        "url": "https://x.com/lotte_verheyden",
+        "id": "842038250948685824",
+        "followers": 547,
+        "following": 272,
+        "likes": 680,
+        "media_count": 3,
+        "name": "Lotte",
+        "description": "guiding both humans and agents through AI engineering @langfuse",
+        "raw_description": {
+          "text": "guiding both humans and agents through AI engineering @langfuse",
+          "facets": []
+        },
+        "location": "San Francisco, CA",
+        "banner_url": "https://pbs.twimg.com/profile_banners/842038250948685824/1774652633",
+        "avatar_url": "https://pbs.twimg.com/profile_images/1994707418790432768/NvTWenyx_200x200.jpg",
+        "joined": "Wed Mar 15 15:42:18 +0000 2017",
+        "protected": false,
+        "website": {
+          "url": "http://langfuse.com",
+          "display_url": "langfuse.com"
+        },
+        "verification": {
+          "verified": true,
+          "verified_at": null,
+          "type": "individual"
+        },
+        "avatar_color": null
+      },
+      "replies": 15,
+      "retweets": 18,
+      "likes": 225,
+      "bookmarks": 416,
+      "quotes": 3,
+      "created_at": "Thu Aug 06 00:30:05 +0000 2026",
+      "created_timestamp": 1785976205,
+      "possibly_sensitive": false,
+      "views": 21951,
+      "is_note_tweet": false,
+      "community_note": null,
+      "lang": "en",
+      "replying_to": null,
+      "replying_to_status": null,
+      "source": "Twitter Web App",
+      "article": {
+        "created_at": "2026-08-06T00:30:05.000Z",
+        "modified_at": "2026-08-06T00:30:05.000Z",
+        "id": "2085123371776516096",
+        "title": "Good evals are boring",
+        "preview_text": "You traced your agent, are collecting user feedback, have identified some metrics you'd like to evaluate. But how? What kind of evaluator do you need? How do you translate the metric you want to",
+        "cover_media": {
+          "id": "QXBpTWVkaWE6DAAFCgABHO/i2HeaIAEKAAILr4VT8xZwAAAA",
+          "media_id": "2085134571843231745",
+          "media_info": {
+            "__typename": "ApiImage",
+            "color_info": {
+              "palette": [
+                {
+                  "percentage": 97.4,
+                  "rgb": {
+                    "blue": 239,
+                    "green": 245,
+                    "red": 250
+                  }
+                },
+                {
+                  "percentage": 1.03,
+                  "rgb": {
+                    "blue": 122,
+                    "green": 125,
+                    "red": 128
+                  }
+                },
+                {
+                  "percentage": 0.87,
+                  "rgb": {
+                    "blue": 94,
+                    "green": 220,
+                    "red": 222
+                  }
+                },
+                {
+                  "percentage": 0.67,
+                  "rgb": {
+                    "blue": 182,
+                    "green": 244,
+                    "red": 247
+                  }
+                }
+              ]
+            },
+            "original_img_height": 654,
+            "original_img_url": "https://pbs.twimg.com/media/HO_i2HeaIAEHYN2.jpg",
+            "original_img_width": 1635
+          },
+          "media_key": "3_2085134571843231745"
+        },
+        "content": {
+          "blocks": [
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "8umqk",
+              "text": "You traced your agent, are collecting user feedback, have identified some metrics you'd like to evaluate. But how? What kind of evaluator do you need? How do you translate the metric you want to measure into inputs and outputs? How do you write a good LLM-as-a-judge prompt?",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "7lgrc",
+              "text": "There’s a process you can follow to get to the best eval for your metric. This article lays out how to get there.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 0,
+                  "length": 14,
+                  "offset": 55
+                },
+                {
+                  "key": 1,
+                  "length": 21,
+                  "offset": 173
+                },
+                {
+                  "key": 2,
+                  "length": 20,
+                  "offset": 199
+                }
+              ],
+              "inlineStyleRanges": [
+                {
+                  "length": 261,
+                  "offset": 0,
+                  "style": "Italic"
+                }
+              ],
+              "key": "118i3",
+              "text": "Haven't decided what to evaluate yet? Take a look at\n- error analysis, a structured way to find the failure modes in your application worth checking\n- the evaluators on the Langfuse demo project and these example setups, as they are good templates to start from",
+              "type": "blockquote"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "ov5",
+              "text": "",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "5i8l1",
+              "text": "What kind of evaluator do you need?",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "19cdl",
+              "text": "Evaluators come in different kinds, each with its own pros and cons. For most evaluation tasks, there is one clear right choice.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 17,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "72i6n",
+              "text": "Offline vs online",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "646m1",
+              "text": "An evaluator can run in two places, and the purpose is different in each:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 3,
+                  "length": 11,
+                  "offset": 225
+                }
+              ],
+              "inlineStyleRanges": [
+                {
+                  "length": 24,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "35v9b",
+              "text": "Offline, on experiments. You run a new version of your application on a dataset, and the evaluator measures your metric on the outputs. The score exists to compare: is the new version better than the current one? This is the experiments loop.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 4,
+                  "length": 10,
+                  "offset": 173
+                }
+              ],
+              "inlineStyleRanges": [
+                {
+                  "length": 30,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "4hdl5",
+              "text": "Online, on production traffic. The evaluator scores live traces as they come in. There is no comparison here, the score exists to watch the trend over time. This is part of monitoring.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "7pn7n",
+              "text": "The two are not exclusive. You can measure the same metric in your experiments during development and on production traffic.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 45,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "a8nng",
+              "text": "Prefer deterministic evaluators where you can",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "271f7",
+              "text": "There are two main categories of evaluators: code evaluators (deterministic) and LLM-as-a-judge evaluators (nondeterministic). Both have their trade-offs.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 5,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "aer6f",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "25oo7",
+              "text": "If the thing you want to evaluate is",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "fmr00",
+              "text": "visible in your system (a row was written, a ticket was closed, an order was placed), or",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "bfsn3",
+              "text": "comparable against an expected output you saved ahead of time",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 6,
+                  "length": 14,
+                  "offset": 2
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "4ufhm",
+              "text": "a code evaluator can often settle the question exactly, and is faster and a lot cheaper to run. Prefer these over LLM-as-a-judge evaluators where you can.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "e872e",
+              "text": "An example: an invoice-processing tool that extracts structured fields (vendor, total, due date) from PDFs, evaluated both ways:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 7,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "47rre",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "a0n68",
+              "text": "",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 30,
+                  "offset": 0,
+                  "style": "Bold"
+                },
+                {
+                  "length": 235,
+                  "offset": 0,
+                  "style": "Italic"
+                }
+              ],
+              "key": "9i5hh",
+              "text": "The asymmetry of verification\nMany things are hard to produce but cheap to check, once someone has done the preparation. In many cases, if you have an expected output, every future evaluation run can become a cheap deterministic check.",
+              "type": "blockquote"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "9o6tf",
+              "text": "",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "96oj8",
+              "text": "Translating a metric into inputs and outputs",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "d01qk",
+              "text": "Once you know what kind of evaluator to use, you'll need to decide what data you're going to serve as input, and what its output will be. While this depends a lot on your use case, a couple of guiding principles apply.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 37,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "kcep",
+              "text": "Granularity → not one \"God Evaluator\"",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 8,
+                  "length": 13,
+                  "offset": 157
+                }
+              ],
+              "inlineStyleRanges": [
+                {
+                  "length": 13,
+                  "offset": 157,
+                  "style": "Italic"
+                }
+              ],
+              "key": "crtk",
+              "text": "It might be tempting to create a single judge that rates accuracy, tone of voice, and completeness together on a 1-10 scale. This is sometimes also called a God Evaluator. The problem with this is that your resulting score does not tell you what to fix.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "6gka5",
+              "text": "For LLM-as-a-judge evaluators specifically, narrow ones are also easier to build. Getting a judge to agree with you on one specific criterion is a much lower bar than agreeing on \"quality\".",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 26,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "6pdbl",
+              "text": "Input → actions over words",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 9,
+                  "length": 32,
+                  "offset": 307
+                }
+              ],
+              "inlineStyleRanges": [
+                {
+                  "length": 69,
+                  "offset": 368,
+                  "style": "Bold"
+                }
+              ],
+              "key": "2shvh",
+              "text": "It's fully possible that an agent ends a support conversation with \"Your refund of $200 has been processed, you're all set!\" while no refund exists. If your evaluators are going off of only a transcript, you might have a lot of false positives. Instead, a check on the refunds table would catch every case. Anthropic's guide to agent evals condenses this into a rule: grade the outcome in the environment, not the claim in the transcript.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 37,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "1k1jp",
+              "text": "Output → prefer binary or categorical",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "pfes",
+              "text": "Prefer a binary or categorical score instead of a scale, for two reasons:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 10,
+                  "length": 11,
+                  "offset": 160
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "b4vae",
+              "text": "a pass/fail verdict is easily verifiable. You can count exactly how often the evaluator catches a failure and how often it clears a pass, which is how you will validate it later. There is no equivalent test for whether a 7 was the right score",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 11,
+                  "length": 41,
+                  "offset": 165
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "4pi89",
+              "text": "scale points don't get applied consistently, even for a human it is hard to say what separates a 6 from a 7. LLMs add a quirk of their own on top, favorite numbers: GPT-3.5 has a preference for the number 7, for example",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "1ss32",
+              "text": "When one event has several mutually exclusive outcomes, use a single categorical evaluator that picks one label per case (resolved / abandoned / handed_off) rather than several overlapping binary ones.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "6h885",
+              "text": "",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 12,
+                  "length": 21,
+                  "offset": 14
+                }
+              ],
+              "inlineStyleRanges": [
+                {
+                  "length": 231,
+                  "offset": 0,
+                  "style": "Italic"
+                }
+              ],
+              "key": "9l54o",
+              "text": "Tying this to not one God Evaluator, avoid having multi-select categorical outputs. It can become ambiguous for the evaluator to know how many to select. In this case, it might make sense to split into multiple separate evaluators.",
+              "type": "blockquote"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "4mjfi",
+              "text": "",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "28lhs",
+              "text": "Writing a good LLM-as-a-judge",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "4737a",
+              "text": "You might come to the conclusion your evaluation task needs a judge. LLM-as-a-judge evaluators can be powerful, but they are also harder to get right.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "c9rb7",
+              "text": "Let's get into how you can create a reliable one.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 42,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "45bl8",
+              "text": "Label real cases before writing the prompt",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 13,
+                  "length": 14,
+                  "offset": 93
+                }
+              ],
+              "inlineStyleRanges": [
+                {
+                  "length": 14,
+                  "offset": 93,
+                  "style": "Italic"
+                }
+              ],
+              "key": "2fd0r",
+              "text": "Evaluation criteria should not be written exclusively from your head. The reason for this is criteria drift: you need criteria to grade outputs, but grading outputs is what teaches you your criteria.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 14,
+                  "length": 14,
+                  "offset": 166
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "arh3p",
+              "text": "Take 10 to 20 real cases of the failure mode you want to evaluate and label each one, with a short comment. That should be enough to build a robust judge. If you ran error analysis, most of this exists already.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 41,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "j474",
+              "text": "Write the prompt like onboarding material",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 15,
+                  "length": 67,
+                  "offset": 28
+                }
+              ],
+              "inlineStyleRanges": [
+                {
+                  "length": 67,
+                  "offset": 28,
+                  "style": "Bold"
+                }
+              ],
+              "key": "37mte",
+              "text": "The bar for a judge prompt: a new colleague could read it and reach the same verdicts you would. You can divide a judge prompt into five parts:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 8,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "2mgo5",
+              "text": "Context. What the application does, and the domain knowledge needed to check the criterion.",
+              "type": "ordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 46,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "8sl1v",
+              "text": "A precise criterion, including what to ignore. \"Is the response high quality?\" is a question two people would answer differently. \"The response cites at least one source document. Ignore formatting issues.\" will get you the same answer every time.",
+              "type": "ordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 47,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "dgdsv",
+              "text": "Labeled examples with their reasons (optional). It can help to add 2 to 4 of your labeled cases, mixing pass and fail.",
+              "type": "ordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 16,
+                  "length": 60,
+                  "offset": 31
+                }
+              ],
+              "inlineStyleRanges": [
+                {
+                  "length": 30,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "61emb",
+              "text": "Reasoning first, verdict last. Reasoning-first prompting measurably improves judge accuracy. The reasoning is also the first thing you will read whenever you disagree with a verdict.",
+              "type": "ordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 35,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "cc41f",
+              "text": "Give the judge an explicit way out. Let it answer \"unknown\" when information is missing instead of guessing.",
+              "type": "ordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 17,
+                  "length": 57,
+                  "offset": 186
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "7bitk",
+              "text": "The example below shows all five parts assembled into a complete judge prompt. It checks an apartment-leasing assistant for invented appointment details, the most common failure mode in Hamel Husain's error analysis of a real leasing assistant. Notice how short it is:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 18,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "dma0d",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 20,
+                  "offset": 0,
+                  "style": "Bold"
+                },
+                {
+                  "length": 374,
+                  "offset": 0,
+                  "style": "Italic"
+                }
+              ],
+              "key": "equ9",
+              "text": "On labeled examples\nLabeled examples can be useful to clarify what you mean without a very convoluted description. But when the evaluation task is simple enough, labeled examples can be overkill, and will mainly increase the token consumption of your LLM-as-a-judge. Start out without labeled examples in your prompt, and only add them when your judge isn't accurate enough.",
+              "type": "blockquote"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "4bras",
+              "text": "",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 43,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "cik75",
+              "text": "Use the labeled cases to validate the judge",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 19,
+                  "length": 17,
+                  "offset": 267
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "an16r",
+              "text": "LLM judges are small AI systems of their own: they inherit the biases of the model they run on, and their prompts start out as untested as any other prompt in your application. So in order to trust your judge, you need to measure it. This is done by a process called judge calibration, and you can use your labeled examples from earlier to do this.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 20,
+                  "length": 30,
+                  "offset": 251
+                }
+              ],
+              "inlineStyleRanges": [
+                {
+                  "length": 41,
+                  "offset": 0,
+                  "style": "Bold"
+                },
+                {
+                  "length": 282,
+                  "offset": 0,
+                  "style": "Italic"
+                }
+              ],
+              "key": "7gev7",
+              "text": "Check all possible outputs at least once\nSuppose the failure you are checking for occurs in 10% of cases. A judge that answers pass every time agrees with you 90% of the time, which you could interpret as a good judge, but actually tells you nothing. So check each class separately.",
+              "type": "blockquote"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 21,
+                  "length": 16,
+                  "offset": 38
+                }
+              ],
+              "inlineStyleRanges": [
+                {
+                  "length": 14,
+                  "offset": 14,
+                  "style": "Italic"
+                }
+              ],
+              "key": "731u9",
+              "text": "Beware of the criteria drift that was mentioned before. Sometimes, when seeing the reasoning of the judge, you may realize that your initial label of the situation was wrong.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "80ic5",
+              "text": "",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "o2gc",
+              "text": "Where to start",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 22,
+                  "length": 14,
+                  "offset": 3
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "a77ki",
+              "text": "Do error analysis if you haven't already, and pick one failure mode from it.",
+              "type": "ordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 23,
+                  "length": 14,
+                  "offset": 81
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "fnnak",
+              "text": "Check whether a state or a stored expected output can settle it. If yes, write a code evaluator and stop here.",
+              "type": "ordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "9oaa5",
+              "text": "If you need an LLM-as-a-judge, label 10-20 cases with how you'd expect the judge to score them.",
+              "type": "ordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "eq8qv",
+              "text": "Write the judge prompt: context, one precise criterion, a few of your labeled examples, reasoning before verdict.",
+              "type": "ordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "53tut",
+              "text": "Run the judge on the remaining labeled cases, compare, and iterate on it until your judge is aligned with how you judge the cases.",
+              "type": "ordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "54j1s",
+              "text": "Ship it, and keep reviewing a sample of its verdicts.",
+              "type": "ordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 24,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "dk3a1",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {
+                "urls": [
+                  {
+                    "fromIndex": 58,
+                    "text": "langfuse.com/academy",
+                    "toIndex": 78
+                  }
+                ]
+              },
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 79,
+                  "offset": 0,
+                  "style": "Italic"
+                }
+              ],
+              "key": "2an5a",
+              "text": "This is a page from the Langfuse Academy. Explore more on langfuse.com/academy.",
+              "type": "unstyled"
+            }
+          ],
+          "entityMap": [
+            {
+              "key": "12",
+              "value": {
+                "data": {
+                  "url": "https://langfuse.com/academy/evaluate/writing-evaluators#one-evaluator-per-failure-mode"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "8",
+              "value": {
+                "data": {
+                  "url": "https://eugeneyan.com/writing/product-evals/"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "19",
+              "value": {
+                "data": {
+                  "url": "https://langfuse.com/guides/llm-as-a-judge-calibration-skill"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "23",
+              "value": {
+                "data": {
+                  "url": "https://langfuse.com/docs/evaluation/evaluation-methods/code-evaluators"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "4",
+              "value": {
+                "data": {
+                  "url": "https://langfuse.com/academy/monitoring"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "15",
+              "value": {
+                "data": {
+                  "url": "https://hamel.dev/blog/posts/llm-judge/"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "11",
+              "value": {
+                "data": {
+                  "url": "https://leehanchung.github.io/blogs/2024/08/11/llm-as-a-judge/"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "9",
+              "value": {
+                "data": {
+                  "url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "22",
+              "value": {
+                "data": {
+                  "url": "https://langfuse.com/academy/monitoring/error-analysis"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "13",
+              "value": {
+                "data": {
+                  "url": "https://arxiv.org/abs/2404.12272"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "24",
+              "value": {
+                "data": {},
+                "mutability": "Immutable",
+                "type": "DIVIDER"
+              }
+            },
+            {
+              "key": "16",
+              "value": {
+                "data": {
+                  "url": "https://eugeneyan.com/writing/llm-evaluators/"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "5",
+              "value": {
+                "data": {
+                  "markdown": "|                    | Code evaluator                                                        | LLM-as-a-judge                                                                    |\n| ------------------ | --------------------------------------------------------------------- | --------------------------------------------------------------------------------- |\n| Cost               | cheap                                                                 | expensive                                                                         |\n| Speed              | milliseconds                                                          | seconds to minutes                                                                |\n| Answer consistency | same input always gets the same verdict                               | verdicts can vary between runs on the same input                                  |\n| Scope              | limited: structure, state, and comparisons against an expected output | broader: anything you can describe in language: meaning, relevance, tone of voice |"
+                },
+                "mutability": "Mutable",
+                "type": "MARKDOWN"
+              }
+            },
+            {
+              "key": "10",
+              "value": {
+                "data": {
+                  "url": "https://langfuse.com/academy/evaluate/writing-evaluators#validate-the-judge"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "21",
+              "value": {
+                "data": {
+                  "url": "https://langfuse.com/academy/evaluate/writing-evaluators#label-first"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "6",
+              "value": {
+                "data": {
+                  "url": "https://langfuse.com/docs/evaluation/evaluation-methods/code-evaluators"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "1",
+              "value": {
+                "data": {
+                  "url": "https://langfuse.com/docs/demo"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "17",
+              "value": {
+                "data": {
+                  "url": "https://hamel.dev/blog/posts/evals-faq/"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "14",
+              "value": {
+                "data": {
+                  "url": "https://langfuse.com/academy/monitoring/error-analysis"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "0",
+              "value": {
+                "data": {
+                  "url": "https://langfuse.com/academy/monitoring/error-analysis"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "20",
+              "value": {
+                "data": {
+                  "url": "https://hamel.dev/blog/posts/evals-faq/"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "2",
+              "value": {
+                "data": {
+                  "url": "https://langfuse.com/academy/examples"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "18",
+              "value": {
+                "data": {
+                  "entityKey": "6cf04673-daf2-49dd-85b7-12a86c62be21",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "1",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2085125502281601024"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            },
+            {
+              "key": "7",
+              "value": {
+                "data": {
+                  "markdown": "|  Setup |  Description |\n| --- | --- |\n|  LLM-as-a-judge without expected output | Nothing exists to compare against, so an LLM-as-a-judge has to do the reading: it receives the invoice text and the extracted fields, and decides for each field whether it appears as that field in the document. This works, but it costs a model call per invoice, and the verdict can differ between runs.  |\n| Code evaluator with expected output  |  Each test PDF is labeled with its correct values and stored as the expected output. A code evaluator then does a string match against the expected output. Exact, instant, and cheap. |"
+                },
+                "mutability": "Mutable",
+                "type": "MARKDOWN"
+              }
+            },
+            {
+              "key": "3",
+              "value": {
+                "data": {
+                  "url": "https://langfuse.com/academy/experiments"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            }
+          ]
+        },
+        "media_entities": [
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHO/amMuaUAAKAAILr4VT8xZwAAAA",
+            "media_id": "2085125502281601024",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 99.99,
+                    "rgb": {
+                      "blue": 243,
+                      "green": 246,
+                      "red": 246
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 577,
+              "original_img_url": "https://pbs.twimg.com/media/HO_amMuaUAAnWLR.png",
+              "original_img_width": 753
+            },
+            "media_key": "3_2085125502281601024"
+          }
+        ]
+      },
+      "twitter_card": "tweet",
+      "color": null,
+      "provider": "twitter",
+      "reposted_by": null
+    }
+  }
+}

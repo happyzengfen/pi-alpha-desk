@@ -1,0 +1,162 @@
+name: Windows x64
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write  # needed to create GitHub Releases on tag push
+
+jobs:
+  build-and-smoke-test:
+    runs-on: windows-2025
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Check TypeScript
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build Windows x64 packages
+        run: npm run electron:win:x64
+
+      - name: Verify Windows x64 package
+        run: node scripts/verify-windows-package.mjs
+
+      - name: Smoke test packaged application
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $exe = Get-ChildItem "release/win-unpacked" -Filter "*.exe" |
+            Where-Object { $_.Name -ne "elevate.exe" } |
+            Select-Object -First 1
+          if (-not $exe) { throw "Packaged application executable not found" }
+
+          $process = Start-Process -FilePath $exe.FullName -PassThru
+          try {
+            $ready = $false
+            $deadline = (Get-Date).AddSeconds(90)
+            while ((Get-Date) -lt $deadline) {
+              if ($process.HasExited) {
+                throw "Packaged application exited with code $($process.ExitCode) before readiness"
+              }
+              try {
+                $response = Invoke-WebRequest "http://127.0.0.1:30141/api/home" -UseBasicParsing -TimeoutSec 2
+                if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
+                  $ready = $true
+                  break
+                }
+              } catch {
+                Start-Sleep -Milliseconds 500
+              }
+            }
+            if (-not $ready) { throw "Packaged application did not become ready within 90 seconds" }
+          } catch {
+            Get-ChildItem $env:APPDATA -Filter "pi-web-server.log" -Recurse -ErrorAction SilentlyContinue |
+              ForEach-Object {
+                Write-Host "--- $($_.FullName) ---"
+                Get-Content $_.FullName -Tail 200
+              }
+            throw
+          } finally {
+            if (-not $process.HasExited) {
+              taskkill /PID $process.Id /T /F | Out-Host
+            }
+            Get-Process "数字化AI助手" -ErrorAction SilentlyContinue |
+              Stop-Process -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Smoke test dynamic port fallback
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $exe = Get-ChildItem "release/win-unpacked" -Filter "*.exe" |
+            Where-Object { $_.Name -ne "elevate.exe" } |
+            Select-Object -First 1
+          if (-not $exe) { throw "Packaged application executable not found" }
+
+          $listener = [System.Net.Sockets.TcpListener]::new(
+            [System.Net.IPAddress]::Parse("127.0.0.1"),
+            30141
+          )
+          $listener.Start()
+          $process = Start-Process -FilePath $exe.FullName -PassThru
+          try {
+            $ready = $false
+            $selectedPort = $null
+            $deadline = (Get-Date).AddSeconds(90)
+            while ((Get-Date) -lt $deadline) {
+              if ($process.HasExited) {
+                throw "Packaged application exited with code $($process.ExitCode) before dynamic-port readiness"
+              }
+              $log = Get-ChildItem $env:APPDATA -Filter "pi-web-server.log" -Recurse -ErrorAction SilentlyContinue |
+                Sort-Object LastWriteTime -Descending |
+                Select-Object -First 1
+              if ($log) {
+                $match = [regex]::Match((Get-Content $log.FullName -Raw), "127\.0\.0\.1:(\d+)")
+                if ($match.Success) {
+                  $selectedPort = [int]$match.Groups[1].Value
+                  if ($selectedPort -eq 30141) { throw "Application did not leave the occupied default port" }
+                  try {
+                    $response = Invoke-WebRequest "http://127.0.0.1:$selectedPort/api/home" -UseBasicParsing -TimeoutSec 2
+                    if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
+                      $ready = $true
+                      break
+                    }
+                  } catch {}
+                }
+              }
+              Start-Sleep -Milliseconds 500
+            }
+            if (-not $ready) { throw "Packaged application did not become ready on a fallback port within 90 seconds" }
+            Write-Host "Dynamic port fallback ready on $selectedPort"
+          } finally {
+            $listener.Stop()
+            if (-not $process.HasExited) { taskkill /PID $process.Id /T /F | Out-Host }
+            Get-Process "数字化AI助手" -ErrorAction SilentlyContinue |
+              Stop-Process -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Upload Windows x64 artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-x64
+          if-no-files-found: error
+          path: |
+            release/*Setup*.exe
+            release/*portable.exe
+            release/*.blockmap
+            release/latest.yml
+
+      # Only runs when triggered by a version tag (e.g. v0.7.17)
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "Release ${{ github.ref_name }}" \
+            --generate-notes \
+            release/*Setup*.exe \
+            release/*portable.exe \
+            release/latest.yml

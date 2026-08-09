@@ -1,0 +1,224 @@
+{
+  "archive": {
+    "tweet_id": "2085292697074438505",
+    "url": "https://x.com/langfuse/status/2085292697074438505",
+    "archived_at": "2026-08-07",
+    "retrieval": "X public post API + linked Langfuse documentation snapshot",
+    "discovered_via": null,
+    "related_document": "https://langfuse.com/integrations/other/everos",
+    "tags": [
+      "opentelemetry",
+      "agent-memory",
+      "everos"
+    ]
+  },
+  "source": {
+    "code": 200,
+    "message": "OK",
+    "tweet": {
+      "url": "https://x.com/langfuse/status/2085292697074438505",
+      "id": "2085292697074438505",
+      "text": "Memory is the one layer of the agent stack observability often can't see.\n\nEverOS now speaks OTel natively, so memory operations land in Langfuse: what got stored, what got recalled, how confident that recall was, how conflicting memories got merged, and what it cost.",
+      "raw_text": {
+        "text": "Memory is the one layer of the agent stack observability often can't see.\n\nEverOS now speaks OTel natively, so memory operations land in Langfuse: what got stored, what got recalled, how confident that recall was, how conflicting memories got merged, and what it cost.",
+        "display_text_range": [
+          0,
+          268
+        ],
+        "facets": []
+      },
+      "author": {
+        "screen_name": "langfuse",
+        "url": "https://x.com/langfuse",
+        "id": "1675948293291929675",
+        "followers": 5745,
+        "following": 678,
+        "likes": 3860,
+        "media_count": 172,
+        "name": "langfuse.com",
+        "description": "Open source AI engineering platform. Now part of @clickhousedb. We're hiring: http://langfuse.com/join-us",
+        "raw_description": {
+          "text": "Open source AI engineering platform. Now part of @clickhousedb. We're hiring: https://t.co/k6dgv4dws2",
+          "facets": [
+            {
+              "type": "url",
+              "indices": [
+                78,
+                101
+              ],
+              "original": "https://t.co/k6dgv4dws2",
+              "replacement": "http://langfuse.com/join-us",
+              "display": "langfuse.com/join-us"
+            }
+          ]
+        },
+        "location": "github.com/langfuse/langfuse",
+        "banner_url": "https://pbs.twimg.com/profile_banners/1675948293291929675/1777512250",
+        "avatar_url": "https://pbs.twimg.com/profile_images/2044396073561550848/qCtNGUmN_200x200.jpg",
+        "joined": "Mon Jul 03 19:23:27 +0000 2023",
+        "protected": false,
+        "website": {
+          "url": "https://langfuse.com/",
+          "display_url": "langfuse.com"
+        },
+        "verification": {
+          "verified": true,
+          "verified_at": null,
+          "type": "organization"
+        },
+        "avatar_color": null
+      },
+      "replies": 1,
+      "retweets": 0,
+      "likes": 2,
+      "bookmarks": 3,
+      "quotes": 1,
+      "created_at": "Thu Aug 06 09:11:36 +0000 2026",
+      "created_timestamp": 1786007496,
+      "views": 907,
+      "is_note_tweet": false,
+      "community_note": null,
+      "lang": "en",
+      "replying_to": null,
+      "replying_to_status": null,
+      "quote": {
+        "url": "https://x.com/evermind/status/2085146306109202526",
+        "id": "2085146306109202526",
+        "text": "Memory is the one layer of the agent stack observability can't see.\n\nEverOS speaks OTel natively now, so memory operation land in @langfuse: what got stored, what got recalled, how confident that recall was, how conflicting memories got merged, and what it cost.\n\nStop guessing why your agent forgot:\nhttps://langfuse.com/integrations/other/everos",
+        "raw_text": {
+          "text": "Memory is the one layer of the agent stack observability can't see.\n\nEverOS speaks OTel natively now, so memory operation land in @langfuse: what got stored, what got recalled, how confident that recall was, how conflicting memories got merged, and what it cost.\n\nStop guessing why your agent forgot:\nhttps://t.co/tmfQvHvkkW",
+          "display_text_range": [
+            0,
+            324
+          ],
+          "facets": [
+            {
+              "type": "mention",
+              "indices": [
+                130,
+                139
+              ],
+              "original": "langfuse",
+              "id": "1675948293291929675"
+            },
+            {
+              "type": "media",
+              "indices": [
+                278,
+                301
+              ],
+              "id": "2085146303529725952",
+              "display": "pic.x.com/HUwcVIjejf",
+              "original": "https://t.co/HUwcVIjejf",
+              "replacement": "https://x.com/evermind/status/2085146306109202526/photo/1"
+            },
+            {
+              "type": "url",
+              "indices": [
+                301,
+                324
+              ],
+              "original": "https://t.co/tmfQvHvkkW",
+              "replacement": "https://langfuse.com/integrations/other/everos",
+              "display": "langfuse.com/integrations/o…"
+            }
+          ]
+        },
+        "author": {
+          "screen_name": "evermind",
+          "url": "https://x.com/evermind",
+          "id": "1988455688323166215",
+          "followers": 4273,
+          "following": 21,
+          "likes": 433,
+          "media_count": 136,
+          "name": "EverMind",
+          "description": "Long-term agent memory | self-improving | agent harness\nhttps://github.com/EverMind-AI/Ever\nhttps://github.com/EverMind-AI/Raven",
+          "raw_description": {
+            "text": "Long-term agent memory | self-improving | agent harness\nhttps://t.co/Q6nH9pyIWe\nhttps://t.co/a0tkksAUTw",
+            "facets": [
+              {
+                "type": "url",
+                "indices": [
+                  56,
+                  79
+                ],
+                "original": "https://t.co/Q6nH9pyIWe",
+                "replacement": "https://github.com/EverMind-AI/Ever",
+                "display": "github.com/EverMind-AI/Ev…"
+              },
+              {
+                "type": "url",
+                "indices": [
+                  80,
+                  103
+                ],
+                "original": "https://t.co/a0tkksAUTw",
+                "replacement": "https://github.com/EverMind-AI/Raven",
+                "display": "github.com/EverMind-AI/Ra…"
+              }
+            ]
+          },
+          "location": "United States",
+          "banner_url": "https://pbs.twimg.com/profile_banners/1988455688323166215/1784942896",
+          "avatar_url": "https://pbs.twimg.com/profile_images/2030792985101926401/ia9mNmWL_200x200.png",
+          "joined": "Wed Nov 12 03:56:39 +0000 2025",
+          "protected": false,
+          "website": {
+            "url": "http://evermind.ai",
+            "display_url": "evermind.ai"
+          },
+          "verification": {
+            "verified": true,
+            "verified_at": null,
+            "type": "organization"
+          },
+          "avatar_color": null
+        },
+        "replies": 2,
+        "retweets": 1,
+        "likes": 20,
+        "bookmarks": 6,
+        "quotes": 3,
+        "created_at": "Wed Aug 05 23:29:54 +0000 2026",
+        "created_timestamp": 1785972594,
+        "possibly_sensitive": false,
+        "views": 12020,
+        "is_note_tweet": true,
+        "community_note": null,
+        "lang": "en",
+        "replying_to": null,
+        "replying_to_status": null,
+        "media": {
+          "all": [
+            {
+              "type": "photo",
+              "id": "2085146303529725952",
+              "url": "https://pbs.twimg.com/media/HO_tg_absAA5vLh.jpg?name=orig",
+              "width": 1600,
+              "height": 900
+            }
+          ],
+          "photos": [
+            {
+              "type": "photo",
+              "id": "2085146303529725952",
+              "url": "https://pbs.twimg.com/media/HO_tg_absAA5vLh.jpg?name=orig",
+              "width": 1600,
+              "height": 900
+            }
+          ]
+        },
+        "source": "Typefully",
+        "twitter_card": "summary_large_image",
+        "color": null,
+        "provider": "twitter",
+        "reposted_by": null
+      },
+      "source": "Twitter Web App",
+      "color": null,
+      "provider": "twitter",
+      "reposted_by": null
+    }
+  }
+}

@@ -1,0 +1,1815 @@
+{
+  "archive": {
+    "tweet_id": "2079939078087188874",
+    "url": "https://x.com/annabellschfr/status/2079939078087188874",
+    "archived_at": "2026-08-07",
+    "retrieval": "X public article API fallback (OpenCLI unavailable)",
+    "discovered_via": "https://x.com/langfuse/status/2079953168562069879",
+    "related_document": null,
+    "tags": [
+      "chatbot",
+      "tracing",
+      "evaluation",
+      "experiments"
+    ]
+  },
+  "source": {
+    "code": 200,
+    "message": "OK",
+    "tweet": {
+      "url": "https://x.com/annabellschfr/status/2079939078087188874",
+      "id": "2079939078087188874",
+      "text": "",
+      "raw_text": {
+        "text": "https://t.co/tMi4h8SYuI",
+        "display_text_range": [
+          0,
+          23
+        ],
+        "facets": []
+      },
+      "author": {
+        "screen_name": "annabellschfr",
+        "url": "https://x.com/annabellschfr",
+        "id": "1647507888209002499",
+        "followers": 337,
+        "following": 407,
+        "likes": 476,
+        "media_count": 37,
+        "name": "Annabell",
+        "description": "thinking about agents @langfuse",
+        "raw_description": {
+          "text": "thinking about agents @langfuse",
+          "facets": []
+        },
+        "location": "Berlin, San Francisco",
+        "banner_url": "https://pbs.twimg.com/profile_banners/1647507888209002499/1774966325",
+        "avatar_url": "https://pbs.twimg.com/profile_images/2011353913790787584/iPsZOGFe_200x200.jpg",
+        "joined": "Sun Apr 16 07:51:17 +0000 2023",
+        "protected": false,
+        "website": null,
+        "verification": {
+          "verified": true,
+          "verified_at": null,
+          "type": "individual"
+        },
+        "avatar_color": null
+      },
+      "replies": 0,
+      "retweets": 0,
+      "likes": 14,
+      "bookmarks": 8,
+      "quotes": 2,
+      "created_at": "Wed Jul 22 14:38:14 +0000 2026",
+      "created_timestamp": 1784731094,
+      "possibly_sensitive": false,
+      "views": 1956,
+      "is_note_tweet": false,
+      "community_note": null,
+      "lang": null,
+      "replying_to": null,
+      "replying_to_status": null,
+      "source": "Twitter Web App",
+      "article": {
+        "created_at": "2026-07-22T14:38:14.000Z",
+        "modified_at": "2026-07-22T14:38:14.000Z",
+        "id": "2079818146882412544",
+        "title": "Yes, you can copy our eval setup",
+        "preview_text": "\"Build custom evals,\" they say. Yes, but \"custom\" doesn't mean \"from scratch.\" For a huge chunk of eval design, especially for something as well-trodden as a chatbot, teams are solving a problem",
+        "cover_media": {
+          "id": "QXBpTWVkaWE6DAAFCgABHN0KzqhWAAEKAAIW3R+yCVoAAwAA",
+          "media_id": "2079830485618786305",
+          "media_info": {
+            "__typename": "ApiImage",
+            "color_info": {
+              "palette": [
+                {
+                  "percentage": 99.91,
+                  "rgb": {
+                    "blue": 242,
+                    "green": 247,
+                    "red": 246
+                  }
+                }
+              ]
+            },
+            "original_img_height": 764,
+            "original_img_url": "https://pbs.twimg.com/media/HN0KzqhWAAEc_lA.jpg",
+            "original_img_width": 1910
+          },
+          "media_key": "3_2079830485618786305"
+        },
+        "content": {
+          "blocks": [
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "7lsru",
+              "text": "\"Build custom evals,\" they say. Yes, but \"custom\" doesn't mean \"from scratch.\" For a huge chunk of eval design, especially for something as well-trodden as a chatbot, teams are solving a problem thousands of teams have already solved. Here's our setup for our docs chatbot, in full. Ready to copy.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 0,
+                  "length": 24,
+                  "offset": 29
+                },
+                {
+                  "key": 1,
+                  "length": 2,
+                  "offset": 104
+                },
+                {
+                  "key": 2,
+                  "length": 5,
+                  "offset": 108
+                },
+                {
+                  "key": 3,
+                  "length": 2,
+                  "offset": 119
+                },
+                {
+                  "key": 4,
+                  "length": 24,
+                  "offset": 131
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "3p2b4",
+              "text": "To follow along, explore the Langfuse example project, the public Langfuse project across cloud regions EU, Japan, and US, and the open-source chatbot code.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 5,
+                  "length": 4,
+                  "offset": 34
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "doom8",
+              "text": "Check out the full version on our blog!",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "mlu6",
+              "text": "The chatbot we evaluate",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 6,
+                  "length": 17,
+                  "offset": 158
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "6dtuh",
+              "text": "Our sample chatbot is a Langfuse documentation chatbot built to answer user questions about Langfuse while staying grounded in the docs. It has access to the Langfuse Docs MCP and an Inkeep-powered retrieval tool, and uses both to provide a comprehensive answer to the user.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 7,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "9vr6r",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 8,
+                  "length": 19,
+                  "offset": 51
+                },
+                {
+                  "key": 9,
+                  "length": 5,
+                  "offset": 72
+                },
+                {
+                  "key": 10,
+                  "length": 7,
+                  "offset": 99
+                },
+                {
+                  "key": 11,
+                  "length": 8,
+                  "offset": 154
+                },
+                {
+                  "key": 12,
+                  "length": 11,
+                  "offset": 168
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "6hpd3",
+              "text": "To continuously improve the setup, we followed the AI engineering loop: trace production behavior, monitor the right signals, turn reviewed examples into datasets, run experiments, and feed what we learn back into the chatbot.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "1ceni",
+              "text": "Trace every step",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "583lg",
+              "text": "Before anything else, you need to see what the chatbot is actually doing, not just what it says at the end. Every retrieval call, every tool use, the full input and output at each step. Tracing is the foundation for everything else: no traces means no monitoring, no clear issue investigation, and no foundation for good datasets.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 13,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "6ffo4",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 14,
+                  "length": 7,
+                  "offset": 244
+                },
+                {
+                  "key": 15,
+                  "length": 10,
+                  "offset": 474
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "2sjrv",
+              "text": "For chatbots, make sure each trace also carries the surrounding context you will need later. We pass a userId so we can see whether the same person comes back with the same topic over time, and a sessionId so related turns are grouped into one session. A good default is one trace per user message and one session per conversation. That keeps individual traces easy to inspect while still letting us replay the full thread and compare behavior across returning users in the Users view",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 16,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "51loc",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "dmb7c",
+              "text": "What we look for is the user's question, the retrieval step showing which docs got pulled in, the tool calls, and the generation step with the final answer. If something is wrong with the answer, the trace tells us whether the problem was bad retrieval or bad generation on top of good retrieval. Those are two very different fixes.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "blik4",
+              "text": "Monitor what is going on in prod",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "1e0cg",
+              "text": "Once production tracing is in place, we check for two things:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "21c86",
+              "text": "Which chatbot interactions are interesting enough to review?",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "1s3ti",
+              "text": "How do quality and usage behave over time?",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 17,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "2i8lf",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 27,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "4ifhk",
+              "text": "What counts as interesting?",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "914re",
+              "text": "Instead of reviewing every conversation by hand, we're monitoring traces for user signals that tell us to take a closer look. A few things reliably mark a chatbot conversation as worth a closer look:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "comel",
+              "text": "The user pushes back or disagrees with the answer.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "9r1ff",
+              "text": "The question is out of scope for what the bot can actually help with.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "3tbvc",
+              "text": "The user is cursing or broadly complaining about the system.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "6mvno",
+              "text": "The user is clearly frustrated.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 18,
+                  "length": 25,
+                  "offset": 23
+                },
+                {
+                  "key": 19,
+                  "length": 33,
+                  "offset": 230
+                },
+                {
+                  "key": 20,
+                  "length": 28,
+                  "offset": 300
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "f6rgd",
+              "text": "The first three run as LLM-as-a-judge evaluators in Langfuse and target observations that contain the full message history. You can start from the managed evaluator library in Langfuse or copy the prompts from our related post on high-signal production monitoring. User frustration is tracked with a code-based all-caps detector, also running in Langfuse, scoped to observations where the user input comes first.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "57qpl",
+              "text": "This is what turns \"review everything\" into \"review the right things.\"",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 25,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "bsfnd",
+              "text": "How do we define quality?",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "2lci2",
+              "text": "On top of the event detectors, a lightweight always-on quality check helps:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "6ia70",
+              "text": "Is our output relevant to what the user is asking?",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "8asfj",
+              "text": "What are the rough intent categories of our users over time?",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "e2pko",
+              "text": "This is not a fully fledged quality evaluation system, but it gives us a signal for quality, usage patterns, and drift over time, which tells us when to take action.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "b8jqr",
+              "text": "Both relevance and user intent are set up as LLM-as-a-judge evaluators: one numeric, one categorical. The user intent categories are application-specific. For our use case, we use conceptual-question, implementation-question, self-hosting, pricing-and-comparison, ui-feedback, and irrelevant-to-langfuse.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "8btl5",
+              "text": "These signals reach us through dashboards and alerts",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 21,
+                  "length": 31,
+                  "offset": 17
+                },
+                {
+                  "key": 22,
+                  "length": 23,
+                  "offset": 169
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "ef26l",
+              "text": "We then set up a production monitoring dashboard that shows average scores, user intent classifications, total score counts, and cost over time. On top of that, we have monitors that notify us in Slack when certain thresholds are reached, such as increased cost, increased time to first token, or a high number of users disagreeing with our chatbot.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 23,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "1gn0q",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 24,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "12mna",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "bm5k5",
+              "text": "Annotation queues, and why we still look ourselves",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 25,
+                  "length": 17,
+                  "offset": 25
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "3h2oh",
+              "text": "Our traces end up in two annotation queues worth working through: one with flagged conversations, and one with general samples of everything, reviewed on a regular cadence regardless of whether anything was flagged.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 26,
+                  "length": 36,
+                  "offset": 224
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "6okfj",
+              "text": "Your coding agent could review those queues for you. But especially in the early setup, most of the value, we would put it somewhere around 80%, comes from a human actually looking at the data (learn more why in our article AI is eating the AI engineering loop). Because lightweight monitoring already points us at the relevant stuff, that look is a lot more efficient than it sounds.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 27,
+                  "length": 11,
+                  "offset": 129
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "3d2r6",
+              "text": "For each conversation you review, attach two things: a pass/fail call and a short freeform note on what actually went wrong. Use open coding, not a fixed category list yet. After a first pass, group failure modes and label all failed conversations with their respective category. For each category, decide what to do about it: ignore it, monitor it further, or fix it. The error analysis guide walks through this process in more detail.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 28,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "9rfmc",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "1k7qm",
+              "text": "This annotation carries more useful signal than the score. It helps us craft an expected output when this example becomes a dataset item",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "8q14b",
+              "text": "From annotations to a dataset",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 29,
+                  "length": 7,
+                  "offset": 121
+                },
+                {
+                  "key": 30,
+                  "length": 12,
+                  "offset": 132
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "6k6uo",
+              "text": "Once we annotated enough real conversations and noted what we think the right output should have been, we built a proper dataset. A dataset item needs an input and can have an expected output, or none, depending on what you are testing.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 31,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "c0t2g",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "4uks1",
+              "text": "Two checks help keep it useful:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "5ioa4",
+              "text": "The input distribution should reflect what people actually ask. Mix random sampling with your annotated examples.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "f46tr",
+              "text": "Decide what you are evaluating before you build the dataset.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "17a1n",
+              "text": "For chatbots, three dimensions have held up well as a starting point and are close to universal across different bots:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 38,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "f810a",
+              "text": "Correctness against an expected answer, checked with an LLM judge.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 15,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "cee3p",
+              "text": "Keyword overlap, especially useful for making sure product names and specific terms actually show up.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 14,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "fusnq",
+              "text": "Behavior match, whether the bot did the right thing given the question: answer directly, ask a follow-up, defer because it is out of scope, or call the right tool.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 32,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "3a73t",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 33,
+                  "length": 25,
+                  "offset": 45
+                },
+                {
+                  "key": 34,
+                  "length": 17,
+                  "offset": 180
+                },
+                {
+                  "key": 35,
+                  "length": 6,
+                  "offset": 199
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "4jvh2",
+              "text": "Correctness and behavior match are set up as LLM-as-a-judge evaluators in the app. They are scoped to experiment runs on this specific dataset. Keyword overlap runs as part of the experiment runner (script) and is a deterministic match, so a code-based eval.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 36,
+                  "length": 11,
+                  "offset": 47
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "85kkr",
+              "text": "We use this dataset with its evaluators to run experiments and understand the quality of our system. We frequently run experiments on newly released models, after changes to the docs, and whenever we add new edge cases to the dataset.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 37,
+                  "length": 21,
+                  "offset": 11
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "fd5jj",
+              "text": "We use the dataset item metadata field to categorize items by where they come from, what the item is for, and which input language we are using. This lets us filter, slice, and dice score data, and makes it easier to keep the dataset balanced over time across those dimensions.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 38,
+                  "length": 2,
+                  "offset": 67
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "7575k",
+              "text": "That dataset doubles as our regression suite. We run it as part of CI, so a prompt or model change gets checked against real failure cases before it ships, not after.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "1jd5",
+              "text": "Datasets for domain-specific failures",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "5ne0r",
+              "text": "Every system has failure modes that come from its own domain and architecture.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "6sfb8",
+              "text": "For us, it is staying grounded in the actual docs instead of training data. LLMs know old versions of SDKs, are trained on old integration pages, and multiple versions exist across the ecosystem, so a fluent, confident, wrong answer is an easy failure to produce and an easy one to miss.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 39,
+                  "length": 14,
+                  "offset": 49
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "feqq7",
+              "text": "We built a separate dataset just for this. It is reference-free: inputs only, no expected output, because the correct answer changes every time the SDK or integration best practice does. What we evaluate instead is whether the answer is actually grounded in the retrieved documentation rather than in what the model already \"knows.\"",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 40,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "fbl3",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "1kq2m",
+              "text": "Your version will be different. Maybe it is making sure a specific tool gets called when it should. Maybe it is knowing when to hand off to a human. The mechanism is the same either way: find the failure mode through your own error analysis, then build a dataset around that specific thing. Do not wait for a generic evaluator to catch it, because it will not.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "89mdu",
+              "text": "Keep the loop running",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "6ujfd",
+              "text": "Keep monitoring production, keep doing error analysis, keep pulling interesting traces into your datasets. That is what turns this from a one-time setup into a system that actually gets better over time.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "7vo79",
+              "text": "The more mature the setup gets, the more of this you can hand off to a coding agent: triaging queues, drafting dataset items, flagging candidates for review. Early on, though, look yourself. That is where most of the value is.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 41,
+                  "length": 23,
+                  "offset": 30
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "3jhh5",
+              "text": "The full setup is live in our public Langfuse project, including the traces, scores, dashboards, datasets, and experiment setup described above.",
+              "type": "unstyled"
+            }
+          ],
+          "entityMap": [
+            {
+              "key": "34",
+              "value": {
+                "data": {
+                  "entityKey": "30a9c150-abc4-4c10-9f64-08cb220d8e9e",
+                  "url": "https://langfuse.com/docs/evaluation/experiments/experiments-via-sdk"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "12",
+              "value": {
+                "data": {
+                  "entityKey": "1d5b560b-f115-4729-ad50-dd3359c8b57b",
+                  "url": "https://langfuse.com/academy/experiments"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "8",
+              "value": {
+                "data": {
+                  "entityKey": "ab1754ba-d13d-4cda-b1a5-e66e1791e66b",
+                  "url": "https://langfuse.com/academy/ai-engineering-loop"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "19",
+              "value": {
+                "data": {
+                  "entityKey": "cdbeb36b-e4cb-4ba9-9772-f98d18e77372",
+                  "url": "https://langfuse.com/blog/2026-04-01-llm-as-a-judge-production-monitoring"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "23",
+              "value": {
+                "data": {
+                  "entityKey": "c6b85daa-1bf4-4422-ae79-2aebdb6d00ea",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "20",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2079851800589385728"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            },
+            {
+              "key": "4",
+              "value": {
+                "data": {
+                  "entityKey": "1951037d-cc2f-4403-ad59-39c905882aaf",
+                  "url": "https://github.com/langfuse/langfuse-docs/tree/main/components/qaChatbot"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "40",
+              "value": {
+                "data": {
+                  "entityKey": "cbd99dc7-d199-44a4-a8b6-7ef0dfeeadca",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "32",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2079852188927447040"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            },
+            {
+              "key": "15",
+              "value": {
+                "data": {
+                  "entityKey": "32bb6046-d318-4aa2-bca8-4f353e8e2e3a",
+                  "url": "https://langfuse.com/docs/observability/features/users"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "11",
+              "value": {
+                "data": {
+                  "entityKey": "b2bc4446-7a39-4c0b-8ea7-8de1549013e1",
+                  "url": "https://langfuse.com/academy/datasets"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "9",
+              "value": {
+                "data": {
+                  "entityKey": "4517e617-195a-4234-8fac-c246989e9551",
+                  "url": "https://langfuse.com/academy/tracing"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "33",
+              "value": {
+                "data": {
+                  "entityKey": "db28e0f5-e13f-42b9-bda0-a75490d41b6e",
+                  "url": "https://langfuse.com/docs/evaluation/evaluation-methods/llm-as-a-judge"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "22",
+              "value": {
+                "data": {
+                  "entityKey": "90fe993b-6819-4217-a2fa-69782af852bb",
+                  "url": "https://langfuse.com/docs/metrics/features/monitors"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "26",
+              "value": {
+                "data": {
+                  "entityKey": "1b863481-7941-4558-b269-e66c8ccdd394",
+                  "url": "https://langfuse.com/blog/2026-06-09-ai-is-eating-ai-engineering"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "37",
+              "value": {
+                "data": {
+                  "entityKey": "3cabbd9e-8d02-448c-912b-242895ad153c",
+                  "url": "https://langfuse.com/docs/evaluation/experiments/data-model#datasetitem-object"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "13",
+              "value": {
+                "data": {
+                  "entityKey": "85183d8d-f397-4eb6-b075-150656a21ae6",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "14",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2079851625699557376"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            },
+            {
+              "key": "24",
+              "value": {
+                "data": {
+                  "entityKey": "3fab9ffc-39f3-4775-b207-5e73e793c54e",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "22",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2079851850270998528"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            },
+            {
+              "key": "35",
+              "value": {
+                "data": {
+                  "entityKey": "844b097c-e9c8-40f0-a3f5-ad2ad2855526",
+                  "url": "https://github.com/langfuse/langfuse-docs/blob/main/components/qaChatbot/experiments/run_general_qa_chatbot_experiment.ts"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "16",
+              "value": {
+                "data": {
+                  "entityKey": "0ea236fd-358e-4909-9ae2-2b212ab03870",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "16",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2079851653306384384"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            },
+            {
+              "key": "5",
+              "value": {
+                "data": {
+                  "url": "https://langfuse.com/blog/2026-07-16-steal-our-eval-setup"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "10",
+              "value": {
+                "data": {
+                  "entityKey": "2b962863-8a2e-404b-84fc-7218ff81d355",
+                  "url": "https://langfuse.com/academy/monitoring"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "21",
+              "value": {
+                "data": {
+                  "entityKey": "7ca7071b-eacd-4dd1-a732-27bb4fb24979",
+                  "url": "https://langfuse.com/docs/metrics/features/custom-dashboards"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "32",
+              "value": {
+                "data": {
+                  "entityKey": "45ed78c8-01a0-4662-a765-22de5a1ecb80",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "28",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2079851957972320256"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            },
+            {
+              "key": "6",
+              "value": {
+                "data": {
+                  "entityKey": "ef6c12da-cb79-4a34-8c94-453805316601",
+                  "url": "https://langfuse.com/docs/docs-mcp"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "36",
+              "value": {
+                "data": {
+                  "entityKey": "0caacb11-e7c5-45f9-bd37-355ccee0524b",
+                  "url": "https://langfuse.com/docs/evaluation/experiments/experiments-via-sdk"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "1",
+              "value": {
+                "data": {
+                  "entityKey": "ce5d5cde-dfde-4981-a5c5-b7ffe1555abc",
+                  "url": "https://cloud.langfuse.com/project/clkpwwm0m000gmm094odg11gi"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "39",
+              "value": {
+                "data": {
+                  "entityKey": "bcc6286f-fb2c-4cfe-a1b2-0261351e84e2",
+                  "url": "https://langfuse.com/academy/evaluate#reference-based-vs-reference-free"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "17",
+              "value": {
+                "data": {
+                  "entityKey": "b0a90d04-282c-467e-942a-610889d4cfbe",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "18",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2079851734638198784"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            },
+            {
+              "key": "25",
+              "value": {
+                "data": {
+                  "entityKey": "7c86b26c-58e8-4ada-b59a-ae30cc099ead",
+                  "url": "https://langfuse.com/docs/evaluation/evaluation-methods/annotation-queues"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "14",
+              "value": {
+                "data": {
+                  "entityKey": "a99792b0-b926-459d-a369-9e99cad37674",
+                  "url": "https://langfuse.com/docs/observability/features/sessions"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "31",
+              "value": {
+                "data": {
+                  "entityKey": "4a8dd3cf-65fb-4669-a558-b5aa3fe72dd5",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "26",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2079851914213179392"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            },
+            {
+              "key": "0",
+              "value": {
+                "data": {
+                  "entityKey": "c032ae18-263d-478d-900a-255a99c6256d",
+                  "url": "https://langfuse.com/docs/demo"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "20",
+              "value": {
+                "data": {
+                  "entityKey": "30843579-508d-4ab5-8520-3cd3f57baef3",
+                  "url": "https://langfuse.com/docs/evaluation/evaluation-methods/code-evaluators"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "27",
+              "value": {
+                "data": {
+                  "entityKey": "11bfc885-6de2-4253-b1b6-07748cc5325d",
+                  "url": "https://langfuse.com/academy/monitoring/error-analysis"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "2",
+              "value": {
+                "data": {
+                  "entityKey": "47c1897f-040d-4707-a075-509fd02f1153",
+                  "url": "https://jp.cloud.langfuse.com/project/cmmnj9e9n0006ad06nyz28646"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "38",
+              "value": {
+                "data": {
+                  "entityKey": "e547e35a-3e47-467e-b6a9-149f30b6fae9",
+                  "url": "https://langfuse.com/docs/evaluation/experiments/experiments-ci-cd"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "18",
+              "value": {
+                "data": {
+                  "entityKey": "8a38b23a-031b-4e84-9369-ddc94dcbed54",
+                  "url": "https://langfuse.com/docs/evaluation/evaluation-methods/llm-as-a-judge"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "30",
+              "value": {
+                "data": {
+                  "entityKey": "22fbace9-9134-442b-98cd-25c2939aa3fc",
+                  "url": "https://langfuse.com/academy/datasets#the-dataset-item"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "7",
+              "value": {
+                "data": {
+                  "entityKey": "167c05b6-f76a-4e23-b142-4c7103d74e92",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "12",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2079851596142292992"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            },
+            {
+              "key": "29",
+              "value": {
+                "data": {
+                  "entityKey": "81e0b556-a6fd-4ad1-86d6-1f33c1ddf950",
+                  "url": "https://langfuse.com/docs/evaluation/experiments/datasets"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "41",
+              "value": {
+                "data": {
+                  "entityKey": "61de509c-42b9-4777-a372-1dfeb19b3e45",
+                  "url": "https://cloud.langfuse.com/project/clkpwwm0m000gmm094odg11gi"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "3",
+              "value": {
+                "data": {
+                  "entityKey": "c65ad33f-de80-491c-a715-a722319099da",
+                  "url": "https://us.cloud.langfuse.com/project/cmeic4yr500qmad0772bw0tol"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "28",
+              "value": {
+                "data": {
+                  "entityKey": "ebdfec63-1199-4948-8ded-e835f4436f61",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "24",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2079851881006796800"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            }
+          ]
+        },
+        "media_entities": [
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHN0eMW+WQAAKAAIW3R+yCVoAAwAA",
+            "media_id": "2079851800589385728",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 95.22,
+                    "rgb": {
+                      "blue": 255,
+                      "green": 255,
+                      "red": 255
+                    }
+                  },
+                  {
+                    "percentage": 2.39,
+                    "rgb": {
+                      "blue": 242,
+                      "green": 116,
+                      "red": 113
+                    }
+                  },
+                  {
+                    "percentage": 0.65,
+                    "rgb": {
+                      "blue": 243,
+                      "green": 156,
+                      "red": 155
+                    }
+                  },
+                  {
+                    "percentage": 0.41,
+                    "rgb": {
+                      "blue": 236,
+                      "green": 83,
+                      "red": 81
+                    }
+                  },
+                  {
+                    "percentage": 0.35,
+                    "rgb": {
+                      "blue": 224,
+                      "green": 205,
+                      "red": 98
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 978,
+              "original_img_url": "https://pbs.twimg.com/media/HN0eMW-WQAAPsGm.jpg",
+              "original_img_width": 1920
+            },
+            "media_key": "3_2079851800589385728"
+          },
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHN0eDyTWAAAKAAIW3R+yCVoAAwAA",
+            "media_id": "2079851653306384384",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 99.97,
+                    "rgb": {
+                      "blue": 254,
+                      "green": 254,
+                      "red": 254
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 685,
+              "original_img_url": "https://pbs.twimg.com/media/HN0eDyTWAAAlVGU.jpg",
+              "original_img_width": 1920
+            },
+            "media_key": "3_2079851653306384384"
+          },
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHN0eRCjWkAAKAAIW3R+yCVoAAwAA",
+            "media_id": "2079851881006796800",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 99.52,
+                    "rgb": {
+                      "blue": 254,
+                      "green": 254,
+                      "red": 254
+                    }
+                  },
+                  {
+                    "percentage": 0.28,
+                    "rgb": {
+                      "blue": 49,
+                      "green": 30,
+                      "red": 22
+                    }
+                  },
+                  {
+                    "percentage": 0.2,
+                    "rgb": {
+                      "blue": 120,
+                      "green": 107,
+                      "red": 102
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 932,
+              "original_img_url": "https://pbs.twimg.com/media/HN0eRCjWkAA7P1R.jpg",
+              "original_img_width": 1920
+            },
+            "media_key": "3_2079851881006796800"
+          },
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHN0eS+QXwAAKAAIW3R+yCVoAAwAA",
+            "media_id": "2079851914213179392",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 99.86,
+                    "rgb": {
+                      "blue": 253,
+                      "green": 253,
+                      "red": 252
+                    }
+                  },
+                  {
+                    "percentage": 0.14,
+                    "rgb": {
+                      "blue": 236,
+                      "green": 202,
+                      "red": 204
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 940,
+              "original_img_url": "https://pbs.twimg.com/media/HN0eS-QXwAA1hH6.jpg",
+              "original_img_width": 1920
+            },
+            "media_key": "3_2079851914213179392"
+          },
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHN0eAdWXMAAKAAIW3R+yCVoAAwAA",
+            "media_id": "2079851596142292992",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 99.93,
+                    "rgb": {
+                      "blue": 233,
+                      "green": 238,
+                      "red": 237
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 454,
+              "original_img_url": "https://pbs.twimg.com/media/HN0eAdWXMAAtZf-.jpg",
+              "original_img_width": 1366
+            },
+            "media_key": "3_2079851596142292992"
+          },
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHN0eVhRXQAAKAAIW3R+yCVoAAwAA",
+            "media_id": "2079851957972320256",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 99.33,
+                    "rgb": {
+                      "blue": 255,
+                      "green": 255,
+                      "red": 255
+                    }
+                  },
+                  {
+                    "percentage": 0.67,
+                    "rgb": {
+                      "blue": 235,
+                      "green": 196,
+                      "red": 199
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 496,
+              "original_img_url": "https://pbs.twimg.com/media/HN0eVhRXQAA_77f.jpg",
+              "original_img_width": 1332
+            },
+            "media_key": "3_2079851957972320256"
+          },
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHN0ei9pW0AAKAAIW3R+yCVoAAwAA",
+            "media_id": "2079852188927447040",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 99.97,
+                    "rgb": {
+                      "blue": 255,
+                      "green": 255,
+                      "red": 255
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 1000,
+              "original_img_url": "https://pbs.twimg.com/media/HN0ei9pW0AAIZWg.jpg",
+              "original_img_width": 2552
+            },
+            "media_key": "3_2079852188927447040"
+          },
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHN0ePQDXgAAKAAIW3R+yCVoAAwAA",
+            "media_id": "2079851850270998528",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 96.86,
+                    "rgb": {
+                      "blue": 252,
+                      "green": 253,
+                      "red": 254
+                    }
+                  },
+                  {
+                    "percentage": 1.3,
+                    "rgb": {
+                      "blue": 55,
+                      "green": 37,
+                      "red": 29
+                    }
+                  },
+                  {
+                    "percentage": 1.19,
+                    "rgb": {
+                      "blue": 249,
+                      "green": 227,
+                      "red": 227
+                    }
+                  },
+                  {
+                    "percentage": 0.15,
+                    "rgb": {
+                      "blue": 62,
+                      "green": 146,
+                      "red": 230
+                    }
+                  },
+                  {
+                    "percentage": 0.13,
+                    "rgb": {
+                      "blue": 24,
+                      "green": 91,
+                      "red": 245
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 1076,
+              "original_img_url": "https://pbs.twimg.com/media/HN0ePQDXgAAGGml.jpg",
+              "original_img_width": 1920
+            },
+            "media_key": "3_2079851850270998528"
+          },
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHN0eCLdXQAAKAAIW3R+yCVoAAwAA",
+            "media_id": "2079851625699557376",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 97.87,
+                    "rgb": {
+                      "blue": 253,
+                      "green": 253,
+                      "red": 252
+                    }
+                  },
+                  {
+                    "percentage": 1.55,
+                    "rgb": {
+                      "blue": 96,
+                      "green": 84,
+                      "red": 78
+                    }
+                  },
+                  {
+                    "percentage": 0.36,
+                    "rgb": {
+                      "blue": 152,
+                      "green": 143,
+                      "red": 138
+                    }
+                  },
+                  {
+                    "percentage": 0.15,
+                    "rgb": {
+                      "blue": 203,
+                      "green": 232,
+                      "red": 241
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 1129,
+              "original_img_url": "https://pbs.twimg.com/media/HN0eCLdXQAAZ2DT.jpg",
+              "original_img_width": 1920
+            },
+            "media_key": "3_2079851625699557376"
+          },
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHN0eIhSXAAAKAAIW3R+yCVoAAwAA",
+            "media_id": "2079851734638198784",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 98.46,
+                    "rgb": {
+                      "blue": 254,
+                      "green": 254,
+                      "red": 254
+                    }
+                  },
+                  {
+                    "percentage": 0.93,
+                    "rgb": {
+                      "blue": 92,
+                      "green": 78,
+                      "red": 71
+                    }
+                  },
+                  {
+                    "percentage": 0.27,
+                    "rgb": {
+                      "blue": 243,
+                      "green": 211,
+                      "red": 211
+                    }
+                  },
+                  {
+                    "percentage": 0.15,
+                    "rgb": {
+                      "blue": 150,
+                      "green": 221,
+                      "red": 147
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 486,
+              "original_img_url": "https://pbs.twimg.com/media/HN0eIhSXAAAv9we.jpg",
+              "original_img_width": 1920
+            },
+            "media_key": "3_2079851734638198784"
+          }
+        ]
+      },
+      "twitter_card": "tweet",
+      "color": null,
+      "provider": "twitter",
+      "reposted_by": null
+    }
+  }
+}

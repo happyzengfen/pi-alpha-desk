@@ -1,0 +1,152 @@
+{
+  "name": "@happyzengfen/pi-alpha-desk",
+  "version": "0.8.6-f",
+  "description": "Electron desktop app for the pi coding agent",
+  "homepage": "https://github.com/happyzengfen/pi-alpha-desk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/happyzengfen/pi-alpha-desk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/happyzengfen/pi-alpha-desk/issues"
+  },
+  "author": "happyzengfen",
+  "license": "MIT",
+  "main": "electron/main.js",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "bin": {
+    "pi-web": "bin/pi-web.js"
+  },
+  "files": [
+    "bin",
+    ".next",
+    "!.next/cache",
+    "!.next/dev",
+    "!.next/**/*.js.map",
+    "public",
+    "scripts/sync-local-pi.mjs",
+    "next.config.ts",
+    "package.json"
+  ],
+  "scripts": {
+    "test": "node --test \"app/**/*.test.mjs\" \"components/**/*.test.mjs\" \"electron/**/*.test.mjs\" \"hooks/**/*.test.mjs\" \"lib/**/*.test.mjs\" \"scripts/**/*.test.mjs\"",
+    "benchmark:desktop": "node --expose-gc scripts/benchmark-desktop.mjs",
+    "dev": "next dev -H 127.0.0.1 -p 30141 --webpack",
+    "dev:turbo": "next dev -H 127.0.0.1 -p 30141 --turbopack",
+    "dev:lan": "next dev -H 0.0.0.0 -p 30141 --webpack",
+    "build": "next build --webpack",
+    "start": "next start -H 127.0.0.1 -p 30141",
+    "start:lan": "next start -H 0.0.0.0 -p 30141",
+    "lint": "eslint .",
+    "pi:sync-local": "node scripts/sync-local-pi.mjs",
+    "icons": "node scripts/generate-icons.mjs",
+    "electron:dev": "electron .",
+    "electron:build": "npm run icons && npm run build && electron-builder",
+    "electron:dir": "npm run icons && npm run build && electron-builder --win dir",
+    "electron:portable": "npm run icons && npm run build && electron-builder --win portable",
+    "electron:win:x64": "node scripts/build-release.mjs --target=dir,nsis,portable --arch=x64 --no-zip",
+    "electron:win:x64:dir": "node scripts/build-release.mjs --target=dir --arch=x64 --no-zip",
+    "release:green": "node scripts/build-release.mjs",
+    "release": "npm version patch --no-git-tag-version && npm run build && npm publish --access public"
+  },
+  "dependencies": {
+    "@earendil-works/pi-agent-core": "0.84.0",
+    "@earendil-works/pi-ai": "0.84.0",
+    "@earendil-works/pi-coding-agent": "0.84.0",
+    "@earendil-works/pi-tui": "0.84.0",
+    "@fontsource/ia-writer-quattro": "^5.3.0",
+    "@fontsource/lilex": "^5.3.0",
+    "@lobehub/icons": "^5.6.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "katex": "^0.16.47",
+    "mammoth": "^1.12.0",
+    "mermaid": "11.16.1",
+    "next": "16.3.0",
+    "proper-lockfile": "4.1.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^16.1.1",
+    "rehype-katex": "^7.0.1",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
+    "undici": "8.10.0",
+    "unist-util-visit": "^5.1.0"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@tailwindcss/postcss": "^4.2.2",
+    "@types/node": "^25",
+    "@types/proper-lockfile": "4.1.4",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.0",
+    "jiti": "^2.7.0",
+    "postcss": "^8",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5"
+  },
+  "build": {
+    "appId": "com.iswitthere.pi-web-desktop",
+    "productName": "数字化AI助手",
+    "directories": {
+      "output": "release"
+    },
+    "asar": false,
+    "files": [
+      "electron/**/*",
+      "public/**/*",
+      ".next/**/*",
+      "node_modules/**/*",
+      "!.next/cache",
+      "!.next/dev",
+      "!.next/**/*.js.map",
+      "!electron/node_modules",
+      "!node_modules/.cache",
+      "!node_modules/**/node_modules/.cache",
+      "!node_modules/electron/**",
+      "!node_modules/electron-builder/**",
+      "!node_modules/@electron/**",
+      "!node_modules/**/*.js.map",
+      "!node_modules/**/*.mjs.map",
+      "!node_modules/**/*.css.map",
+      "!node_modules/@earendil-works/pi-coding-agent/docs/**",
+      "!node_modules/@earendil-works/pi-coding-agent/examples/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/node_modules",
+        "to": "app/.next/node_modules"
+      },
+      {
+        "from": "bundled-skills",
+        "to": "bundled-skills"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon.ico"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.exe"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "public/icon-mac.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "public/icon.png"
+    }
+  }
+}

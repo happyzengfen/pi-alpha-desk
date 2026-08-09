@@ -1,0 +1,119 @@
+{
+  "completeness": "complete",
+  "deferred": [],
+  "documentType": "codex-security.coverage",
+  "excludePaths": [
+    "ref-repos/",
+    "release/",
+    "node_modules/"
+  ],
+  "explicitExclusions": [
+    {
+      "pattern": "components/ and app/globals.css presentation-only code",
+      "reason": "No privileged operation was identified there beyond the separately reviewed rendering and IPC call chains."
+    },
+    {
+      "pattern": "release/ and ref-repos/",
+      "reason": "Generated packaging output and read-only upstream comparison material are not authoritative product source."
+    }
+  ],
+  "includePaths": [
+    "proxy.ts",
+    "next.config.ts",
+    "electron/",
+    "app/api/agent/",
+    "app/api/auth/",
+    "app/api/cwd/",
+    "app/api/default-cwd/",
+    "app/api/file-index/",
+    "app/api/files/",
+    "app/api/git/",
+    "app/api/models-config/",
+    "app/api/plugins/",
+    "app/api/project-trust/",
+    "app/api/sessions/",
+    "app/api/skills/",
+    "app/api/themes/",
+    "app/api/worktrees/",
+    "lib/allowed-roots.ts",
+    "lib/atomic-file.ts",
+    "lib/bounded-form-data.ts",
+    "lib/file-access.ts",
+    "lib/file-upload.ts",
+    "lib/git-changes.ts",
+    "lib/npx.ts",
+    "lib/project-trust.ts",
+    "lib/provider-credential-store.ts",
+    "lib/request-security.ts",
+    "lib/rpc-manager.ts",
+    "lib/session-file-references.ts",
+    "lib/session-file-references-core.ts",
+    "lib/skill-updates.ts",
+    "lib/theme-access.ts",
+    "lib/theme.ts",
+    "lib/worktree.ts"
+  ],
+  "inventoryStrategy": "scoped_path",
+  "mode": "scoped_path",
+  "openQuestions": [],
+  "scanId": "scan_pi_web_desktop_20260809_t2",
+  "schemaVersion": "1.0",
+  "surfaces": [
+    {
+      "disposition": "no_issue_found",
+      "id": "surface_http_boundary",
+      "label": "Loopback HTTP Host, Origin, password, and response-header boundary",
+      "notes": "Central proxy enforcement and security response headers were reviewed and regression-tested.",
+      "receiptRefs": [],
+      "riskArea": "network-boundary"
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "surface_electron_boundary",
+      "label": "Electron renderer sandbox, navigation, popup, webview, and IPC boundary",
+      "notes": "The renderer is sandboxed; privileged IPC requires the main frame and exact application origin; external protocols are restricted to HTTP(S).",
+      "receiptRefs": [],
+      "riskArea": "desktop-privilege-boundary"
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "surface_filesystem",
+      "label": "Filesystem reads, writes, uploads, indexing, Git views, themes, and session references",
+      "notes": "Canonical realpath authorization now rejects existing and future paths traversing a symlink outside allowed roots.",
+      "receiptRefs": [],
+      "riskArea": "path-authorization"
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "surface_credentials",
+      "label": "Provider credentials, OAuth callback tokens, and model configuration",
+      "notes": "Credential updates use locked atomic private-file replacement and OAuth callback tokens use cryptographic randomness.",
+      "receiptRefs": [],
+      "riskArea": "secret-management"
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "surface_process_execution",
+      "label": "Plugin, skill, Git, export, and package child-process execution",
+      "notes": "Reviewed process launches use argument-vector APIs without shell interpolation; repository resources retain project-trust gating.",
+      "receiptRefs": [],
+      "riskArea": "command-execution"
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "surface_content_rendering",
+      "label": "Markdown, Mermaid, file preview, and theme content handling",
+      "notes": "Mermaid strict mode and upgraded patched rendering dependencies were verified; theme HTTP access now rejects path-shaped names and unauthorized cwd values.",
+      "receiptRefs": [],
+      "riskArea": "content-injection"
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "surface_dependencies",
+      "label": "Production dependency vulnerability exposure",
+      "notes": "Next, Mermaid, Undici and vulnerable transitive packages were upgraded; npm audit --omit=dev reports zero vulnerabilities.",
+      "receiptRefs": [],
+      "riskArea": "supply-chain"
+    }
+  ]
+}

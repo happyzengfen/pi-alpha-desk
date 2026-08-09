@@ -1,0 +1,1515 @@
+{
+  "archive": {
+    "tweet_id": "2085381643687047434",
+    "url": "https://x.com/annabellschfr/status/2085381643687047434",
+    "archived_at": "2026-08-07",
+    "retrieval": "X public article API fallback (OpenCLI unavailable)",
+    "discovered_via": "https://x.com/langfuse/status/2085387046604988907",
+    "related_document": null,
+    "tags": [
+      "evaluation",
+      "datasets",
+      "experiments"
+    ]
+  },
+  "source": {
+    "code": 200,
+    "message": "OK",
+    "tweet": {
+      "url": "https://x.com/annabellschfr/status/2085381643687047434",
+      "id": "2085381643687047434",
+      "text": "",
+      "raw_text": {
+        "text": "https://t.co/7FkQFmlXO8",
+        "display_text_range": [
+          0,
+          23
+        ],
+        "facets": []
+      },
+      "author": {
+        "screen_name": "annabellschfr",
+        "url": "https://x.com/annabellschfr",
+        "id": "1647507888209002499",
+        "followers": 337,
+        "following": 407,
+        "likes": 476,
+        "media_count": 37,
+        "name": "Annabell",
+        "description": "thinking about agents @langfuse",
+        "raw_description": {
+          "text": "thinking about agents @langfuse",
+          "facets": []
+        },
+        "location": "Berlin, San Francisco",
+        "banner_url": "https://pbs.twimg.com/profile_banners/1647507888209002499/1774966325",
+        "avatar_url": "https://pbs.twimg.com/profile_images/2011353913790787584/iPsZOGFe_200x200.jpg",
+        "joined": "Sun Apr 16 07:51:17 +0000 2023",
+        "protected": false,
+        "website": null,
+        "verification": {
+          "verified": true,
+          "verified_at": null,
+          "type": "individual"
+        },
+        "avatar_color": null
+      },
+      "replies": 3,
+      "retweets": 5,
+      "likes": 46,
+      "bookmarks": 62,
+      "quotes": 3,
+      "created_at": "Thu Aug 06 15:05:03 +0000 2026",
+      "created_timestamp": 1786028703,
+      "possibly_sensitive": false,
+      "views": 6936,
+      "is_note_tweet": false,
+      "community_note": null,
+      "lang": null,
+      "replying_to": null,
+      "replying_to_status": null,
+      "source": "Twitter Web App",
+      "article": {
+        "created_at": "2026-08-06T15:05:02.000Z",
+        "modified_at": "2026-08-06T15:05:02.000Z",
+        "id": "2085277118741590016",
+        "title": "Scoping and curating eval datasets",
+        "preview_text": "Your agent is running and yielding first results, but at some point you realize: 'vibe-fixing my application does not cut it anymore'. You need a structured and strategic way to make sure your agent",
+        "cover_media": {
+          "id": "QXBpTWVkaWE6DAAFCgABHPCyWmoWIAEKAAIW3R+yCVoAAwAA",
+          "media_id": "2085362728869175297",
+          "media_info": {
+            "__typename": "ApiImage",
+            "color_info": {
+              "palette": [
+                {
+                  "percentage": 96.8,
+                  "rgb": {
+                    "blue": 241,
+                    "green": 246,
+                    "red": 247
+                  }
+                },
+                {
+                  "percentage": 1.82,
+                  "rgb": {
+                    "blue": 114,
+                    "green": 248,
+                    "red": 245
+                  }
+                },
+                {
+                  "percentage": 0.69,
+                  "rgb": {
+                    "blue": 128,
+                    "green": 132,
+                    "red": 133
+                  }
+                },
+                {
+                  "percentage": 0.69,
+                  "rgb": {
+                    "blue": 115,
+                    "green": 184,
+                    "red": 182
+                  }
+                }
+              ]
+            },
+            "original_img_height": 793,
+            "original_img_url": "https://pbs.twimg.com/media/HPCyWmoWIAEcysG.jpg",
+            "original_img_width": 1983
+          },
+          "media_key": "3_2085362728869175297"
+        },
+        "content": {
+          "blocks": [
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "ehv46",
+              "text": "Your agent is running and yielding first results, but at some point you realize: 'vibe-fixing my application does not cut it anymore'. You need a structured and strategic way to make sure your agent consistently does what it is supposed to do. You need an eval dataset.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "biqfu",
+              "text": "An eval dataset is a repeatable set of examples that represent the scope of your application, and that you use to measure and improve your system. By running your application against the same inputs over time, you can track quality with metrics, compare changes, and catch regressions before they affect production users.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 0,
+                  "length": 8,
+                  "offset": 194
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "7dh9d",
+              "text": "This guide focuses on the design work that happens before and while you create datasets and dataset items. To learn more about the basic building blocks you can check out our academy section on datasets",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 1,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "9hjk3",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "aa02i",
+              "text": "Dataset design is iterative. A good starting point is a minimally complete dataset: about 15-30 rows that can run through your application, cover the most important input slices, and have an evaluator or review rubric. Run that version early, fix the schema and evaluator, then expand into the gaps you see from those runs or from production input.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "3ommj",
+              "text": "Your application will very likely have more than one evaluation dataset. Datasets are often scoped to a specific part of the system or to one sub-step the agent takes.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 2,
+                  "length": 37,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "e1m24",
+              "text": "1. Start with the goal of the dataset",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "23vka",
+              "text": "Before writing rows, define the smallest useful goal the dataset should support. This keeps the dataset from becoming a vague bucket of interesting examples.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 3,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "8kq1j",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "33a5c",
+              "text": "A good early starting point for a dataset is looking at the most common examples end to end. This gives you the foundation and the general understanding from which you can expand.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "ah4kk",
+              "text": "Over time, teams add datasets for single steps, adversarial cases, red teaming, or specific sub-use cases in their application. We have even seen datasets for checking company name spelling.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "eghvb",
+              "text": "The goal you set for your dataset defines boundary and job: end-to-end datasets use the payload the application receives, while step-level datasets use the structured state a step sees in production.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "fqaa7",
+              "text": "If two jobs need different inputs, evaluators, or release decisions, split them. A stable regression dataset and an adversarial-input dataset can both be useful, but combining them without a clear split makes aggregate scores harder to interpret.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 4,
+                  "length": 28,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "7pqi9",
+              "text": "2. Inspect available sources",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "cvcbc",
+              "text": "Before selecting examples or writing dataset items, inspect a small sample of the material you could use. The goal is to understand what exists and how it's different from what you expected.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "crcv4",
+              "text": "Start with three source types:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 18,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "64uua",
+              "text": "Production traces: show realistic usage, common paths, and observed failures. Scores, user feedback, tickets, and complaints are discovery signals for useful traces; they are not a separate source type.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 16,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "2c0mv",
+              "text": "Existing assets: old datasets, FAQs, policies, docs, support macros, CSVs, JSON files, and benchmarks can bootstrap known coverage quickly.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 16,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "63h30",
+              "text": "Synthetic cases: expert-written and AI-generated examples can fill gaps and give you an idea of what your application is expected to face.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "c74a7",
+              "text": "For each source, review input topics, input and output shapes, and failure modes. You might learn that production traces lack the retrieval context your evaluator needs, that tickets from legacy systems expose better failure labels than traces, or that there is already a good set of end-to-end examples, because support created a 'FAQ' at some point.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "5dp87",
+              "text": "Use these sources to choose the distribution of inputs, evaluators, and item schema in the next steps.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 5,
+                  "length": 32,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "cpq6l",
+              "text": "3. Choose the input distribution",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "csc3f",
+              "text": "For a first dataset, keep the input distribution simple. Start with the few slices that tell you what to do after a run:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 14,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "36k51",
+              "text": "Scenario type: the main jobs, intents, routes, or task families. For a support-routing dataset, this might be billing, account access, technical issue, and sales request.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 19,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "c0v5g",
+              "text": "Difficulty or risk: routine, ambiguous, hard, adversarial, or business-critical cases. Include more than happy paths, but do not make the first dataset all edge cases.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 13,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "1oaij",
+              "text": "Dataset role: why the row exists: typical case, known regression, observed failure, or synthetic gap-fill.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "edtnl",
+              "text": "For a support-routing dataset, the first version might use a simple scenario-by-difficulty matrix:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 6,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "ckd5g",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "32lp0",
+              "text": "Input distribution is the deliberate mix of cases in the dataset: which scenarios appear, how difficult they are, and why each row is included. It is the coverage plan that helps you interpret experiment results by slice.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "6iu36",
+              "text": "The distribution does not have to mirror production frequency exactly. A regression dataset may intentionally overrepresent failures, edge cases, or high-value paths. What counts is that the mix is deliberate and visible in metadata.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "dg18",
+              "text": "Add more dimensions only when they change behavior or help interpret results. Channel, language, customer segment, region, context availability, and product area can be useful metadata, but they should not all become balancing constraints on day one.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 7,
+                  "length": 34,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "bntuk",
+              "text": "4. Decide how evaluation will work",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "cnf6v",
+              "text": "Choose the evaluation style before you write expected outputs. This determines what the dataset item needs to contain and how useful the first results will be.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 8,
+                  "length": 26,
+                  "offset": 4
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "dc7pi",
+              "text": "Use reference-based evaluation when each item has a known target: a correct label, expected tool call, required fact, structured output, reference answer, or expected next action. This is the best fit for regression tests and CI gates because failures are easier to inspect. The trade-off is that references take work to write and can become brittle if they over-specify wording instead of behavior.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 9,
+                  "length": 25,
+                  "offset": 4
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "akga8",
+              "text": "Use reference-free evaluation when there is no stable expected output, but every item can be judged against the same rule or rubric. This works for checks such as valid JSON, language match, grounding in provided context, safety, or tone. The trade-off is that the evaluator or rubric carries more weight, so ambiguous rubrics produce ambiguous results.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "bl9h8",
+              "text": "For example, a docs chatbot dataset can use either approach:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 10,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "9kj4u",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 11,
+                  "length": 15,
+                  "offset": 61
+                },
+                {
+                  "key": 12,
+                  "length": 14,
+                  "offset": 103
+                },
+                {
+                  "key": 13,
+                  "length": 17,
+                  "offset": 154
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "flqtd",
+              "text": "Choose the cheapest evaluator that captures the requirement: code evaluators for deterministic checks, LLM-as-a-judge for language-quality judgments, and manual evaluation while you are still learning what good and bad outputs look like.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 14,
+                  "length": 26,
+                  "offset": 197
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "fdc0a",
+              "text": "At this stage, you only need to decide how each dataset item will be reviewed: by an automated evaluator, manual annotation, or both. For the deeper work of designing the evaluator itself, see the Academy page on evaluation.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 15,
+                  "length": 17,
+                  "offset": 119
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "vuqe",
+              "text": "If you cannot yet name the evaluator or review rubric that will score each row, go for a review workflow first and use annotation queues to label examples manually.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 16,
+                  "length": 25,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "3j95q",
+              "text": "5. Design the item schema",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 17,
+                  "length": 25,
+                  "offset": 4
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "a5uqt",
+              "text": "The three dataset item fields are flexible JSON. Here, define them as a concrete contract that your experiment runner, evaluators, and reviewers can all consume.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "9ctap",
+              "text": "Define:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "5dcsh",
+              "text": "input: the object you will pass into the system boundary",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "fujfq",
+              "text": "expectedOutput: only the reference data the evaluator or reviewer needs; omit it for deliberate reference-free evaluation",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "ekdj5",
+              "text": "metadata: stable slice and provenance fields such as source, scenario type, difficulty, dataset role, and review status",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 18,
+                  "length": 22,
+                  "offset": 109
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "dab87",
+              "text": "Once you have decided on an item schema, enforce it so your team can effectively collaborate on adding items in the right structure.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "bn5j5",
+              "text": "For a support-routing dataset, one row could look like this:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 19,
+                  "length": 1,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "ee5u3",
+              "text": " ",
+              "type": "atomic"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "6jl8p",
+              "text": "The input keeps only the context the router needs. The expectedOutput states the behavior to check: route to billing, ask for the invoice ID, and do not promise a refund before review. The metadata records the row's source, scenario, difficulty, and role.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "1iqb6",
+              "text": "Keep the schema stable before collecting rows in bulk. Preserve behavior-shaping fields such as conversation history, retrieved context, tool state, routing metadata, or user attributes, but avoid arbitrary per-row fields or natural-language summaries of structured context.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 20,
+                  "length": 24,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "18f0b",
+              "text": "6. Draft a first version",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "10nm2",
+              "text": "Once the goal, distribution, evaluation method, and schema are concrete, start turning selected source examples into dataset items. Use the sources you inspected earlier, and add them in a format that matches the defined schema.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "sj9",
+              "text": "For a minimally complete first version, choose enough rows to test the whole contract along your input distribution:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "86tcr",
+              "text": "common scenarios that should work reliably",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "e7ubs",
+              "text": "a few ambiguous or high-risk scenarios",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "1t0fr",
+              "text": "known failures or regressions you want to prevent",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "21kqn",
+              "text": "synthetic gap fills only where production traces or existing assets do not cover the distribution",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "2jffe",
+              "text": "Do not wait until the dataset feels complete. Run the first coherent version in an experiment before adding more rows.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 21,
+                  "length": 51,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "cgava",
+              "text": "7. Run the first experiment and expand deliberately",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "8t7vi",
+              "text": "Use the first run to check whether the input shape works with the real application path, if the evaluator outcomes make sense, and if the expected output shape works for the intended purpose.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "7ojkt",
+              "text": "After the first run, expand and iterate until you arrive at scope and shape that helps you feel confident about shipping changes.",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "9h5j2",
+              "text": "Add rows when a failure reveals a missing scenario, difficulty level, or source.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "agkah",
+              "text": "Edit rows when the expected output, rubric, input shape, or metadata is ambiguous.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [],
+              "key": "40rav",
+              "text": "Archive rows when they no longer match current prompts, tools, policies, or product behavior.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 22,
+                  "length": 29,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "3kj8g",
+              "text": "How datasets evolve over time",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 23,
+                  "length": 21,
+                  "offset": 50
+                },
+                {
+                  "key": 24,
+                  "length": 14,
+                  "offset": 121
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "cvi3k",
+              "text": "Datasets have to evolve with your application. By monitoring production and frequently reviewing data through structured error analysis, your datasets can evolve over time to represent the production scope of your system. There are three useful expansion patterns:",
+              "type": "unstyled"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 20,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "2062n",
+              "text": "Production-mirroring: add interesting cases from production no matter if good or bad, to expand the coverage of your dataset over time.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 25,
+                  "length": 14,
+                  "offset": 221
+                },
+                {
+                  "key": 26,
+                  "length": 15,
+                  "offset": 239
+                },
+                {
+                  "key": 27,
+                  "length": 17,
+                  "offset": 276
+                }
+              ],
+              "inlineStyleRanges": [
+                {
+                  "length": 20,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "el8p3",
+              "text": "Bad-trace expansion: add a reviewed dataset item whenever you find a serious production failure. This works well once the system is live and you can continuously mine traces. For scoring, use automated evaluators such as LLM-as-a-judge or code evaluators, or send examples to annotation queues for manual review.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 26,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "5kjjk",
+              "text": "Purpose-specific datasets: build separate datasets for stable regression, adversarial inputs, single-step evaluations.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [
+                {
+                  "key": 28,
+                  "length": 20,
+                  "offset": 0
+                }
+              ],
+              "inlineStyleRanges": [],
+              "key": "blo7t",
+              "text": "Put it into practice",
+              "type": "header-two"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 32,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "e7cr2",
+              "text": "Start with one release question. Pick a product area and the smallest end-to-end dataset that can answer whether a specific change can ship.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 15,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "9039k",
+              "text": "Use 15-30 rows. Cover the most common scenarios, a few high-risk cases, and one or two known failures.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 38,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "crtms",
+              "text": "Keep every row runnable and evaluable. Each input should pass through the application path and be scorable by the evaluator or review rubric.",
+              "type": "unordered-list-item"
+            },
+            {
+              "data": {},
+              "entityRanges": [],
+              "inlineStyleRanges": [
+                {
+                  "length": 27,
+                  "offset": 0,
+                  "style": "Bold"
+                }
+              ],
+              "key": "fjqva",
+              "text": "Expand after the first run. Add bad traces for production failures you want to prevent from coming back, create purpose-specific datasets when one dataset starts mixing different jobs, and add synthetic rows only for named gaps.",
+              "type": "unordered-list-item"
+            }
+          ],
+          "entityMap": [
+            {
+              "key": "12",
+              "value": {
+                "data": {
+                  "entityKey": "0846c9b9-88cd-44ba-b0f1-4d719fd497da",
+                  "url": "https://langfuse.com/docs/evaluation/evaluation-methods/llm-as-a-judge"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "8",
+              "value": {
+                "data": {
+                  "entityKey": "caa522ae-e93a-428b-be9c-319c06c3ed04",
+                  "url": "https://langfuse.com/academy/evaluate#reference-based-vs-reference-free"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "19",
+              "value": {
+                "data": {
+                  "entityKey": "60c3e106-5400-4dcc-9c57-cab0c49cc91e",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "10",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2085279272961187840"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            },
+            {
+              "key": "23",
+              "value": {
+                "data": {
+                  "entityKey": "c6314e55-5fb8-4db1-a9f6-4fee25218cef",
+                  "url": "https://langfuse.com/academy/monitoring"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "4",
+              "value": {
+                "data": {
+                  "entityKey": "7008d356-8adc-42a8-88a5-ad36f8a5b8d0",
+                  "url": "https://langfuse.com/academy/datasets/designing-great-datasets#2-inspect-available-sources"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "15",
+              "value": {
+                "data": {
+                  "entityKey": "150eec6a-4724-4d61-8751-0d759751da82",
+                  "url": "https://langfuse.com/docs/evaluation/evaluation-methods/annotation-queues"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "11",
+              "value": {
+                "data": {
+                  "entityKey": "70040a18-43ce-4611-b612-d19ea2c20600",
+                  "url": "https://langfuse.com/docs/evaluation/evaluation-methods/code-evaluators"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "9",
+              "value": {
+                "data": {
+                  "entityKey": "5efc4cd3-513f-4958-abd1-c1c439cb713b",
+                  "url": "https://langfuse.com/academy/evaluate#reference-based-vs-reference-free"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "22",
+              "value": {
+                "data": {
+                  "entityKey": "0efa1f9c-fa93-4dec-843a-7174934bb55f",
+                  "url": "https://langfuse.com/academy/datasets/designing-great-datasets#how-datasets-evolve-over-time"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "26",
+              "value": {
+                "data": {
+                  "entityKey": "17084c3b-0e8b-463e-a269-ac0d94e8054d",
+                  "url": "https://langfuse.com/docs/evaluation/evaluation-methods/code-evaluators"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "13",
+              "value": {
+                "data": {
+                  "entityKey": "dbc1d90e-5878-45a5-81b0-0720b1191e65",
+                  "url": "https://langfuse.com/academy/evaluate#how-evaluation-typically-evolves"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "24",
+              "value": {
+                "data": {
+                  "entityKey": "faa17df7-eaa6-4064-a2ac-c74bf5daf26e",
+                  "url": "https://langfuse.com/academy/monitoring/error-analysis"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "16",
+              "value": {
+                "data": {
+                  "entityKey": "5e67b56e-8c35-472e-852e-1e4a9bdbe820",
+                  "url": "https://langfuse.com/academy/datasets/designing-great-datasets#5-design-the-item-schema"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "5",
+              "value": {
+                "data": {
+                  "entityKey": "85b7a36a-8dda-4305-a6e5-3e9bcec1b1a7",
+                  "url": "https://langfuse.com/academy/datasets/designing-great-datasets#3-choose-the-input-distribution"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "10",
+              "value": {
+                "data": {
+                  "entityKey": "f5291170-9442-4740-add1-01cc4574d3f2",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "8",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2085279186134999040"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            },
+            {
+              "key": "21",
+              "value": {
+                "data": {
+                  "entityKey": "20b91ea8-7c9d-4444-9ce3-10ed156933b3",
+                  "url": "https://langfuse.com/academy/datasets/designing-great-datasets#7-run-the-first-experiment-and-expand-deliberately"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "6",
+              "value": {
+                "data": {
+                  "entityKey": "61763293-0380-4216-b616-235e82c6041e",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "6",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2085279092971061248"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            },
+            {
+              "key": "1",
+              "value": {
+                "data": {
+                  "entityKey": "e569a67c-3988-4a21-b86e-6c4f95e85319",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "4",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2085278921042325504"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            },
+            {
+              "key": "17",
+              "value": {
+                "data": {
+                  "entityKey": "7cee9348-8b2d-4515-a0bf-5135fac71c16",
+                  "url": "https://langfuse.com/academy/datasets#the-dataset-item"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "25",
+              "value": {
+                "data": {
+                  "entityKey": "c8e9837e-0c2f-42c1-a0e5-a97e369a3392",
+                  "url": "https://langfuse.com/docs/evaluation/evaluation-methods/llm-as-a-judge"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "14",
+              "value": {
+                "data": {
+                  "entityKey": "56881d34-3575-4d3d-b17b-8421eb8b4c47",
+                  "url": "https://langfuse.com/academy/evaluate"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "0",
+              "value": {
+                "data": {
+                  "entityKey": "f733c744-fa67-48b6-9566-a668b6290e2c",
+                  "url": "https://langfuse.com/academy/datasets"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "20",
+              "value": {
+                "data": {
+                  "entityKey": "8c77924a-3a3e-4d26-9686-23e4187be68e",
+                  "url": "https://langfuse.com/academy/datasets/designing-great-datasets#6-draft-a-first-version"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "27",
+              "value": {
+                "data": {
+                  "entityKey": "5062b811-9680-4a68-bf41-c46c31337592",
+                  "url": "https://langfuse.com/docs/evaluation/evaluation-methods/annotation-queues"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "2",
+              "value": {
+                "data": {
+                  "entityKey": "727ceffb-6d9e-4f95-a241-9997700b85ed",
+                  "url": "https://langfuse.com/academy/datasets/designing-great-datasets#1-start-with-the-goal-of-the-dataset"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "18",
+              "value": {
+                "data": {
+                  "entityKey": "8c8a0e8b-c9a2-4cc5-83fd-bea09d2a8b53",
+                  "url": "https://langfuse.com/docs/evaluation/experiments/datasets#schema-enforcement"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "7",
+              "value": {
+                "data": {
+                  "entityKey": "5b61e919-0eb8-40e2-81af-9a3a2eab1578",
+                  "url": "https://langfuse.com/academy/datasets/designing-great-datasets#4-decide-how-evaluation-will-work"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            },
+            {
+              "key": "3",
+              "value": {
+                "data": {
+                  "entityKey": "034d3ea3-69ef-49ef-ad6e-f070ec777ad8",
+                  "mediaItems": [
+                    {
+                      "localMediaId": "12",
+                      "mediaCategory": "DraftTweetImage",
+                      "mediaId": "2085279510123941888"
+                    }
+                  ]
+                },
+                "mutability": "Immutable",
+                "type": "MEDIA"
+              }
+            },
+            {
+              "key": "28",
+              "value": {
+                "data": {
+                  "entityKey": "24455e17-58a4-45ac-aef5-7cda40af23aa",
+                  "url": "https://langfuse.com/academy/datasets/designing-great-datasets#put-it-into-practice"
+                },
+                "mutability": "Mutable",
+                "type": "LINK"
+              }
+            }
+          ]
+        },
+        "media_entities": [
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHPBmIWJWcAAKAAIW3R+yCVoAAwAA",
+            "media_id": "2085278921042325504",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 93.98,
+                    "rgb": {
+                      "blue": 242,
+                      "green": 247,
+                      "red": 246
+                    }
+                  },
+                  {
+                    "percentage": 5.4,
+                    "rgb": {
+                      "blue": 148,
+                      "green": 251,
+                      "red": 247
+                    }
+                  },
+                  {
+                    "percentage": 0.3,
+                    "rgb": {
+                      "blue": 156,
+                      "green": 158,
+                      "red": 158
+                    }
+                  },
+                  {
+                    "percentage": 0.26,
+                    "rgb": {
+                      "blue": 137,
+                      "green": 142,
+                      "red": 141
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 594,
+              "original_img_url": "https://pbs.twimg.com/media/HPBmIWJWcAAmiNJ.jpg",
+              "original_img_width": 1344
+            },
+            "media_key": "3_2085278921042325504"
+          },
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHPBmc1JWIAAKAAIW3R+yCVoAAwAA",
+            "media_id": "2085279272961187840",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 99.42,
+                    "rgb": {
+                      "blue": 233,
+                      "green": 238,
+                      "red": 237
+                    }
+                  },
+                  {
+                    "percentage": 0.58,
+                    "rgb": {
+                      "blue": 204,
+                      "green": 207,
+                      "red": 207
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 778,
+              "original_img_url": "https://pbs.twimg.com/media/HPBmc1JWIAAcYNb.jpg",
+              "original_img_width": 1378
+            },
+            "media_key": "3_2085279272961187840"
+          },
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHPBmXxsXoAAKAAIW3R+yCVoAAwAA",
+            "media_id": "2085279186134999040",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 99.51,
+                    "rgb": {
+                      "blue": 240,
+                      "green": 245,
+                      "red": 244
+                    }
+                  },
+                  {
+                    "percentage": 0.49,
+                    "rgb": {
+                      "blue": 137,
+                      "green": 139,
+                      "red": 139
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 640,
+              "original_img_url": "https://pbs.twimg.com/media/HPBmXxsXoAAVxy4.jpg",
+              "original_img_width": 1386
+            },
+            "media_key": "3_2085279186134999040"
+          },
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHPBmSWoWwAAKAAIW3R+yCVoAAwAA",
+            "media_id": "2085279092971061248",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 63.19,
+                    "rgb": {
+                      "blue": 235,
+                      "green": 245,
+                      "red": 243
+                    }
+                  },
+                  {
+                    "percentage": 34.15,
+                    "rgb": {
+                      "blue": 158,
+                      "green": 251,
+                      "red": 249
+                    }
+                  },
+                  {
+                    "percentage": 2.04,
+                    "rgb": {
+                      "blue": 194,
+                      "green": 251,
+                      "red": 247
+                    }
+                  },
+                  {
+                    "percentage": 0.7,
+                    "rgb": {
+                      "blue": 194,
+                      "green": 246,
+                      "red": 243
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 516,
+              "original_img_url": "https://pbs.twimg.com/media/HPBmSWoWwAANxPH.jpg",
+              "original_img_width": 1338
+            },
+            "media_key": "3_2085279092971061248"
+          },
+          {
+            "id": "QXBpTWVkaWE6DAAFCgABHPBmqopWkAAKAAIW3R+yCVoAAwAA",
+            "media_id": "2085279510123941888",
+            "media_info": {
+              "__typename": "ApiImage",
+              "color_info": {
+                "palette": [
+                  {
+                    "percentage": 99.98,
+                    "rgb": {
+                      "blue": 240,
+                      "green": 244,
+                      "red": 245
+                    }
+                  }
+                ]
+              },
+              "original_img_height": 286,
+              "original_img_url": "https://pbs.twimg.com/media/HPBmqopWkAAWD-4.jpg",
+              "original_img_width": 1124
+            },
+            "media_key": "3_2085279510123941888"
+          }
+        ]
+      },
+      "twitter_card": "tweet",
+      "color": null,
+      "provider": "twitter",
+      "reposted_by": null
+    }
+  }
+}
