@@ -16,6 +16,11 @@ function makeFixture(t, { machine = 0x0100000c, omit = null } = {}) {
     ["electron/preload.js", "preload"],
     ["node_modules/next/dist/bin/next", "next"],
     ["node_modules/@earendil-works/pi-coding-agent/package.json", "{}"],
+    ["node_modules/pi-subagents/package.json", "{}"],
+    ["node_modules/pi-mcp-adapter/package.json", "{}"],
+    ["node_modules/pi-web-access/package.json", "{}"],
+    ["node_modules/@juicesharp/rpiv-ask-user-question/package.json", "{}"],
+    ["node_modules/@narumitw/pi-goal/package.json", "{}"],
     ["node_modules/undici/package.json", "{}"],
     [".next/BUILD_ID", "build"],
     ["public/icon-mac.png", "icon"],
@@ -47,4 +52,11 @@ test("rejects a non-arm64 application executable", (t) => {
 
 test("reports missing runtime resources", (t) => {
   assert.throws(() => verifyMacPackage(makeFixture(t, { omit: ".next/BUILD_ID" })), /BUILD_ID/);
+});
+
+test("reports a missing bundled pi-subagents package", (t) => {
+  assert.throws(
+    () => verifyMacPackage(makeFixture(t, { omit: "node_modules/pi-subagents/package.json" })),
+    /node_modules[/\\]pi-subagents[/\\]package\.json/,
+  );
 });

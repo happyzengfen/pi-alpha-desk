@@ -1,10 +1,11 @@
 import { stat } from "fs/promises";
 import { resolve } from "path";
-import { createAgentSessionServices, getAgentDir, type SettingsManager } from "@earendil-works/pi-coding-agent";
+import { createAgentSessionServices, getAgentDir, SettingsManager } from "@earendil-works/pi-coding-agent";
 import { getSupportedThinkingLevels } from "@earendil-works/pi-ai";
 import { loadModelsWithCache, type ModelsData } from "@/lib/models-cache";
 import { resolveVisibleModels, selectInitialModelScope } from "@/lib/model-scope";
-import { projectTrustReloadOptions } from "@/lib/project-trust";
+import { getProjectTrustStatus, projectTrustReloadOptions } from "@/lib/project-trust";
+import { getBundledPiPackageResourceLoaderOptions } from "@/lib/bundled-pi-packages";
 
 export const dynamic = "force-dynamic";
 
@@ -29,9 +30,14 @@ async function loadModels(cwd: string): Promise<ModelsData> {
   // Model enumeration imports project extensions to discover their providers.
   // Gate that import before repository-controlled factories can execute.
   const trustReloadOptions = projectTrustReloadOptions(cwd, agentDir);
+  const settingsManager = SettingsManager.create(cwd, agentDir, {
+    projectTrusted: getProjectTrustStatus(cwd, agentDir).trusted,
+  });
   const services = await createAgentSessionServices({
     cwd,
     agentDir,
+    settingsManager,
+    resourceLoaderOptions: getBundledPiPackageResourceLoaderOptions(settingsManager),
     ...(trustReloadOptions ? { resourceLoaderReloadOptions: trustReloadOptions } : {}),
   });
   const settings: SettingsManager = services.settingsManager;

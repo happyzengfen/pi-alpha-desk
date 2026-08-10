@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
     "@earendil-works/pi-coding-agent",
     "@earendil-works/pi-ai",
     "@earendil-works/pi-tui",
+    "@juicesharp/rpiv-ask-user-question",
+    "@narumitw/pi-goal",
+    "pi-mcp-adapter",
+    "pi-subagents",
+    "pi-web-access",
     "undici",
   ],
   async headers() {
