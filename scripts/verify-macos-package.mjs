@@ -8,6 +8,13 @@ const SCRIPT_DIR = fileURLToPath(new URL(".", import.meta.url));
 const PROJECT_ROOT = resolve(SCRIPT_DIR, "..");
 const MACHO_64_MAGIC = 0xfeedfacf;
 const CPU_TYPE_ARM64 = 0x0100000c;
+const BUNDLED_PI_PACKAGES = [
+  ["pi-subagents"],
+  ["pi-mcp-adapter"],
+  ["pi-web-access"],
+  ["@juicesharp", "rpiv-ask-user-question"],
+  ["@narumitw", "pi-goal"],
+];
 
 function findApplication(releaseDirectory) {
   const candidates = readdirSync(releaseDirectory, { withFileTypes: true })
@@ -60,6 +67,7 @@ export function verifyMacPackage(releaseDirectory) {
     join(appRoot, "electron", "preload.js"),
     join(appRoot, "node_modules", "next", "dist", "bin", "next"),
     join(appRoot, "node_modules", "@earendil-works", "pi-coding-agent", "package.json"),
+    ...BUNDLED_PI_PACKAGES.map((segments) => join(appRoot, "node_modules", ...segments, "package.json")),
     join(appRoot, "node_modules", "undici", "package.json"),
     join(appRoot, ".next", "BUILD_ID"),
     join(appRoot, "public", "icon-mac.png"),

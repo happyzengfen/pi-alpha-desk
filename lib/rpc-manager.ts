@@ -1,4 +1,4 @@
-import { createAgentSessionFromServices, createAgentSessionServices, getAgentDir, initTheme, SessionManager, Theme } from "@earendil-works/pi-coding-agent";
+import { createAgentSessionFromServices, createAgentSessionServices, getAgentDir, initTheme, SessionManager, SettingsManager, Theme } from "@earendil-works/pi-coding-agent";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { KeybindingsManager as TuiKeybindingsManager, TUI_KEYBINDINGS } from "@earendil-works/pi-tui";
 import { randomUUID } from "crypto";
@@ -14,6 +14,7 @@ import type { SlashCommandInfo } from "@earendil-works/pi-coding-agent";
 import type { AgentSessionLike, ExtensionUiContextLike, ToolInfo } from "./pi-types";
 import type { ExtensionUiRequest, ExtensionUiResponse, ExtensionWidgetItem } from "./types";
 import { createHeadlessCustomUiTui, DEFAULT_CUSTOM_UI_COLUMNS } from "./custom-ui-terminal";
+import { getBundledPiPackageResourceLoaderOptions } from "./bundled-pi-packages";
 
 // ============================================================================
 // Types
@@ -1155,9 +1156,15 @@ export async function startRpcSession(
     // Creating services imports project extensions for provider discovery, so
     // gate project resources before repository-controlled code can run.
     const trustReloadOptions = projectTrustReloadOptions(sessionCwd, agentDir);
+    const projectTrust = getProjectTrustStatus(sessionCwd, agentDir);
+    const settingsManager = SettingsManager.create(sessionCwd, agentDir, {
+      projectTrusted: projectTrust.trusted,
+    });
     const services = await createAgentSessionServices({
       cwd: sessionCwd,
       agentDir,
+      settingsManager,
+      resourceLoaderOptions: getBundledPiPackageResourceLoaderOptions(settingsManager),
       ...(trustReloadOptions ? { resourceLoaderReloadOptions: trustReloadOptions } : {}),
     });
     const scope = await resolveVisibleModels(

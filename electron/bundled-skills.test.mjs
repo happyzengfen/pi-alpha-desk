@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -34,6 +34,12 @@ test("packages the bundled skill directory as an Electron resource", async () =>
   assert.ok(packageJson.build.extraResources.some(
     (entry) => entry.from === "bundled-skills" && entry.to === "bundled-skills",
   ));
+});
+
+test("includes the local office skills in desktop resources", async () => {
+  for (const skillName of ["guizang-ppt-skill", "windows-word-docx", "pdf"]) {
+    await access(new URL(`../bundled-skills/${skillName}/SKILL.md`, import.meta.url));
+  }
 });
 
 test("installs bundled skills and preserves existing user copies", async () => {

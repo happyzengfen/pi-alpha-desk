@@ -28,6 +28,11 @@ async function createValidPackage(root, machine = 0x8664) {
   await writeFixtureFile(root, "resources/app/electron/preload.js");
   await writeFixtureFile(root, "resources/app/node_modules/next/dist/bin/next");
   await writeFixtureFile(root, "resources/app/node_modules/@earendil-works/pi-coding-agent/package.json", "{}");
+  await writeFixtureFile(root, "resources/app/node_modules/pi-subagents/package.json", "{}");
+  await writeFixtureFile(root, "resources/app/node_modules/pi-mcp-adapter/package.json", "{}");
+  await writeFixtureFile(root, "resources/app/node_modules/pi-web-access/package.json", "{}");
+  await writeFixtureFile(root, "resources/app/node_modules/@juicesharp/rpiv-ask-user-question/package.json", "{}");
+  await writeFixtureFile(root, "resources/app/node_modules/@narumitw/pi-goal/package.json", "{}");
   await writeFixtureFile(root, "resources/app/node_modules/undici/package.json", "{}");
   await writeFixtureFile(root, "resources/app/.next/BUILD_ID");
   await writeFixtureFile(root, "resources/app/.next/node_modules/external-package/index.js");
@@ -89,12 +94,14 @@ test("reports missing runtime resources", async () => {
     await createValidPackage(root);
     await rm(join(root, "resources", "bundled-skills"), { recursive: true, force: true });
     await rm(join(root, "resources", "app", ".next", "BUILD_ID"));
+    await rm(join(root, "resources", "app", "node_modules", "pi-subagents"), { recursive: true, force: true });
 
     assert.throws(
       () => verifyWindowsPackage(root),
       (error) => {
         assert.match(error.message, /Windows package is incomplete/);
         assert.match(error.message, /\.next[/\\]BUILD_ID/);
+        assert.match(error.message, /node_modules[/\\]pi-subagents[/\\]package\.json/);
         assert.match(error.message, /resources[/\\]bundled-skills/);
         return true;
       },

@@ -7,6 +7,13 @@ import { fileURLToPath } from "node:url";
 const SCRIPT_DIR = fileURLToPath(new URL(".", import.meta.url));
 const PROJECT_ROOT = resolve(SCRIPT_DIR, "..");
 const PE_MACHINE_AMD64 = 0x8664;
+const BUNDLED_PI_PACKAGES = [
+  ["pi-subagents"],
+  ["pi-mcp-adapter"],
+  ["pi-web-access"],
+  ["@juicesharp", "rpiv-ask-user-question"],
+  ["@narumitw", "pi-goal"],
+];
 
 function readPeMachine(executablePath) {
   const handle = openSync(executablePath, "r");
@@ -90,6 +97,7 @@ export function verifyWindowsPackage(unpackedDirectory) {
     join(root, "resources", "app", "electron", "preload.js"),
     join(appNodeModules, "next", "dist", "bin", "next"),
     join(appNodeModules, "@earendil-works", "pi-coding-agent", "package.json"),
+    ...BUNDLED_PI_PACKAGES.map((segments) => join(appNodeModules, ...segments, "package.json")),
     join(appNodeModules, "undici", "package.json"),
     join(root, "resources", "app", ".next", "BUILD_ID"),
     join(root, "resources", "app", "public", "icon.ico"),
