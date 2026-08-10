@@ -112,18 +112,21 @@ jobs:
                 Sort-Object LastWriteTime -Descending |
                 Select-Object -First 1
               if ($log) {
-                $match = [regex]::Match((Get-Content $log.FullName -Raw), "127\.0\.0\.1:(\d+)")
-                if ($match.Success) {
-                  $selectedPort = [int]$match.Groups[1].Value
-                  if ($selectedPort -eq 30141) { throw "Application did not leave the occupied default port" }
+                $candidatePorts = [regex]::Matches((Get-Content $log.FullName -Raw), "127\.0\.0\.1:(\d+)") |
+                  ForEach-Object { [int]$_.Groups[1].Value } |
+                  Where-Object { $_ -ne 30141 } |
+                  Select-Object -Unique
+                foreach ($candidatePort in $candidatePorts) {
                   try {
-                    $response = Invoke-WebRequest "http://127.0.0.1:$selectedPort/api/home" -UseBasicParsing -TimeoutSec 2
+                    $response = Invoke-WebRequest "http://127.0.0.1:$candidatePort/api/home" -UseBasicParsing -TimeoutSec 2
                     if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
+                      $selectedPort = $candidatePort
                       $ready = $true
                       break
                     }
                   } catch {}
                 }
+                if ($ready) { break }
               }
               Start-Sleep -Milliseconds 500
             }
