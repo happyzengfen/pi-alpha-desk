@@ -8,7 +8,7 @@ test("workspace information panels are visible by default", async () => {
     readFile(new URL("./QuickChangesPanel.tsx", import.meta.url), "utf8"),
   ]);
 
-  assert.match(sidebarSource, /useState\(true\);\n\s*const \[explorerOpen/);
+  assert.match(sidebarSource, /useState\(true\);\r?\n\s*const \[explorerOpen/);
   assert.match(sidebarSource, /const \[explorerOpen, setExplorerOpen\] = useState\(true\)/);
   assert.match(sidebarSource, /if \(!selectedCwd\) return;\s*setSessionsOpen\(true\);\s*setExplorerOpen\(true\);\s*}, \[selectedCwd\]\);/);
   assert.match(quickChangesSource, /const \[open, setOpen\] = useState\(true\)/);
