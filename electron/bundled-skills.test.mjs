@@ -9,15 +9,16 @@ const require = createRequire(import.meta.url);
 const { installBundledSkills, resolveBundledSkillsTargetRoot } = require("./bundled-skills.js");
 
 test("resolves bundled skills into the active Pi agent directory", () => {
-  const homeDirectory = path.join(path.sep, "users", "pi-user");
+  const homeDirectory = path.resolve(path.sep, "users", "pi-user");
+  const configuredAgentDirectory = path.resolve(path.sep, "custom", "agent");
 
   assert.equal(
     resolveBundledSkillsTargetRoot({ homeDirectory }),
     path.join(homeDirectory, ".pi", "agent", "skills"),
   );
   assert.equal(
-    resolveBundledSkillsTargetRoot({ homeDirectory, configuredAgentDir: path.join(path.sep, "custom", "agent") }),
-    path.join(path.sep, "custom", "agent", "skills"),
+    resolveBundledSkillsTargetRoot({ homeDirectory, configuredAgentDir: configuredAgentDirectory }),
+    path.join(configuredAgentDirectory, "skills"),
   );
   assert.equal(
     resolveBundledSkillsTargetRoot({ homeDirectory, configuredAgentDir: "~/custom-agent" }),
