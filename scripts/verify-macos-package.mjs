@@ -7,7 +7,10 @@ import { fileURLToPath } from "node:url";
 const SCRIPT_DIR = fileURLToPath(new URL(".", import.meta.url));
 const PROJECT_ROOT = resolve(SCRIPT_DIR, "..");
 const MACHO_64_MAGIC = 0xfeedfacf;
-const CPU_TYPE_ARM64 = 0x0100000c;
+const CPU_TYPES = {
+  arm64: 0x0100000c,
+  x64: 0x01000007,
+};
 const BUNDLED_PI_PACKAGES = [
   ["pi-subagents"],
   ["pi-mcp-adapter"],
@@ -37,7 +40,11 @@ function findExecutable(applicationPath) {
   return candidates[0];
 }
 
-function verifyArm64MachO(executablePath) {
+function verifyMachO(executablePath, expectedArchitecture) {
+  const expectedCpuType = CPU_TYPES[expectedArchitecture];
+  if (!expectedCpuType) {
+    throw new Error(`Unsupported macOS architecture: ${expectedArchitecture}`);
+  }
   const handle = openSync(executablePath, "r");
   try {
     const header = Buffer.alloc(8);
@@ -47,18 +54,18 @@ function verifyArm64MachO(executablePath) {
     if (header.readUInt32LE(0) !== MACHO_64_MAGIC) {
       throw new Error(`Expected a 64-bit little-endian Mach-O executable: ${executablePath}`);
     }
-    if (header.readUInt32LE(4) !== CPU_TYPE_ARM64) {
-      throw new Error(`Expected an arm64 Mach-O executable: ${executablePath}`);
+    if (header.readUInt32LE(4) !== expectedCpuType) {
+      throw new Error(`Expected an ${expectedArchitecture} Mach-O executable: ${executablePath}`);
     }
   } finally {
     closeSync(handle);
   }
 }
 
-export function verifyMacPackage(releaseDirectory) {
+export function verifyMacPackage(releaseDirectory, expectedArchitecture = "arm64") {
   const applicationPath = findApplication(resolve(releaseDirectory));
   const executablePath = findExecutable(applicationPath);
-  verifyArm64MachO(executablePath);
+  verifyMachO(executablePath, expectedArchitecture);
 
   const resources = join(applicationPath, "Contents", "Resources");
   const appRoot = join(resources, "app");
@@ -85,7 +92,11 @@ export function verifyMacPackage(releaseDirectory) {
   if (missing.length > 0) {
     throw new Error(`macOS package is incomplete:\n${missing.map((candidate) => `- ${candidate}`).join("\n")}`);
   }
-  return { application: basename(applicationPath), executable: basename(executablePath), machine: "arm64" };
+  return {
+    application: basename(applicationPath),
+    executable: basename(executablePath),
+    machine: expectedArchitecture,
+  };
 }
 
 function parseReleaseDirectory(argv) {
@@ -96,9 +107,18 @@ function parseReleaseDirectory(argv) {
   return join(PROJECT_ROOT, "release", "mac-arm64");
 }
 
+function parseArchitecture(argv) {
+  const raw = argv.find((argument) => argument.startsWith("--arch="));
+  if (raw) return raw.slice("--arch=".length);
+  const index = argv.indexOf("--arch");
+  if (index !== -1 && argv[index + 1]) return argv[index + 1];
+  return "arm64";
+}
+
 if (resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
   try {
-    const result = verifyMacPackage(parseReleaseDirectory(process.argv.slice(2)));
+    const args = process.argv.slice(2);
+    const result = verifyMacPackage(parseReleaseDirectory(args), parseArchitecture(args));
     console.log(`[verify-macos-package] OK ${result.application} / ${result.executable} (${result.machine})`);
   } catch (error) {
     console.error(`[verify-macos-package] ERROR ${error instanceof Error ? error.message : String(error)}`);

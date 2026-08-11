@@ -1,4 +1,4 @@
-name: macOS arm64
+name: Desktop packages
 
 on:
   workflow_dispatch:
@@ -7,9 +7,9 @@ permissions:
   contents: read
 
 jobs:
-  package-and-smoke-test:
-    runs-on: macos-15
-    timeout-minutes: 60
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
@@ -27,20 +27,53 @@ jobs:
       - name: Run quality gates
         run: npm test && npx tsc --noEmit && npm run lint
 
-      - name: Build unsigned macOS arm64 application
+  macos:
+    needs: quality
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: arm64
+            runner: macos-15
+            unpacked_directory: release/mac-arm64
+          - architecture: x64
+            runner: macos-15-intel
+            unpacked_directory: release/mac
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build unsigned macOS application
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: |
           npm run icons
           npm run build
-          npx electron-builder --mac dir --arm64 --publish never
+          npx electron-builder --mac dir --${{ matrix.architecture }} --publish never
 
-      - name: Verify macOS arm64 package
-        run: node scripts/verify-macos-package.mjs
+      - name: Verify macOS package
+        run: >-
+          node scripts/verify-macos-package.mjs
+          --dir "${{ matrix.unpacked_directory }}"
+          --arch "${{ matrix.architecture }}"
 
       - name: Smoke test packaged application
         shell: bash
         run: |
           set -euo pipefail
-          app_binary="$(find release -path '*.app/Contents/MacOS/*' -type f -perm -111 | head -n 1)"
+          app_binary="$(find '${{ matrix.unpacked_directory }}' -path '*.app/Contents/MacOS/*' -type f -perm -111 | head -n 1)"
           test -n "$app_binary"
           metrics_file="$RUNNER_TEMP/pi-web-macos-startup.log"
           agent_dir="$RUNNER_TEMP/pi-web-agent"
@@ -52,9 +85,87 @@ jobs:
           "$app_binary" >"$metrics_file" 2>&1
           grep 'PI_WEB_STARTUP_METRIC.*renderer-interactive' "$metrics_file"
 
-      - name: Upload unpacked macOS application
+      - name: Build unsigned macOS DMG
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx electron-builder --mac dmg --${{ matrix.architecture }} --publish never
+
+      - name: Verify macOS DMG
+        run: hdiutil verify release/*.dmg
+
+      - name: Upload macOS DMG
         uses: actions/upload-artifact@v6
         with:
-          name: macos-arm64-unpacked
+          name: macos-${{ matrix.architecture }}
           if-no-files-found: error
-          path: release/mac-arm64/*.app
+          path: release/*.dmg
+
+  linux:
+    needs: quality
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x64
+            runner: ubuntu-24.04
+            unpacked_directory: release/linux-unpacked
+          - architecture: arm64
+            runner: ubuntu-24.04-arm
+            unpacked_directory: release/linux-arm64-unpacked
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.0
+          cache: npm
+
+      - name: Install Linux build dependencies
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libopenjp2-tools xvfb
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build unpacked Linux application
+        run: |
+          npm run icons
+          npm run build
+          npx electron-builder --linux dir --${{ matrix.architecture }} --publish never
+
+      - name: Verify Linux package
+        run: >-
+          node scripts/verify-linux-package.mjs
+          --dir "${{ matrix.unpacked_directory }}"
+          --arch "${{ matrix.architecture }}"
+
+      - name: Smoke test packaged application
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_binary="$(find '${{ matrix.unpacked_directory }}' -maxdepth 1 -type f -perm -111 \
+            ! -name chrome-sandbox ! -name chrome_crashpad_handler | head -n 1)"
+          test -n "$app_binary"
+          metrics_file="$RUNNER_TEMP/pi-web-linux-startup.log"
+          agent_dir="$RUNNER_TEMP/pi-web-agent"
+          user_data="$RUNNER_TEMP/pi-web-user-data"
+          mkdir -p "$agent_dir" "$user_data"
+          PI_WEB_BENCHMARK=1 \
+          PI_WEB_BENCHMARK_USER_DATA="$user_data" \
+          PI_CODING_AGENT_DIR="$agent_dir" \
+          xvfb-run -a "$app_binary" >"$metrics_file" 2>&1
+          grep 'PI_WEB_STARTUP_METRIC.*renderer-interactive' "$metrics_file"
+
+      - name: Build Linux AppImage
+        run: npx electron-builder --linux AppImage --${{ matrix.architecture }} --publish never
+
+      - name: Upload Linux AppImage
+        uses: actions/upload-artifact@v6
+        with:
+          name: linux-${{ matrix.architecture }}
+          if-no-files-found: error
+          path: release/*.AppImage
