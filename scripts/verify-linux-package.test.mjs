@@ -5,11 +5,11 @@ import path from "node:path";
 import test from "node:test";
 import { verifyLinuxPackage } from "./verify-linux-package.mjs";
 
-function makeFixture(t, { architecture = "x64", omit = null } = {}) {
+function makeFixture(t, { architecture = "x64", executableName = "数字化AI助手", omit = null } = {}) {
   const release = fs.mkdtempSync(path.join(os.tmpdir(), "pi-web-linux-package-"));
   t.after(() => fs.rmSync(release, { recursive: true, force: true }));
   const appRoot = path.join(release, "resources", "app");
-  const executable = path.join(release, "数字化AI助手");
+  const executable = path.join(release, executableName);
   const required = [
     ["electron/main.js", "main"],
     ["electron/preload.js", "preload"],
@@ -50,6 +50,13 @@ function makeFixture(t, { architecture = "x64", omit = null } = {}) {
 test("accepts complete Linux x64 and arm64 packages", (t) => {
   assert.equal(verifyLinuxPackage(makeFixture(t), "x64").machine, "x64");
   assert.equal(verifyLinuxPackage(makeFixture(t, { architecture: "arm64" }), "arm64").machine, "arm64");
+});
+
+test("accepts Electron Builder's package-name Linux executable", (t) => {
+  assert.equal(
+    verifyLinuxPackage(makeFixture(t, { executableName: "pi-alpha-desk" }), "x64").executable,
+    "pi-alpha-desk",
+  );
 });
 
 test("rejects a package for the wrong Linux architecture", (t) => {

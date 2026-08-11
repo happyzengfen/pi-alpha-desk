@@ -20,8 +20,15 @@ const BUNDLED_PI_PACKAGES = [
 
 function findProductExecutable(unpackedDirectory) {
   const packageJson = JSON.parse(readFileSync(join(PROJECT_ROOT, "package.json"), "utf8"));
-  const preferredPath = join(unpackedDirectory, packageJson.build?.productName ?? packageJson.name);
-  if (existsSync(preferredPath)) return preferredPath;
+  const preferredNames = [
+    packageJson.build?.executableName,
+    packageJson.build?.productName,
+    packageJson.name.split("/").pop(),
+  ].filter(Boolean);
+  for (const name of preferredNames) {
+    const preferredPath = join(unpackedDirectory, name);
+    if (existsSync(preferredPath)) return preferredPath;
+  }
 
   const ignored = new Set(["chrome-sandbox", "chrome_crashpad_handler"]);
   const candidates = readdirSync(unpackedDirectory, { withFileTypes: true })

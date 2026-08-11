@@ -147,9 +147,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          app_binary="$(find '${{ matrix.unpacked_directory }}' -maxdepth 1 -type f -perm -111 \
-            ! -name chrome-sandbox ! -name chrome_crashpad_handler | head -n 1)"
-          test -n "$app_binary"
+          executable_name="$(node -p "require('./package.json').name.split('/').pop()")"
+          app_binary="${{ matrix.unpacked_directory }}/$executable_name"
+          test -x "$app_binary"
           metrics_file="$RUNNER_TEMP/pi-web-linux-startup.log"
           agent_dir="$RUNNER_TEMP/pi-web-agent"
           user_data="$RUNNER_TEMP/pi-web-user-data"
