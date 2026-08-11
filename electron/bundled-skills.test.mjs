@@ -37,7 +37,7 @@ test("packages the bundled skill directory as an Electron resource", async () =>
 });
 
 test("includes the local office skills in desktop resources", async () => {
-  for (const skillName of ["guizang-ppt-skill", "windows-word-docx", "pdf"]) {
+  for (const skillName of ["guizang-ppt-skill", "office-viewer", "windows-word-docx", "pdf"]) {
     await access(new URL(`../bundled-skills/${skillName}/SKILL.md`, import.meta.url));
   }
 });
@@ -66,6 +66,45 @@ test("installs bundled skills and preserves existing user copies", async () => {
     ]);
     assert.equal(await readFile(path.join(targetRoot, "existing-skill", "SKILL.md"), "utf8"), "user version");
     assert.equal(await readFile(path.join(targetRoot, "new-skill", "SKILL.md"), "utf8"), "new bundled skill");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("updates an unmodified app-managed skill and preserves later user edits", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "pi-web-bundled-skill-update-"));
+  const sourceRoot = path.join(root, "source");
+  const targetRoot = path.join(root, "target");
+  const sourceSkill = path.join(sourceRoot, "managed-skill", "SKILL.md");
+  const targetSkill = path.join(targetRoot, "managed-skill", "SKILL.md");
+  const sourceAsset = path.join(sourceRoot, "managed-skill", "assets", "notes.txt");
+  const targetAsset = path.join(targetRoot, "managed-skill", "assets", "notes.txt");
+
+  try {
+    await mkdir(path.dirname(sourceSkill), { recursive: true });
+    await mkdir(path.dirname(sourceAsset), { recursive: true });
+    await writeFile(sourceSkill, "version one", "utf8");
+    await writeFile(sourceAsset, "asset one", "utf8");
+    installBundledSkills({ sourceRoot, targetRoot, logger: { info() {} } });
+
+    await writeFile(sourceSkill, "version two", "utf8");
+    await writeFile(sourceAsset, "asset two", "utf8");
+    assert.deepEqual(
+      installBundledSkills({ sourceRoot, targetRoot, logger: { info() {} } }),
+      [{ name: "managed-skill", status: "updated" }],
+    );
+    assert.equal(await readFile(targetSkill, "utf8"), "version two");
+    assert.equal(await readFile(targetAsset, "utf8"), "asset two");
+
+    await writeFile(targetAsset, "user customization", "utf8");
+    await writeFile(sourceSkill, "version three", "utf8");
+    await writeFile(sourceAsset, "asset three", "utf8");
+    assert.deepEqual(
+      installBundledSkills({ sourceRoot, targetRoot, logger: { info() {} } }),
+      [{ name: "managed-skill", status: "preserved" }],
+    );
+    assert.equal(await readFile(targetSkill, "utf8"), "version two");
+    assert.equal(await readFile(targetAsset, "utf8"), "user customization");
   } finally {
     await rm(root, { recursive: true, force: true });
   }

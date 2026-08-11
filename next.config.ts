@@ -17,9 +17,12 @@ const nextConfig: NextConfig = {
     "@earendil-works/pi-tui",
     "@juicesharp/rpiv-ask-user-question",
     "@narumitw/pi-goal",
+    "@e965/xlsx",
     "pi-mcp-adapter",
     "pi-subagents",
     "pi-web-access",
+    "word-extractor",
+    "unpdf",
     "undici",
   ],
   async headers() {

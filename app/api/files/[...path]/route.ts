@@ -10,13 +10,14 @@ import {
 import {
   DOCX_PREVIEW_MAX_BYTES,
   IMAGE_PREVIEW_MAX_BYTES,
+  OFFICE_PREVIEW_MAX_BYTES,
   TEXT_PREVIEW_MAX_BYTES,
   documentPreviewKind,
   getAudioMime,
   getDocumentMime,
-  getFileExt,
   getImageMime,
 } from "@/lib/file-types";
+import { extractWordText, renderSpreadsheetPreviewBody } from "@/lib/office-files";
 import { resolveDirentIsDirectory } from "@/lib/file-dirent";
 import { isFilePathReferencedBySession } from "@/lib/session-file-references";
 import {
@@ -56,7 +57,8 @@ const EXT_TO_LANGUAGE: Record<string, string> = {
   sql: "sql", graphql: "graphql", gql: "graphql",
   dockerfile: "dockerfile", tf: "hcl", hcl: "hcl",
   env: "bash", gitignore: "bash", txt: "text",
-  pdf: "pdf", docx: "word",
+  pdf: "pdf", doc: "word", docx: "word",
+  xls: "excel", xlsx: "excel", csv: "csv", tsv: "tsv",
 };
 
 function getLanguage(filePath: string): string {
@@ -396,6 +398,7 @@ function wrapDocxPreviewHtml(bodyHtml: string, fileName: string): string {
   th, td { border: 1px solid #d1d5db; padding: 6px 9px; vertical-align: top; }
   img { max-width: 100%; height: auto; }
   pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  pre.word-text { font: 15px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
   a { color: #2563eb; }
   @media (max-width: 720px) {
     body { padding: 0; background: #fff; }
@@ -408,6 +411,39 @@ function wrapDocxPreviewHtml(bodyHtml: string, fileName: string): string {
 <div class="file-title">${escapeHtml(fileName)}</div>
 ${bodyHtml}
 </main>
+</body>
+</html>`;
+}
+
+function wrapSpreadsheetPreviewHtml(bodyHtml: string, fileName: string): string {
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: #f3f4f6; color: #171717; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 20px; }
+  .file-title { margin-bottom: 12px; color: #6b7280; font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; word-break: break-word; }
+  .sheet-nav { position: sticky; top: 0; z-index: 3; display: flex; gap: 6px; overflow-x: auto; padding: 8px; margin-bottom: 16px; border: 1px solid #d1d5db; border-radius: 8px; background: rgba(255,255,255,.96); }
+  .sheet-nav a { flex: 0 0 auto; padding: 5px 10px; border-radius: 5px; color: #1d4ed8; background: #eff6ff; text-decoration: none; font-size: 12px; }
+  section { margin: 0 0 24px; padding: 16px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; }
+  h2 { margin: 0 0 12px; font-size: 15px; }
+  .sheet-table { max-width: 100%; overflow: auto; border: 1px solid #d1d5db; }
+  table { border-collapse: separate; border-spacing: 0; min-width: 100%; font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  th, td { min-width: 90px; max-width: 360px; padding: 5px 8px; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; white-space: pre-wrap; overflow-wrap: anywhere; text-align: left; vertical-align: top; }
+  thead th { position: sticky; top: 0; z-index: 2; min-width: 90px; background: #f3f4f6; text-align: center; color: #4b5563; }
+  .row-number { position: sticky; left: 0; z-index: 1; min-width: 46px; width: 46px; background: #f9fafb; color: #6b7280; text-align: right; }
+  .corner { left: 0; z-index: 3; min-width: 46px; width: 46px; }
+  .notice, .empty { color: #6b7280; font-size: 12px; }
+  @media (max-width: 720px) { body { padding: 8px; } section { padding: 10px; } }
+</style>
+</head>
+<body>
+<div class="file-title">${escapeHtml(fileName)}</div>
+${bodyHtml}
 </body>
 </html>`;
 }
@@ -501,22 +537,35 @@ export async function GET(
       if (!stat.isFile()) {
         return NextResponse.json({ error: "Not a file" }, { status: 400 });
       }
-      if (getFileExt(filePath) !== "docx") {
+      const previewKind = documentPreviewKind(filePath);
+      if (!previewKind || previewKind === "pdf") {
         return NextResponse.json({ error: "Preview not available for this file type" }, { status: 400 });
       }
-      if (stat.size > DOCX_PREVIEW_MAX_BYTES) {
+      const previewLimit = previewKind === "docx" ? DOCX_PREVIEW_MAX_BYTES : OFFICE_PREVIEW_MAX_BYTES;
+      if (stat.size > previewLimit) {
+        if (previewKind !== "docx") {
+          return NextResponse.json({ error: "Office file too large for preview (>20MB)" }, { status: 413 });
+        }
         return NextResponse.json({ error: "DOCX too large for preview (>10MB)" }, { status: 413 });
       }
 
-      const mammoth = await import("mammoth");
-      const result = await mammoth.convertToHtml(
-        { path: filePath },
-        {
-          externalFileAccess: false,
-          convertImage: mammoth.images.dataUri,
-        }
-      );
-      const html = wrapDocxPreviewHtml(result.value, path.basename(filePath));
+      let html: string;
+      if (previewKind === "docx") {
+        const mammoth = await import("mammoth");
+        const result = await mammoth.convertToHtml(
+          { path: filePath },
+          {
+            externalFileAccess: false,
+            convertImage: mammoth.images.dataUri,
+          }
+        );
+        html = wrapDocxPreviewHtml(result.value, path.basename(filePath));
+      } else if (previewKind === "doc") {
+        const text = await extractWordText(filePath);
+        html = wrapDocxPreviewHtml(`<pre class="word-text">${escapeHtml(text || "Document contains no extractable text.")}</pre>`, path.basename(filePath));
+      } else {
+        html = wrapSpreadsheetPreviewHtml(renderSpreadsheetPreviewBody(filePath), path.basename(filePath));
+      }
       return new Response(html, {
         headers: {
           "Content-Type": "text/html; charset=utf-8",

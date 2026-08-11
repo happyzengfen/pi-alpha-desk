@@ -1,6 +1,6 @@
 ---
 name: "pdf"
-description: "Use when tasks involve reading, creating, or reviewing PDF files where rendering and layout matter; prefer visual checks by rendering pages (Poppler) and use Python tools such as `reportlab`, `pdfplumber`, and `pypdf` for generation and extraction."
+description: "Read, create, inspect, render, and verify PDF files where visual layout matters. In Pi Alpha Desk, use the built-in read_pdf tool for reliable local text extraction before falling back to Poppler or Python tooling."
 ---
 
 
@@ -12,12 +12,16 @@ description: "Use when tasks involve reading, creating, or reviewing PDF files w
 - Validate final rendering before delivery.
 
 ## Workflow
-1. Prefer visual review: render PDF pages to PNGs and inspect them.
+1. For local PDF text, use `read_pdf` first. It works in the packaged desktop app without installing Python or Poppler.
+   - Read only the pages needed for the task.
+   - Continue with `startPage` when the tool reports more pages.
+   - If a page has no extractable text, treat it as scanned/image-based and use rendering or OCR when available.
+2. Prefer visual review when layout matters: render PDF pages to PNGs and inspect them.
    - Use `pdftoppm` if available.
    - If unavailable, install Poppler or ask the user to review the output locally.
-2. Use `reportlab` to generate PDFs when creating new documents.
-3. Use `pdfplumber` (or `pypdf`) for text extraction and quick checks; do not rely on it for layout fidelity.
-4. After each meaningful update, re-render pages and verify alignment, spacing, and legibility.
+3. Use `reportlab` to generate PDFs when creating new documents.
+4. Use `pdfplumber` (or `pypdf`) only when `read_pdf` is insufficient; do not rely on text extraction for layout fidelity.
+5. After each meaningful update, re-render pages and verify alignment, spacing, and legibility.
 
 ## Temp and output conventions
 - Use `tmp/pdfs/` for intermediate files; delete when done.
