@@ -21,6 +21,7 @@ const BUNDLED_PI_PACKAGES = [
 function findProductExecutable(unpackedDirectory) {
   const packageJson = JSON.parse(readFileSync(join(PROJECT_ROOT, "package.json"), "utf8"));
   const preferredNames = [
+    packageJson.build?.linux?.executableName,
     packageJson.build?.executableName,
     packageJson.build?.productName,
     packageJson.name.split("/").pop(),
