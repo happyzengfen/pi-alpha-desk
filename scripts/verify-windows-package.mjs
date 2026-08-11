@@ -103,6 +103,7 @@ export function verifyWindowsPackage(unpackedDirectory) {
     join(appNodeModules, "word-extractor", "package.json"),
     join(appNodeModules, "undici", "package.json"),
     join(root, "resources", "app", ".next", "BUILD_ID"),
+    join(root, "resources", "app", "bundled-plugins", "manifest.json"),
     join(root, "resources", "app", "public", "icon.ico"),
   ];
 
@@ -119,6 +120,9 @@ export function verifyWindowsPackage(unpackedDirectory) {
   if (!existsSync(bundledSkills)) {
     missing.push(bundledSkills);
   } else {
+    if (!existsSync(join(bundledSkills, "manifest.json"))) {
+      missing.push(join(bundledSkills, "manifest.json"));
+    }
     const hasSkillManifest = readdirSync(bundledSkills, { withFileTypes: true }).some((entry) =>
       entry.isDirectory() && existsSync(join(bundledSkills, entry.name, "SKILL.md")),
     );

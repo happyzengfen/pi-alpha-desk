@@ -1,0 +1,4 @@
+interface:
+  display_name: "Office 文档读取"
+  short_description: "读取并总结 Word、Excel、CSV 和 PDF 文档"
+  default_prompt: "Use $office-viewer to inspect this office document and summarize its key content."

@@ -38,6 +38,7 @@ async function createValidPackage(root, machine = 0x8664) {
   await writeFixtureFile(root, "resources/app/node_modules/word-extractor/package.json", "{}");
   await writeFixtureFile(root, "resources/app/node_modules/undici/package.json", "{}");
   await writeFixtureFile(root, "resources/app/.next/BUILD_ID");
+  await writeFixtureFile(root, "resources/app/bundled-plugins/manifest.json", "{}");
   await writeFixtureFile(root, "resources/app/.next/node_modules/external-package/index.js");
   await writeFixtureFile(root, "resources/app/public/icon.ico");
   await writeFixtureFile(
@@ -45,6 +46,7 @@ async function createValidPackage(root, machine = 0x8664) {
     "resources/app/node_modules/@earendil-works/pi-coding-agent/node_modules/@mariozechner/clipboard-win32-x64-msvc/clipboard.win32-x64-msvc.node",
   );
   await writeFixtureFile(root, "resources/bundled-skills/example/SKILL.md");
+  await writeFixtureFile(root, "resources/bundled-skills/manifest.json", "{}");
 }
 
 test("accepts a complete Windows x64 package", async () => {

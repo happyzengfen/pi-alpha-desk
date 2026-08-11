@@ -3,10 +3,11 @@ import { access, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promise
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const require = createRequire(import.meta.url);
-const { installBundledSkills, resolveBundledSkillsTargetRoot } = require("./bundled-skills.js");
+const { installBundledSkills, resolveBundledSkillsTargetRoot, skillHash } = require("./bundled-skills.js");
 
 test("resolves bundled skills into the active Pi agent directory", () => {
   const homeDirectory = path.resolve(path.sep, "users", "pi-user");
@@ -37,8 +38,31 @@ test("packages the bundled skill directory as an Electron resource", async () =>
 });
 
 test("includes the local office skills in desktop resources", async () => {
-  for (const skillName of ["guizang-ppt-skill", "office-viewer", "windows-word-docx", "pdf"]) {
-    await access(new URL(`../bundled-skills/${skillName}/SKILL.md`, import.meta.url));
+  const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+  const manifest = JSON.parse(await readFile(new URL("../bundled-skills/manifest.json", import.meta.url), "utf8"));
+
+  assert.equal(manifest.appVersion, packageJson.version);
+  assert.deepEqual(
+    manifest.skills.map((skill) => skill.name),
+    ["guizang-ppt-skill", "office-viewer", "pdf", "windows-word-docx"],
+  );
+  for (const skill of manifest.skills) {
+    const skillRoot = fileURLToPath(new URL(`../bundled-skills/${skill.name}/`, import.meta.url));
+    await access(path.join(skillRoot, "SKILL.md"));
+    assert.equal(skill.contentHash, skillHash(skillRoot));
+  }
+});
+
+test("ignores operating-system metadata when hashing bundled skills", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "pi-web-bundled-skill-hash-"));
+
+  try {
+    await writeFile(path.join(root, "SKILL.md"), "stable skill", "utf8");
+    const before = skillHash(root);
+    await writeFile(path.join(root, ".DS_Store"), "local metadata", "utf8");
+    assert.equal(skillHash(root), before);
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
 

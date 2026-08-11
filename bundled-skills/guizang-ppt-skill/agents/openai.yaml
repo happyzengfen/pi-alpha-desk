@@ -1,0 +1,4 @@
+interface:
+  display_name: "歸藏网页 PPT"
+  short_description: "生成杂志风或瑞士风横向网页演示"
+  default_prompt: "Use $guizang-ppt-skill to turn my content into a polished horizontal web presentation."

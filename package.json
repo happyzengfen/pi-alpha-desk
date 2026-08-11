@@ -1,6 +1,6 @@
 {
   "name": "@happyzengfen/pi-alpha-desk",
-  "version": "0.8.6-f",
+  "version": "0.8.7",
   "description": "Electron desktop app for the pi coding agent",
   "homepage": "https://github.com/happyzengfen/pi-alpha-desk#readme",
   "repository": {
@@ -26,6 +26,7 @@
     "!.next/dev",
     "!.next/**/*.js.map",
     "public",
+    "bundled-plugins",
     "scripts/sync-local-pi.mjs",
     "next.config.ts",
     "package.json"
@@ -41,6 +42,10 @@
     "start:lan": "next start -H 0.0.0.0 -p 30141",
     "lint": "eslint .",
     "pi:sync-local": "node scripts/sync-local-pi.mjs",
+    "skills:manifest": "node scripts/build-bundled-skills-manifest.mjs",
+    "skills:manifest:check": "node scripts/build-bundled-skills-manifest.mjs --check",
+    "plugins:manifest": "node scripts/build-bundled-plugins-manifest.mjs",
+    "plugins:manifest:check": "node scripts/build-bundled-plugins-manifest.mjs --check",
     "icons": "node scripts/generate-icons.mjs",
     "electron:dev": "electron .",
     "electron:build": "npm run icons && npm run build && electron-builder",
@@ -119,6 +124,7 @@
     "asar": false,
     "files": [
       "electron/**/*",
+      "bundled-plugins/**/*",
       "public/**/*",
       ".next/**/*",
       "node_modules/**/*",

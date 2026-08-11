@@ -26,7 +26,7 @@ This repository is not an upstream mirror. It prioritizes its own desktop experi
 
 | Area | Version |
 | --- | --- |
-| Application | `0.8.6-f` |
+| Application | `0.8.7` |
 | Node.js | `>=22.19.0` |
 | Next.js | `16.3.0` |
 | React | `19.2.x` |
@@ -103,7 +103,8 @@ npm run electron:dev
 - If the default port `30141` is already occupied, a packaged app automatically selects another available local port.
 - Closing the window hides it to the tray. Use the tray's **Quit** action to exit completely.
 - Startup diagnostics are written to `pi-web-server.log` in the Electron application-data directory.
-- Bundled starter skills are copied to `~/.pi/agent/skills/` when missing. Existing user copies are preserved. Current bundles include presentation generation and Windows DOCX support.
+- Five general-purpose Pi plugins are bundled as exact application dependencies: subagents, MCP, web access, structured questions, and goals. Their versions and npm integrity values are recorded in `bundled-plugins/manifest.json`.
+- Bundled starter skills are copied to `~/.pi/agent/skills/` when missing. Existing user copies are preserved. Version `0.8.7` bundles `guizang-ppt-skill`, `office-viewer`, `pdf`, and `windows-word-docx`; their source, license, platform, and content hashes are recorded in `bundled-skills/manifest.json`.
 
 ## Data, sessions, and project access
 

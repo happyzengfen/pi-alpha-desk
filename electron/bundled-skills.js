@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 
 const BUNDLED_SKILL_MARKER = ".pi-alpha-desk-bundled.json";
+const IGNORED_BUNDLED_SKILL_FILES = new Set([BUNDLED_SKILL_MARKER, ".DS_Store"]);
 const LEGACY_BUNDLED_SKILL_HASHES = {
   // Skills bundled by 0.8.6-f, before managed skill updates existed.
   "guizang-ppt-skill": new Set(["a38eb67542b8651b69350a125fed4fc9c01a461dc2d67bb4911ce66c2eb246fa"]),
@@ -16,7 +17,7 @@ function skillHash(skillRoot) {
   const hash = crypto.createHash("sha256");
   const visit = (directory, relativeDirectory = "") => {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      if (entry.name === BUNDLED_SKILL_MARKER) continue;
+      if (IGNORED_BUNDLED_SKILL_FILES.has(entry.name)) continue;
       const absolutePath = path.join(directory, entry.name);
       const relativePath = path.join(relativeDirectory, entry.name).split(path.sep).join("/");
       hash.update(relativePath).update("\0");
@@ -118,4 +119,4 @@ function installBundledSkills({ sourceRoot, targetRoot, logger = console }) {
   return results;
 }
 
-module.exports = { installBundledSkills, resolveBundledSkillsTargetRoot };
+module.exports = { installBundledSkills, resolveBundledSkillsTargetRoot, skillHash };

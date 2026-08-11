@@ -1,5 +1,6 @@
 import { existsSync } from "fs";
 import path from "path";
+import bundledPluginManifest from "../bundled-plugins/manifest.json";
 
 type PackageSetting = string | { source?: unknown };
 
@@ -8,13 +9,7 @@ type PackageSettingsReader = {
   getProjectSettings: () => { packages?: PackageSetting[] };
 };
 
-export const BUNDLED_PI_PACKAGE_NAMES = [
-  "pi-subagents",
-  "pi-mcp-adapter",
-  "pi-web-access",
-  "@juicesharp/rpiv-ask-user-question",
-  "@narumitw/pi-goal",
-] as const;
+export const BUNDLED_PI_PACKAGE_NAMES = bundledPluginManifest.plugins.map((plugin) => plugin.name);
 
 function getPackageSource(setting: PackageSetting): string | undefined {
   const source = typeof setting === "string" ? setting : setting.source;
