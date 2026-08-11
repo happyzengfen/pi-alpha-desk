@@ -157,7 +157,10 @@ jobs:
           PI_WEB_BENCHMARK=1 \
           PI_WEB_BENCHMARK_USER_DATA="$user_data" \
           PI_CODING_AGENT_DIR="$agent_dir" \
-          xvfb-run -a "$app_binary" >"$metrics_file" 2>&1
+          xvfb-run -a "$app_binary" --no-sandbox >"$metrics_file" 2>&1 || {
+            cat "$metrics_file"
+            exit 1
+          }
           grep 'PI_WEB_STARTUP_METRIC.*renderer-interactive' "$metrics_file"
 
       - name: Build Linux AppImage
