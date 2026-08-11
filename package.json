@@ -161,6 +161,7 @@
     },
     "linux": {
       "target": "AppImage",
+      "executableName": "pi-alpha-desk",
       "icon": "public/icon.png"
     }
   }

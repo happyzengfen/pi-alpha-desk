@@ -49,8 +49,19 @@ test("accepts a complete macOS arm64 package", (t) => {
   assert.equal(verifyMacPackage(makeFixture(t)).machine, "arm64");
 });
 
+test("accepts a complete macOS x64 package", (t) => {
+  assert.equal(
+    verifyMacPackage(makeFixture(t, { machine: 0x01000007 }), "x64").machine,
+    "x64",
+  );
+});
+
 test("rejects a non-arm64 application executable", (t) => {
   assert.throws(() => verifyMacPackage(makeFixture(t, { machine: 0x01000007 })), /arm64/);
+});
+
+test("rejects a non-x64 application executable", (t) => {
+  assert.throws(() => verifyMacPackage(makeFixture(t), "x64"), /x64/);
 });
 
 test("reports missing runtime resources", (t) => {
