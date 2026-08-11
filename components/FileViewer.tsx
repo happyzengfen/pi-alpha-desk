@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown";
 import { useI18n } from "@/hooks/useI18n";
 import {
   DOCX_PREVIEW_MAX_BYTES,
+  OFFICE_PREVIEW_MAX_BYTES,
   getFileExt,
   isAudioPath,
   isDocumentPreviewPath,
@@ -656,6 +657,8 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
 
   const ext = getFileExt(filePath);
   const isPdf = ext === "pdf";
+  const isWord = ext === "doc" || ext === "docx";
+  const previewLimit = ext === "docx" ? DOCX_PREVIEW_MAX_BYTES : OFFICE_PREVIEW_MAX_BYTES;
   const previewUrl = isPdf
     ? getFileApiUrl(filePath, "read", sourceSessionId, bust ? { v: bust } : undefined)
     : getFileApiUrl(filePath, "preview", sourceSessionId, bust ? { v: bust } : undefined);
@@ -676,8 +679,8 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
         if (d.error) setError(d.error);
         if (typeof d.size === "number") {
           setSize(d.size);
-          if (!isPdf && d.size > DOCX_PREVIEW_MAX_BYTES) {
-            setError(t("desktop.docxTooLargeForPreview"));
+          if (!isPdf && d.size > previewLimit) {
+            setError(ext === "docx" ? t("desktop.docxTooLargeForPreview") : t("desktop.officeTooLargeForPreview"));
           }
         }
       })
@@ -691,8 +694,8 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
         const d = JSON.parse((e as MessageEvent).data) as { size?: number };
         if (typeof d.size === "number") {
           setSize(d.size);
-          if (!isPdf && d.size > DOCX_PREVIEW_MAX_BYTES) {
-            setError(t("desktop.docxTooLargeForPreview"));
+          if (!isPdf && d.size > previewLimit) {
+            setError(ext === "docx" ? t("desktop.docxTooLargeForPreview") : t("desktop.officeTooLargeForPreview"));
             return;
           }
         }
@@ -705,7 +708,7 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
       es.close();
       esRef.current = null;
     };
-  }, [filePath, isPdf, sourceSessionId, t]);
+  }, [ext, filePath, isPdf, previewLimit, sourceSessionId, t]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
@@ -725,7 +728,9 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
         <span style={{ fontFamily: "var(--font-mono)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={filePath}>
           {getRelativeFilePath(filePath, cwd)}
         </span>
-        <span style={{ marginLeft: "auto" }}>{ext === "docx" ? t("desktop.docxPreview") : "pdf"}</span>
+        <span style={{ marginLeft: "auto" }}>
+          {isPdf ? "PDF" : isWord ? t("desktop.wordPreview") : t("desktop.spreadsheetPreview")}
+        </span>
         {size != null && <span>{formatSize(size)}</span>}
         <DownloadLink filePath={filePath} sourceSessionId={sourceSessionId} />
       </div>

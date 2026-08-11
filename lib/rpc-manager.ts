@@ -15,6 +15,8 @@ import type { AgentSessionLike, ExtensionUiContextLike, ToolInfo } from "./pi-ty
 import type { ExtensionUiRequest, ExtensionUiResponse, ExtensionWidgetItem } from "./types";
 import { createHeadlessCustomUiTui, DEFAULT_CUSTOM_UI_COLUMNS } from "./custom-ui-terminal";
 import { getBundledPiPackageResourceLoaderOptions } from "./bundled-pi-packages";
+import { createPdfReadTool } from "./pdf-read-tool";
+import { createSpreadsheetReadTool, createWordReadTool } from "./office-read-tool";
 
 // ============================================================================
 // Types
@@ -1186,6 +1188,11 @@ export async function startRpcSession(
     const { session: inner } = await createAgentSessionFromServices({
       services,
       sessionManager,
+      customTools: [
+        createPdfReadTool(sessionCwd),
+        createWordReadTool(sessionCwd),
+        createSpreadsheetReadTool(sessionCwd),
+      ],
       ...(initial.model ? { model: initial.model } : {}),
       ...(initial.thinkingLevel ? { thinkingLevel: initial.thinkingLevel } : {}),
       ...(initial.scopedModels.length > 0 ? { scopedModels: initial.scopedModels } : {}),

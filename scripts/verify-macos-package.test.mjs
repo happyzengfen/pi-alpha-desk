@@ -21,6 +21,9 @@ function makeFixture(t, { machine = 0x0100000c, omit = null } = {}) {
     ["node_modules/pi-web-access/package.json", "{}"],
     ["node_modules/@juicesharp/rpiv-ask-user-question/package.json", "{}"],
     ["node_modules/@narumitw/pi-goal/package.json", "{}"],
+    ["node_modules/@e965/xlsx/package.json", "{}"],
+    ["node_modules/unpdf/package.json", "{}"],
+    ["node_modules/word-extractor/package.json", "{}"],
     ["node_modules/undici/package.json", "{}"],
     [".next/BUILD_ID", "build"],
     ["public/icon-mac.png", "icon"],
@@ -58,5 +61,19 @@ test("reports a missing bundled pi-subagents package", (t) => {
   assert.throws(
     () => verifyMacPackage(makeFixture(t, { omit: "node_modules/pi-subagents/package.json" })),
     /node_modules[/\\]pi-subagents[/\\]package\.json/,
+  );
+});
+
+test("reports a missing PDF reader runtime", (t) => {
+  assert.throws(
+    () => verifyMacPackage(makeFixture(t, { omit: "node_modules/unpdf/package.json" })),
+    /node_modules[/\\]unpdf[/\\]package\.json/,
+  );
+});
+
+test("reports a missing Office reader runtime", (t) => {
+  assert.throws(
+    () => verifyMacPackage(makeFixture(t, { omit: "node_modules/@e965/xlsx/package.json" })),
+    /node_modules[/\\]@e965[/\\]xlsx[/\\]package\.json/,
   );
 });
