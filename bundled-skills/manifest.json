@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "appVersion": "0.8.7",
+  "skills": [
+    {
+      "name": "guizang-ppt-skill",
+      "source": "https://github.com/op7418/guizang-ppt-skill",
+      "license": "AGPL-3.0-only",
+      "platforms": [
+        "darwin",
+        "linux",
+        "win32"
+      ],
+      "contentHash": "1a3cd886253821f705b0d58e470be42af080561b3e2452adf9e26b4fd60f0cf5"
+    },
+    {
+      "name": "office-viewer",
+      "source": "pi-alpha-desk",
+      "license": "MIT",
+      "platforms": [
+        "darwin",
+        "linux",
+        "win32"
+      ],
+      "contentHash": "c9232a18a067fd559ac98a1001306204835c2cb9d9f3f17710921884451edaa1"
+    },
+    {
+      "name": "pdf",
+      "source": "https://github.com/openai/skills/tree/main/skills/.curated/pdf",
+      "license": "Apache-2.0",
+      "platforms": [
+        "darwin",
+        "linux",
+        "win32"
+      ],
+      "contentHash": "bd19b304d247af66b47e5d8b60340b08ef1ccfb450d9e68c51c93bfb1cac2f78"
+    },
+    {
+      "name": "windows-word-docx",
+      "source": "pi-alpha-desk",
+      "license": "MIT",
+      "platforms": [
+        "win32"
+      ],
+      "contentHash": "e147ec205435e22bc3ad6cd6d607b9116272de0d180fd1a45e3cfc8a274beef7"
+    }
+  ]
+}

@@ -25,6 +25,7 @@ function makeFixture(t, { architecture = "x64", executableName = "数字化AI助
     ["node_modules/word-extractor/package.json", "{}"],
     ["node_modules/undici/package.json", "{}"],
     [".next/BUILD_ID", "build"],
+    ["bundled-plugins/manifest.json", "{}"],
     ["public/icon.png", "icon"],
   ];
 
@@ -44,6 +45,7 @@ function makeFixture(t, { architecture = "x64", executableName = "数字化AI助
   const skill = path.join(release, "resources", "bundled-skills", "example", "SKILL.md");
   fs.mkdirSync(path.dirname(skill), { recursive: true });
   fs.writeFileSync(skill, "---\nname: example\n---\n");
+  fs.writeFileSync(path.join(path.dirname(path.dirname(skill)), "manifest.json"), "{}");
   return release;
 }
 

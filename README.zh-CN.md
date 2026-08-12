@@ -26,7 +26,7 @@
 
 | 项目 | 版本 |
 | --- | --- |
-| 应用 | `0.8.6-f` |
+| 应用 | `0.8.7` |
 | Node.js | `>=22.19.0` |
 | Next.js | `16.3.0` |
 | React | `19.2.x` |
@@ -138,7 +138,8 @@ npm run electron:dev
 - 关闭窗口会隐藏到托盘；通过托盘菜单的 **Quit** 完整退出。
 - 启动诊断写入 Electron 应用数据目录中的 `pi-web-server.log`。
 - 自有 Next.js 服务异常退出时会显示日志路径、末尾输出、code/signal，然后完整退出。
-- 缺失的内置 starter skills 会复制到当前 pi agent 目录；已有用户版本不会被覆盖。
+- 五个通用 Pi 插件作为精确版本应用依赖随包交付：子代理、MCP、Web 访问、结构化提问和目标执行。版本及 npm integrity 记录在 `bundled-plugins/manifest.json`。
+- 缺失的内置 starter skills 会复制到当前 pi agent 目录；已有用户版本不会被覆盖。`0.8.7` 内置 `guizang-ppt-skill`、`office-viewer`、`pdf` 和 `windows-word-docx`，来源、许可证、平台与内容哈希记录在 `bundled-skills/manifest.json`。
 - macOS 使用原生编辑菜单与 Renderer fallback，支持常用 Command 编辑快捷键。
 
 ## 数据、会话与项目访问

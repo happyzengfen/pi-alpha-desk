@@ -26,6 +26,7 @@ function makeFixture(t, { machine = 0x0100000c, omit = null } = {}) {
     ["node_modules/word-extractor/package.json", "{}"],
     ["node_modules/undici/package.json", "{}"],
     [".next/BUILD_ID", "build"],
+    ["bundled-plugins/manifest.json", "{}"],
     ["public/icon-mac.png", "icon"],
   ];
   fs.mkdirSync(path.dirname(executable), { recursive: true });
@@ -42,6 +43,7 @@ function makeFixture(t, { machine = 0x0100000c, omit = null } = {}) {
   const skill = path.join(app, "Contents", "Resources", "bundled-skills", "example", "SKILL.md");
   fs.mkdirSync(path.dirname(skill), { recursive: true });
   fs.writeFileSync(skill, "---\nname: example\n---\n");
+  fs.writeFileSync(path.join(path.dirname(path.dirname(skill)), "manifest.json"), "{}");
   return release;
 }
 

@@ -80,10 +80,14 @@ export function verifyMacPackage(releaseDirectory, expectedArchitecture = "arm64
     join(appRoot, "node_modules", "word-extractor", "package.json"),
     join(appRoot, "node_modules", "undici", "package.json"),
     join(appRoot, ".next", "BUILD_ID"),
+    join(appRoot, "bundled-plugins", "manifest.json"),
     join(appRoot, "public", "icon-mac.png"),
   ];
   const missing = requiredPaths.filter((candidate) => !existsSync(candidate));
   const bundledSkills = join(resources, "bundled-skills");
+  if (!existsSync(join(bundledSkills, "manifest.json"))) {
+    missing.push(join(bundledSkills, "manifest.json"));
+  }
   if (!existsSync(bundledSkills) || !readdirSync(bundledSkills, { withFileTypes: true }).some((entry) => (
     entry.isDirectory() && existsSync(join(bundledSkills, entry.name, "SKILL.md"))
   ))) {

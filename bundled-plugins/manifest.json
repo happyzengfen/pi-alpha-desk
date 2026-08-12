@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "appVersion": "0.8.7",
+  "plugins": [
+    {
+      "name": "pi-subagents",
+      "role": "Parallel and delegated agent work",
+      "version": "0.37.0",
+      "license": "MIT",
+      "integrity": "sha512-YDTBqjTVmcdbzXBMgda+EOUeJC5TTITEVn6WelKjHyhtuqL3QTjMuu7BVJlQuwi8p4RQSQrA3JWhGckO3rylKw==",
+      "description": "Pi extension for delegating tasks to subagents with chains, parallel execution, and TUI clarification"
+    },
+    {
+      "name": "pi-mcp-adapter",
+      "role": "MCP server integration",
+      "version": "2.21.2",
+      "license": "MIT",
+      "integrity": "sha512-pAbqW05Gz8f388ITTjeNeBE75czAOjGX4a3M0bPlS0XRu1bytD4BDc6LTSA4nlMOrKV9UrCwysaRN0ZNunoscg==",
+      "description": "MCP (Model Context Protocol) adapter extension for Pi coding agent"
+    },
+    {
+      "name": "pi-web-access",
+      "role": "Web search and content access",
+      "version": "0.20.0",
+      "license": "MIT",
+      "integrity": "sha512-jMHiNe6hGQYmblSJsYBA2HdGuEe2sOM1GSVvVRMESwJoPvdfClaln6NlRD0/SOfBo1PiLCD1OUQhSrW4gMF3vQ==",
+      "description": "Web search, URL fetching, GitHub repo cloning, PDF extraction, YouTube video understanding, and local video analysis for Pi coding agent. Supports OpenAI, Brave, Parallel, TinyFish, Search1API, Searchinfinity, Querit, Tavily, Jina, SERPdive, Kagi, Ollama, AnySearch, Bright Data SERP, SerpBase, SearXNG, Firecrawl extraction, Exa, Perplexity, and Gemini."
+    },
+    {
+      "name": "@juicesharp/rpiv-ask-user-question",
+      "role": "Structured user questions",
+      "version": "2.4.0",
+      "license": "MIT",
+      "integrity": "sha512-JVWc6CrePUgAEP3g6C3vrJBqZ6JSS56HQy7+2QZBdwwtcxqCNCHdPgXMJ43sexeJvusSJKTadeDJcc/4kuJEGA==",
+      "description": "Pi extension. A structured questionnaire the model can put to you when it would otherwise guess, with typed options instead of free-form replies."
+    },
+    {
+      "name": "@narumitw/pi-goal",
+      "role": "Autonomous goal execution",
+      "version": "0.50.0",
+      "license": "MIT",
+      "integrity": "sha512-S7VK6k177WJO7T+HMcCHDsmAcKEdqu/bep7BbliYJdVOOlZ83kOoRxPYmwqSzbb5UM+vK/npIA0vQoP0cIIVJw==",
+      "description": "Pi extension for autonomous /goal completion with opt-in experimental ordered queues."
+    }
+  ]
+}
