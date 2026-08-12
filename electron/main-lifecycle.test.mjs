@@ -26,6 +26,14 @@ test("startup failures include the server log path and recent output", () => {
   assert.match(formatter, /serverLogTail/);
 });
 
+test("desktop server uses the selected standalone Node runtime and exposes its bin directory", () => {
+  const startServer = source.match(/function startServer\(\) \{[\s\S]*?\n\}/)?.[0] ?? "";
+
+  assert.match(source, /resolveServerNodeExecutable\(\{/);
+  assert.match(startServer, /prependExecutableDirectory\(baseEnv, serverNodeExecutable\)/);
+  assert.match(startServer, /execPath: serverNodeExecutable/);
+});
+
 test("renderer crashes and load failures retain actionable diagnostics", () => {
   assert.match(source, /on\("render-process-gone"[\s\S]*?details\.reason[\s\S]*?details\.exitCode/);
   assert.match(source, /on\("did-fail-load"[\s\S]*?errorCode[\s\S]*?errorDescription[\s\S]*?validatedURL/);

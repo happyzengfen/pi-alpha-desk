@@ -8,6 +8,7 @@ const http = require("http");
 const net = require("net");
 const { installBundledSkills, resolveBundledSkillsTargetRoot } = require("./bundled-skills");
 const { createMacEditMenuTemplate, handleMacEditShortcut } = require("./mac-edit-shortcuts");
+const { prependExecutableDirectory, resolveServerNodeExecutable } = require("./node-runtime");
 const { encodeFilePathForApi, isSafeExternalUrl, isTrustedRendererUrl } = require("./security");
 
 const startupStartedAt = performance.now();
@@ -28,6 +29,7 @@ let serverLog = null;
 let serverLogPath = null;
 let serverLogTail = "";
 let tray = null;
+let serverNodeExecutable = null;
 
 function emitStartupMetric(stage, details = {}) {
   if (process.env.PI_WEB_BENCHMARK !== "1") return;
@@ -139,10 +141,9 @@ function startServer() {
   serverLog = fs.createWriteStream(serverLogPath, { flags: "w" });
   serverLogTail = "";
 
-  // fork() spawns a new Node process using Electron's embedded Node.js
-  // runtime. This works in both dev (node.exe) and production (the
-  // packaged Electron executable), unlike spawn(process.execPath) which fails
-  // in production because process.execPath is the app executable, not Node.js.
+  // User-installed Pi packages are built by ordinary Node/npm. Prefer a
+  // compatible standalone Node runtime so native addons keep the ABI they were
+  // installed for; fork falls back to Electron's embedded Node when none exists.
   const nextBin = IS_DEV
     ? require.resolve("next/dist/bin/next", { paths: [pkgDir] })
     : path.join(pkgDir, "node_modules", "next", "dist", "bin", "next");
@@ -156,14 +157,16 @@ function startServer() {
   // credentials to Chromium or forcing an interactive Basic Auth challenge.
   const { PI_WEB_PASSWORD: _password, ...environment } = process.env;
   void _password;
-  const env = IS_DEV
+  const baseEnv = IS_DEV
     ? { ...environment, ELECTRON_RUNNING: "1", PI_WEB_HOSTNAME: HOSTNAME }
     : { ...environment, NODE_ENV: "production", ELECTRON_RUNNING: "1", PI_WEB_HOSTNAME: HOSTNAME };
+  const env = prependExecutableDirectory(baseEnv, serverNodeExecutable);
 
   serverProcess = fork(nextBin, args, {
     cwd: pkgDir,
     stdio: ["ignore", "pipe", "pipe", "ipc"],
     env,
+    ...(serverNodeExecutable ? { execPath: serverNodeExecutable } : {}),
   });
 
   serverProcess.stdout.on("data", (chunk) => recordServerOutput("stdout", chunk));
@@ -493,6 +496,7 @@ async function bootstrap() {
     homeDirectory: app.getPath("home"),
     configuredAgentDir: process.env.PI_CODING_AGENT_DIR,
   });
+  const agentDir = path.dirname(userSkillsRoot);
   if (process.platform === "darwin") {
     app.dock.setIcon(getIconPath());
   }
@@ -501,6 +505,10 @@ async function bootstrap() {
   } catch (error) {
     console.error("[Electron] Failed to install bundled skills:", error);
   }
+  serverNodeExecutable = resolveServerNodeExecutable({
+    homeDirectory: app.getPath("home"),
+    agentDir,
+  });
 
   if (IS_DEV) {
     try {
