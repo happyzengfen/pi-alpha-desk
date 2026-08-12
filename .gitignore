@@ -24,7 +24,9 @@
 nul
 
 # production
-/build
+/build/*
+!/build/
+!/build/installer.nsh
 /release
 
 # electron

@@ -431,14 +431,20 @@ ipcMain.handle("window:is-maximized", (event) => {
 
 // Open the native OS folder-picker dialog. Used by the workspace selector's
 // "Select folder" action so users browse instead of typing a path.
+// Remember the last folder the user picked so the dialog reopens there next
+// time instead of always landing on the Downloads folder (Electron's default).
+let lastSelectedDirectory = null;
+
 ipcMain.handle("dialog:select-directory", async (event) => {
   if (!isTrustedIpcSender(event)) return null;
   const window = BrowserWindow.fromWebContents(event.sender);
   const result = await dialog.showOpenDialog(window, {
     title: "Select folder",
+    defaultPath: lastSelectedDirectory ?? app.getPath("home"),
     properties: ["openDirectory", "createDirectory"],
   });
   if (result.canceled || result.filePaths.length === 0) return null;
+  lastSelectedDirectory = result.filePaths[0];
   return result.filePaths[0];
 });
 

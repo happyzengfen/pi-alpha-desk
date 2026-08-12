@@ -158,6 +158,9 @@
       "target": "nsis",
       "icon": "public/icon.ico"
     },
+    "nsis": {
+      "include": "build/installer.nsh"
+    },
     "portable": {
       "artifactName": "${productName}-${version}-portable.exe"
     },

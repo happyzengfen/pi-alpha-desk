@@ -45,10 +45,20 @@ const ROOT = resolve(__dirname, "..");
 
 function log(s) { console.log(`\n[build-release] ${s}`); }
 
+// On Windows spawnSync runs with shell:true, which joins the args into a
+// `cmd /c ...` command string. Any arg containing a space or cmd metachar
+// (e.g. a build dir named "web-desktop-main (1)") would be split by the
+// shell. Quote those args up front so paths survive; npm/npx .cmd resolution
+// still works because the command itself is unchanged.
+function quoteForShell(arg) {
+  return /[\s()&^|<>"]/.test(arg) ? `"${arg}"` : arg;
+}
+
 // Run with output streamed live to stdout
 function run(cmd, args, cwd = ROOT) {
-  log(`$ ${cmd} ${args.join(" ")}`);
-  const r = spawnSync(cmd, args, {
+  const safeArgs = process.platform === "win32" ? args.map(quoteForShell) : args;
+  log(`$ ${cmd} ${safeArgs.join(" ")}`);
+  const r = spawnSync(cmd, safeArgs, {
     stdio: "inherit",
     cwd,
     shell: process.platform === "win32",
@@ -62,7 +72,8 @@ function run(cmd, args, cwd = ROOT) {
 
 // Run with stdout captured for string checks
 function cap(cmd, args) {
-  const r = spawnSync(cmd, args, {
+  const safeArgs = process.platform === "win32" ? args.map(quoteForShell) : args;
+  const r = spawnSync(cmd, safeArgs, {
     stdio: "pipe",
     cwd: ROOT,
     shell: process.platform === "win32",
@@ -189,8 +200,12 @@ process.on("exit", (code) => {
 
 // Flatten nested node_modules to reduce duplication in the final package.
 // Safe to run even if the tree is already optimal — it only moves packages.
-log("  npm dedupe …");
-run("npm", ["dedupe"]);
+// v5 (2026-08-11): npm dedupe SKIPPED — on npm 11 it prunes devDependencies
+// (typescript/electron/electron-builder) when the tree is a mixed
+// "known-good + cherry-picked" layout, breaking the subsequent build.
+// The tree is installed directly from the verified dependency set, so the
+// flattening pass is unnecessary.
+// run("npm", ["dedupe"]);
 restoreLocalPiSnapshot();
 verifyLocalPiSnapshot();
 
@@ -226,6 +241,35 @@ function materializeSymlinks(directory) {
 
     if (st.isDirectory()) materializeSymlinks(entryPath);
   }
+}
+
+// Strip TypeScript declaration files (.ts/.d.ts/.mts) and source maps (.map)
+// from the injected .next/node_modules. These files are never loaded at
+// runtime, and on Windows their deep paths exceed MAX_PATH (260 chars), which
+// makes NSIS silently drop them and the uninstaller leave leftovers behind.
+// Removing them keeps the installer content complete and every installed path
+// well under the limit. Verified against a real install: the packaged app
+// runs fine without them (they are type declarations / maps only).
+function stripTypeAndMapFiles(directory) {
+  let removed = 0;
+  (function walk(dir) {
+    let names;
+    try {
+      names = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of names) {
+      const entryPath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(entryPath);
+      } else if (/\.(ts|mts|map)$/i.test(entry.name)) {
+        rmSync(entryPath, { force: true });
+        removed++;
+      }
+    }
+  })(directory);
+  return removed;
 }
 
 if (existsSync(NEXT_NM)) {
@@ -278,6 +322,8 @@ try {
     rmSync(appNextNm, { recursive: true, force: true });
     cpSync(NEXT_NM, appNextNm, { recursive: true, dereference: true });
     materializeSymlinks(appNextNm);
+    const stripped = stripTypeAndMapFiles(appNextNm);
+    log(`  strip type/map files (long-path fix): ${stripped} removed`);
     log("  done");
   }
 

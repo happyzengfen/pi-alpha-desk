@@ -77,12 +77,9 @@ export function QuickChangesPanel({ cwd, refreshKey, onOpenFile }: Props) {
     setOpen(true);
   }, [cwd]);
 
-  // 仅当存在实际更改时显示该栏目（非 Git 仓库或没有更改时不渲染）
-  if (!gitStatus?.isGitRepository || gitStatus.files.length === 0) {
-    return null;
-  }
-
-  const changes = gitStatus.files.reduce(
+  // 面板始终渲染（头部常驻），只在加载出错时（无响应且非加载中）静默隐藏。
+  // 非 Git 仓库 / 无未提交变更时显示空状态文案，让功能可被发现。
+  const changes = gitStatus?.files.reduce(
     (counts, file) => {
       if (file.status === "added" || file.status === "untracked") counts.added += 1;
       else if (file.status === "deleted" || file.status === "conflict") counts.deleted += 1;
@@ -90,7 +87,16 @@ export function QuickChangesPanel({ cwd, refreshKey, onOpenFile }: Props) {
       return counts;
     },
     { modified: 0, added: 0, deleted: 0 },
-  );
+  ) ?? { modified: 0, added: 0, deleted: 0 };
+
+  const isGitRepository = gitStatus?.isGitRepository ?? false;
+  const noChanges = gitStatus !== null && isGitRepository && gitStatus.files.length === 0;
+  const notGitRepository = gitStatus !== null && !isGitRepository;
+  const loadFailed = gitStatus === null && !gitLoading;
+
+  if (loadFailed) {
+    return null;
+  }
 
   return (
     <section
@@ -121,8 +127,8 @@ export function QuickChangesPanel({ cwd, refreshKey, onOpenFile }: Props) {
           {changes.added > 0 && <span className="git-changes-indicator-part git-changes-indicator-added">{changes.added}</span>}
           {changes.deleted > 0 && <span className="git-changes-indicator-part git-changes-indicator-deleted">{changes.deleted}</span>}
         </div>
-        <span style={{ marginLeft: 6, color: "var(--git-status-added)", fontFamily: "var(--font-mono)", fontSize: 11 }}>+{gitStatus.additions}</span>
-        <span style={{ marginLeft: 5, color: "var(--git-status-deleted)", fontFamily: "var(--font-mono)", fontSize: 11 }}>-{gitStatus.deletions}</span>
+        <span style={{ marginLeft: 6, color: "var(--git-status-added)", fontFamily: "var(--font-mono)", fontSize: 11 }}>+{gitStatus?.additions ?? 0}</span>
+        <span style={{ marginLeft: 5, color: "var(--git-status-deleted)", fontFamily: "var(--font-mono)", fontSize: 11 }}>-{gitStatus?.deletions ?? 0}</span>
         <button
           type="button"
           onClick={() => void loadGitStatus()}
@@ -136,11 +142,28 @@ export function QuickChangesPanel({ cwd, refreshKey, onOpenFile }: Props) {
       </div>
       {open && (
         <div style={{ minHeight: 0, maxHeight: "min(35vh, 280px)", overflowY: "auto", overflowX: "hidden", padding: "2px 4px 4px" }}>
-          {gitStatus.files.map((status) => (
+          {notGitRepository && <EmptyState message={t("desktop.quickChangesNotGitRepository")} />}
+          {noChanges && <EmptyState message={t("desktop.quickChangesNoChanges")} />}
+          {gitStatus !== null && isGitRepository && gitStatus.files.map((status) => (
             <ChangeRow key={status.filePath} status={status} cwd={cwd} onOpenFile={onOpenFile} />
           ))}
         </div>
       )}
     </section>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div
+      style={{
+        padding: "8px 10px",
+        fontSize: 12,
+        color: "var(--text-dim)",
+        fontStyle: "italic",
+      }}
+    >
+      {message}
+    </div>
   );
 }
