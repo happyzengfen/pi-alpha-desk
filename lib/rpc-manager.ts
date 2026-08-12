@@ -149,6 +149,7 @@ export class AgentSessionWrapper {
   private extensionStatuses = new Map<string, string>();
   private extensionWidgets = new Map<string, ExtensionWidgetItem>();
   private promptRunning = false;
+  private promptStreamingBehavior: "steer" | "followUp" | undefined;
   private extensionsBound = false;
   private extensionBindingPromise: Promise<void> | null = null;
   private extensionBindingError: unknown = null;
@@ -186,6 +187,7 @@ export class AgentSessionWrapper {
         this.resetIdleTimer();
       }
       this.emit(event);
+      if (this.isTerminalPromptError(event)) this.finishFailedPrompt();
     });
     this.resetIdleTimer();
   }
@@ -268,6 +270,32 @@ export class AgentSessionWrapper {
 
   private shouldWaitForExtensions(type: string): boolean {
     return type === "prompt" || type === "steer" || type === "follow_up" || type === "get_commands";
+  }
+
+  private isTerminalPromptError(event: AgentEvent): boolean {
+    if (!this.promptRunning || event.type !== "agent_end" || event.willRetry === true) return false;
+    const messages = Array.isArray(event.messages)
+      ? event.messages as Array<{ role?: unknown; stopReason?: unknown }>
+      : [];
+    const assistant = [...messages].reverse().find((message) => message.role === "assistant");
+    return assistant?.stopReason === "error";
+  }
+
+  private finishPrompt(): void {
+    if (!this.promptRunning) return;
+    const streamingBehavior = this.promptStreamingBehavior;
+    this.promptRunning = false;
+    this.promptStreamingBehavior = undefined;
+    this.resetIdleTimer();
+    if (!streamingBehavior) this.emit({ type: "prompt_done" });
+  }
+
+  private finishFailedPrompt(): void {
+    this.finishPrompt();
+    if (!this.inner.isStreaming) return;
+    void this.inner.abort().catch((error) => {
+      console.error("[pi-web] failed to abort a terminal provider error:", error instanceof Error ? error.message : error);
+    });
   }
 
   private applyForcedEmptySystemPrompt(): void {
@@ -375,23 +403,21 @@ export class AgentSessionWrapper {
         const promptImages = command.images as Array<{ type: "image"; data: string; mimeType: string }> | undefined;
         const streamingBehavior = command.streamingBehavior as "steer" | "followUp" | undefined;
         this.promptRunning = true;
+        this.promptStreamingBehavior = streamingBehavior;
         this.inner.prompt(command.message as string, {
           ...(promptImages?.length ? { images: promptImages } : {}),
           ...(streamingBehavior ? { streamingBehavior } : {}),
           source: "rpc",
         }).then(() => {
-          this.promptRunning = false;
-          this.resetIdleTimer();
-          if (!streamingBehavior) this.emit({ type: "prompt_done" });
+          this.finishPrompt();
         }).catch((error) => {
-          this.promptRunning = false;
-          this.resetIdleTimer();
+          if (!this.promptRunning) return;
           invalidateSessionListCache();
           this.emit({
             type: "prompt_error",
             errorMessage: error instanceof Error ? error.message : String(error),
           });
-          if (!streamingBehavior) this.emit({ type: "prompt_done" });
+          this.finishPrompt();
         });
         // Make the new session visible in the disk-backed list immediately:
         // pi defers its first file flush until an assistant message exists.
