@@ -137,6 +137,8 @@ export const enLocale = {
     "desktop.agentRunning": "Agent is running...",
     "desktop.messageWithCommands": "Message... Type / for commands, @ for files",
     "desktop.quickChanges": "Quick Changes",
+    "desktop.quickChangesNotGitRepository": "Not a Git repository — no changes to show",
+    "desktop.quickChangesNoChanges": "No uncommitted changes",
     "desktop.changedFiles": "{count} changed files",
     "desktop.imageAttachmentsCannotQueue": "Image attachments cannot be queued while the agent is running",
     "desktop.injectMessageNow": "Interrupt the current run and inject this message now",

@@ -137,6 +137,8 @@ export const zhCNLocale = {
     "desktop.agentRunning": "Agent 正在运行...",
     "desktop.messageWithCommands": "输入消息... 输入 / 查看命令，@ 查看文件",
     "desktop.quickChanges": "快速变更",
+    "desktop.quickChangesNotGitRepository": "当前项目不是 Git 仓库，暂无变更",
+    "desktop.quickChangesNoChanges": "暂无未提交的变更",
     "desktop.changedFiles": "{count} 个变更文件",
     "desktop.imageAttachmentsCannotQueue": "Agent 运行时无法将图片附件加入队列",
     "desktop.injectMessageNow": "中断当前运行并立即注入此消息",
