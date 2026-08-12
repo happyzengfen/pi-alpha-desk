@@ -1,0 +1,2 @@
+# Bundled skill hashes must remain stable across Windows and Unix checkouts.
+bundled-skills/** text=auto eol=lf
