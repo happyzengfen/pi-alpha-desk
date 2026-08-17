@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
     [string]$InputPath,
@@ -200,12 +200,28 @@ try {
         Remove-Item -LiteralPath $resolvedOutput -Force
     }
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::CreateFromDirectory($tempRoot, $resolvedOutput)
+    Add-Type -AssemblyName System.IO.Compression
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+    # 手动创建 ZIP 条目（正斜杠条目名）：.NET Framework 的 CreateFromDirectory 会生成
+    # 反斜杠条目名，导致严格解析器（word-extractor/OOXML）无法识别 docx
+    $zipArchive = [System.IO.Compression.ZipFile]::Open($resolvedOutput, [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        $zipFiles = Get-ChildItem -LiteralPath $tempRoot -Recurse -File
+        foreach ($zipFile in $zipFiles) {
+            $zipEntryName = $zipFile.FullName.Substring($tempRoot.Length + 1).Replace('\', '/')
+            $zipEntry = $zipArchive.CreateEntry($zipEntryName, [System.IO.Compression.CompressionLevel]::Optimal)
+            $zipEntryStream = $zipEntry.Open()
+            try {
+                $zipFileStream = [System.IO.File]::OpenRead($zipFile.FullName)
+                try { $zipFileStream.CopyTo($zipEntryStream) } finally { $zipFileStream.Dispose() }
+            } finally { $zipEntryStream.Dispose() }
+        }
+    } finally { $zipArchive.Dispose() }
 
     $archive = [System.IO.Compression.ZipFile]::OpenRead($resolvedOutput)
     try {
         $requiredEntries = @("[Content_Types].xml", "_rels/.rels", "word/document.xml", "word/styles.xml", "word/numbering.xml")
-        $entryNames = @($archive.Entries | ForEach-Object { $_.FullName.Replace("\", "/") })
+        $entryNames = @($archive.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
         foreach ($requiredEntry in $requiredEntries) {
             if ($entryNames -notcontains $requiredEntry) {
                 throw "Generated DOCX is missing required entry: $requiredEntry"

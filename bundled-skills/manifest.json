@@ -11,7 +11,62 @@
         "linux",
         "win32"
       ],
-      "contentHash": "1a3cd886253821f705b0d58e470be42af080561b3e2452adf9e26b4fd60f0cf5"
+      "contentHash": "38d6f16875ed2e971d47d213581c275a7bbd30ffcd3153bda0e2b31f8d567f15"
+    },
+    {
+      "name": "image-sharp",
+      "source": "https://terminalskills.io/skills/sharp",
+      "license": "Apache-2.0",
+      "platforms": [
+        "darwin",
+        "linux",
+        "win32"
+      ],
+      "contentHash": "ef9631e97d98298ff6a9ebc3fccaa2a5ef28caa519f7bffb00299622b60e5ba7"
+    },
+    {
+      "name": "mermaid-diagrams",
+      "source": "https://github.com/Agents365-ai/mermaid-skill",
+      "license": "MIT",
+      "platforms": [
+        "darwin",
+        "linux",
+        "win32"
+      ],
+      "contentHash": "83e8fd386ca5dbf3720cc9f7a8363b423ddec2e5e4029bc0ca2fa0db70bc4a7e"
+    },
+    {
+      "name": "office-email",
+      "source": "https://github.com/netease-youdao/LobsterAI",
+      "license": "NOASSERTION",
+      "platforms": [
+        "darwin",
+        "linux",
+        "win32"
+      ],
+      "contentHash": "8fc60ca8be4f2717abd379263baffe6f9f6fcbd84443663d8834fe5948d1147e"
+    },
+    {
+      "name": "office-excel",
+      "source": "pi-alpha-desk",
+      "license": "MIT",
+      "platforms": [
+        "darwin",
+        "linux",
+        "win32"
+      ],
+      "contentHash": "22b6056a453cc67e826ff3984e721944b1767f0dff0923798a6dd9efcbe86c6f"
+    },
+    {
+      "name": "office-pptx",
+      "source": "pi-alpha-desk",
+      "license": "MIT",
+      "platforms": [
+        "darwin",
+        "linux",
+        "win32"
+      ],
+      "contentHash": "75f0fd807c5f8dbe5637658b67faebf0b94e6e2ebeda96ee6d20720512f21432"
     },
     {
       "name": "office-viewer",
@@ -36,13 +91,24 @@
       "contentHash": "bd19b304d247af66b47e5d8b60340b08ef1ccfb450d9e68c51c93bfb1cac2f78"
     },
     {
+      "name": "pdf-tools",
+      "source": "https://github.com/HybridAIOne/hybridclaw",
+      "license": "MIT",
+      "platforms": [
+        "darwin",
+        "linux",
+        "win32"
+      ],
+      "contentHash": "d0434493b3228e67c0328b56f0cb6fa886cb655f8350a894af40306aa78ee352"
+    },
+    {
       "name": "windows-word-docx",
       "source": "pi-alpha-desk",
       "license": "MIT",
       "platforms": [
         "win32"
       ],
-      "contentHash": "e147ec205435e22bc3ad6cd6d607b9116272de0d180fd1a45e3cfc8a274beef7"
+      "contentHash": "dc8b61915f8ce17b35bcad3c6960cad42f26a6c8786ba458d0b492c944a34b4b"
     }
   ]
 }

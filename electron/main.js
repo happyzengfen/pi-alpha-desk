@@ -23,6 +23,13 @@ const IS_DEV = !fs.existsSync(pkgRoot) && !fs.existsSync(asarRoot);
 const HOSTNAME = "127.0.0.1";
 let serverUrl = `http://${HOSTNAME}:${port}`;
 
+// 启动加载页（服务就绪前显示的深色界面，消除黑屏等待）
+const LOADING_HTML =
+  "data:text/html;charset=utf-8," +
+  encodeURIComponent(
+    `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#1a1a1a;height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif"><div style="text-align:center"><div style="font-size:26px;color:#e6e6e6;letter-spacing:2px">数字化AI助手</div><div style="font-size:13px;color:#8b949e;margin-top:10px">正在启动…</div></div></body></html>`,
+  );
+
 let mainWindow = null;
 let serverProcess = null;
 let serverLog = null;
@@ -395,8 +402,6 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadURL(serverUrl);
-
   mainWindow.on("close", (event) => {
     if (!app.isQuitting) {
       event.preventDefault();
@@ -489,6 +494,9 @@ ipcMain.handle("shell:show-item-in-folder", async (event, fullPath) => {
 
 async function bootstrap() {
   emitStartupMetric("bootstrap-start");
+  // 启动优化：立即显示窗口（加载页），不等服务就绪——消除“黑屏等待”
+  createWindow();
+  mainWindow.loadURL(LOADING_HTML);
   const bundledSkillsRoot = IS_DEV
     ? path.join(__dirname, "..", "bundled-skills")
     : path.join(process.resourcesPath, "bundled-skills");
@@ -499,11 +507,6 @@ async function bootstrap() {
   const agentDir = path.dirname(userSkillsRoot);
   if (process.platform === "darwin") {
     app.dock.setIcon(getIconPath());
-  }
-  try {
-    installBundledSkills({ sourceRoot: bundledSkillsRoot, targetRoot: userSkillsRoot });
-  } catch (error) {
-    console.error("[Electron] Failed to install bundled skills:", error);
   }
   serverNodeExecutable = resolveServerNodeExecutable({
     homeDirectory: app.getPath("home"),
@@ -542,9 +545,22 @@ async function bootstrap() {
     }
   }
 
+  // 启动优化：服务就绪后再后台安装/校验 skill（不阻塞启动路径；
+  // 首次安装的同步复制/哈希在用户已可用之后进行，后续启动走指纹快速路径）
+  setImmediate(() => {
+    installBundledSkills({ sourceRoot: bundledSkillsRoot, targetRoot: userSkillsRoot }).catch((error) => {
+      console.error("[Electron] Failed to install bundled skills:", error);
+    });
+  });
+
   emitStartupMetric("server-ready", { serverUrl });
   createTray();
-  createWindow();
+  // 服务就绪后加载主界面（窗口已提前创建，此处只是切换 URL）
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.loadURL(serverUrl);
+  } else {
+    createWindow();
+  }
   emitStartupMetric("window-created");
 }
 
@@ -594,6 +610,7 @@ app.on("window-all-closed", () => {
 app.on("activate", () => {
   if (mainWindow === null) {
     createWindow();
+    mainWindow.loadURL(serverUrl);
   }
 });
 

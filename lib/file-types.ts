@@ -1,9 +1,9 @@
-export const TEXT_PREVIEW_MAX_BYTES = 256 * 1024;
+export const TEXT_PREVIEW_MAX_BYTES = 5 * 1024 * 1024;
 export const IMAGE_PREVIEW_MAX_BYTES = 10 * 1024 * 1024;
 export const DOCX_PREVIEW_MAX_BYTES = 10 * 1024 * 1024;
 export const OFFICE_PREVIEW_MAX_BYTES = 20 * 1024 * 1024;
 
-export type DocumentPreviewKind = "pdf" | "doc" | "docx" | "xls" | "xlsx" | "csv" | "tsv";
+export type DocumentPreviewKind = "pdf" | "doc" | "docx" | "xls" | "xlsx" | "csv" | "tsv" | "pptx";
 
 export const IMAGE_EXT_TO_MIME: Record<string, string> = {
   png: "image/png",
@@ -38,6 +38,7 @@ export const DOCUMENT_EXT_TO_MIME: Record<DocumentPreviewKind, string> = {
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   csv: "text/csv; charset=utf-8",
   tsv: "text/tab-separated-values; charset=utf-8",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 };
 
 function getBaseName(filePath: string): string {

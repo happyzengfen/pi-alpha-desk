@@ -44,7 +44,18 @@ test("includes the local office skills in desktop resources", async () => {
   assert.equal(manifest.appVersion, packageJson.version);
   assert.deepEqual(
     manifest.skills.map((skill) => skill.name),
-    ["guizang-ppt-skill", "office-viewer", "pdf", "windows-word-docx"],
+    [
+      "guizang-ppt-skill",
+      "image-sharp",
+      "mermaid-diagrams",
+      "office-email",
+      "office-excel",
+      "office-pptx",
+      "office-viewer",
+      "pdf",
+      "pdf-tools",
+      "windows-word-docx",
+    ],
   );
   for (const skill of manifest.skills) {
     const skillRoot = fileURLToPath(new URL(`../bundled-skills/${skill.name}/`, import.meta.url));
@@ -82,7 +93,7 @@ test("installs bundled skills and preserves existing user copies", async () => {
     await mkdir(path.join(targetRoot, "existing-skill"), { recursive: true });
     await writeFile(path.join(targetRoot, "existing-skill", "SKILL.md"), "user version", "utf8");
 
-    const results = installBundledSkills({ sourceRoot, targetRoot, logger: { info() {} } });
+    const results = await installBundledSkills({ sourceRoot, targetRoot, logger: { info() {} } });
 
     assert.deepEqual(results, [
       { name: "existing-skill", status: "preserved" },
@@ -109,12 +120,12 @@ test("updates an unmodified app-managed skill and preserves later user edits", a
     await mkdir(path.dirname(sourceAsset), { recursive: true });
     await writeFile(sourceSkill, "version one", "utf8");
     await writeFile(sourceAsset, "asset one", "utf8");
-    installBundledSkills({ sourceRoot, targetRoot, logger: { info() {} } });
+    await installBundledSkills({ sourceRoot, targetRoot, logger: { info() {} } });
 
     await writeFile(sourceSkill, "version two", "utf8");
     await writeFile(sourceAsset, "asset two", "utf8");
     assert.deepEqual(
-      installBundledSkills({ sourceRoot, targetRoot, logger: { info() {} } }),
+      await installBundledSkills({ sourceRoot, targetRoot, logger: { info() {} } }),
       [{ name: "managed-skill", status: "updated" }],
     );
     assert.equal(await readFile(targetSkill, "utf8"), "version two");
@@ -124,7 +135,7 @@ test("updates an unmodified app-managed skill and preserves later user edits", a
     await writeFile(sourceSkill, "version three", "utf8");
     await writeFile(sourceAsset, "asset three", "utf8");
     assert.deepEqual(
-      installBundledSkills({ sourceRoot, targetRoot, logger: { info() {} } }),
+      await installBundledSkills({ sourceRoot, targetRoot, logger: { info() {} } }),
       [{ name: "managed-skill", status: "preserved" }],
     );
     assert.equal(await readFile(targetSkill, "utf8"), "version two");

@@ -17,7 +17,9 @@ import {
   getDocumentMime,
   getImageMime,
 } from "@/lib/file-types";
-import { extractWordText, renderSpreadsheetPreviewBody } from "@/lib/office-files";
+import { extractWordText, renderPptxPreviewBody, renderSpreadsheetPreviewBody } from "@/lib/office-files";
+import { renderPdfPage } from "@/lib/pdf-render-tool";
+import { ensurePptxPdf } from "@/lib/pptx-convert-tool";
 import { resolveDirentIsDirectory } from "@/lib/file-dirent";
 import { isFilePathReferencedBySession } from "@/lib/session-file-references";
 import {
@@ -41,7 +43,7 @@ const IGNORED_NAMES = new Set([
 
 const IGNORED_SUFFIXES = [".pyc"];
 
-const FILE_REQUEST_TYPES = ["list", "read", "download", "meta", "preview", "watch", "authorize"] as const;
+const FILE_REQUEST_TYPES = ["list", "read", "download", "meta", "preview", "pdfpage", "watch", "authorize", "stat"] as const;
 type FileRequestType = typeof FILE_REQUEST_TYPES[number];
 const FILE_REQUEST_TYPE_SET = new Set<string>(FILE_REQUEST_TYPES);
 
@@ -483,6 +485,63 @@ export async function GET(
       return NextResponse.json({ allowed: true, isDirectory: stat.isDirectory() });
     }
 
+    if (type === "stat") {
+      // 文件变更检测（独立增量：仅 stat 元数据，不读内容、不碰任何进程；可整体移除）
+      if (!stat.isFile()) {
+        return NextResponse.json({ error: "Not a file" }, { status: 400 });
+      }
+      return NextResponse.json({ mtimeMs: stat.mtimeMs, size: stat.size });
+    }
+
+    if (type === "pdfpage") {
+      // 后端渲染 PDF/PPTX 页为 PNG（node pdfjs + @napi-rs/canvas，兼容所有浏览器）
+      if (!stat.isFile()) {
+        return NextResponse.json({ error: "Not a file" }, { status: 400 });
+      }
+      const ext = path.extname(filePath).toLowerCase();
+      if (ext !== ".pdf" && ext !== ".pptx") {
+        return NextResponse.json({ error: "pdfpage only supports .pdf and .pptx files" }, { status: 400 });
+      }
+      const pageNumber = Number.parseInt(request.nextUrl.searchParams.get("page") ?? "1", 10);
+      let renderSource: string;
+      try {
+        // PPTX 先经 WPS/Office COM 导出为 PDF（缓存），再走渲染管线；无 COM 则回退
+        if (ext === ".pptx") {
+          const conversion = await ensurePptxPdf(filePath);
+          if (conversion === null) {
+            return NextResponse.json(
+              { error: "PPTX preview requires WPS or Microsoft PowerPoint on this machine" },
+              { status: 501 },
+            );
+          }
+          if ("locked" in conversion) {
+            return NextResponse.json(
+              { error: "File is in use by another program (e.g. PowerPoint/WPS); close it and refresh" },
+              { status: 423 },
+            );
+          }
+          renderSource = conversion.pdf;
+        } else {
+          renderSource = filePath;
+        }
+        const { png, pageCount, width, height } = await renderPdfPage(renderSource, pageNumber);
+        return new Response(new Uint8Array(png), {
+          headers: {
+            "Content-Type": "image/png",
+            "X-PDF-PageCount": String(pageCount),
+            "X-PDF-Width": String(width),
+            "X-PDF-Height": String(height),
+            "Cache-Control": "no-cache",
+          },
+        });
+      } catch (error) {
+        return NextResponse.json(
+          { error: `Failed to render PDF page: ${error instanceof Error ? error.message : String(error)}` },
+          { status: 500 },
+        );
+      }
+    }
+
     if (type === "read") {
       if (!stat.isFile()) {
         return NextResponse.json({ error: "Not a file" }, { status: 400 });
@@ -563,6 +622,8 @@ export async function GET(
       } else if (previewKind === "doc") {
         const text = await extractWordText(filePath);
         html = wrapDocxPreviewHtml(`<pre class="word-text">${escapeHtml(text || "Document contains no extractable text.")}</pre>`, path.basename(filePath));
+      } else if (previewKind === "pptx") {
+        html = wrapDocxPreviewHtml(await renderPptxPreviewBody(filePath), path.basename(filePath));
       } else {
         html = wrapSpreadsheetPreviewHtml(renderSpreadsheetPreviewBody(filePath), path.basename(filePath));
       }
