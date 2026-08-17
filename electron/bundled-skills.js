@@ -95,19 +95,25 @@ function writeSummary(dir, data) {
 }
 
 /**
- * 计算 source 树的轻量指纹：只 stat 顶层 skill 目录（O(目录数)，不遍历文件）。
- * 安装/升级会更新文件时间 → mtime 变化 → 指纹变化 → 触发全量同步。
+ * 打包资源直接使用 manifest 作为 O(1) 指纹；测试或开发目录没有
+ * manifest 时回退到内容哈希。目录 mtime 不能代表子文件内容变化。
  */
 function computeSourceFingerprint(sourceRoot) {
+  const manifestPath = path.join(sourceRoot, "manifest.json");
+  try {
+    return crypto.createHash("sha256").update(fs.readFileSync(manifestPath)).digest("hex");
+  } catch {
+    // Synthetic test fixtures and development directories may not have a manifest.
+  }
+
   const parts = [];
   for (const entry of fs.readdirSync(sourceRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
     if (!entry.isDirectory()) continue;
     const source = path.join(sourceRoot, entry.name);
     if (!fs.existsSync(path.join(source, "SKILL.md"))) continue;
-    const stat = fs.statSync(source);
-    parts.push(`${entry.name}:${stat.mtimeMs}`);
+    parts.push(`${entry.name}:${skillHash(source)}`);
   }
-  return require("crypto").createHash("sha256").update(parts.join("|")).digest("hex");
+  return crypto.createHash("sha256").update(parts.join("|")).digest("hex");
 }
 
 async function installBundledSkills({ sourceRoot, targetRoot, logger = console }) {

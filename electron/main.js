@@ -508,11 +508,6 @@ async function bootstrap() {
   if (process.platform === "darwin") {
     app.dock.setIcon(getIconPath());
   }
-  try {
-    installBundledSkills({ sourceRoot: bundledSkillsRoot, targetRoot: userSkillsRoot });
-  } catch (error) {
-    console.error("[Electron] Failed to install bundled skills:", error);
-  }
   serverNodeExecutable = resolveServerNodeExecutable({
     homeDirectory: app.getPath("home"),
     agentDir,
