@@ -112,7 +112,12 @@ jobs:
                 Sort-Object LastWriteTime -Descending |
                 Select-Object -First 1
               if ($log) {
-                $candidatePorts = [regex]::Matches((Get-Content $log.FullName -Raw), "127\.0\.0\.1:(\d+)") |
+                $logContent = Get-Content $log.FullName -Raw -ErrorAction SilentlyContinue
+                if (-not $logContent) {
+                  Start-Sleep -Milliseconds 500
+                  continue
+                }
+                $candidatePorts = [regex]::Matches($logContent, "127\.0\.0\.1:(\d+)") |
                   ForEach-Object { [int]$_.Groups[1].Value } |
                   Where-Object { $_ -ne 30141 } |
                   Select-Object -Unique
