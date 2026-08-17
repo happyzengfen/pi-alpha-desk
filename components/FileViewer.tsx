@@ -15,6 +15,7 @@ import {
 } from "@/lib/file-types";
 import { encodeFilePathForApi, getFileDirectory, getFileName, getRelativeFilePath } from "@/lib/file-paths";
 import { resolveLocalFileHref } from "@/lib/file-links";
+import { PdfViewer } from "./PdfViewer";
 import { resolveMarkdownImageSrc } from "@/lib/markdown-images";
 import { headingId, markdownRehypePlugins, markdownRemarkPlugins, normalizeDisplayMath } from "@/lib/markdown";
 import { prismTheme } from "@/lib/prism-theme";
@@ -657,9 +658,11 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
 
   const ext = getFileExt(filePath);
   const isPdf = ext === "pdf";
+  const isPptx = ext === "pptx";
   const isWord = ext === "doc" || ext === "docx";
+  const isPageRender = isPdf || isPptx;
   const previewLimit = ext === "docx" ? DOCX_PREVIEW_MAX_BYTES : OFFICE_PREVIEW_MAX_BYTES;
-  const previewUrl = isPdf
+  const previewUrl = isPageRender
     ? getFileApiUrl(filePath, "read", sourceSessionId, bust ? { v: bust } : undefined)
     : getFileApiUrl(filePath, "preview", sourceSessionId, bust ? { v: bust } : undefined);
 
@@ -679,12 +682,19 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
         if (d.error) setError(d.error);
         if (typeof d.size === "number") {
           setSize(d.size);
-          if (!isPdf && d.size > previewLimit) {
+          if (!isPageRender && d.size > previewLimit) {
             setError(ext === "docx" ? t("desktop.docxTooLargeForPreview") : t("desktop.officeTooLargeForPreview"));
           }
         }
       })
       .catch((e) => setError(String(e)));
+
+    // pdf/pptx：不建立文件监听（避免长期监控；内容更新一律由顶栏“刷新”按钮手动触发）
+    if (isPageRender) {
+      return () => {
+        esRef.current = null;
+      };
+    }
 
     const es = new EventSource(getFileApiUrl(filePath, "watch", sourceSessionId));
     esRef.current = es;
@@ -694,21 +704,25 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
         const d = JSON.parse((e as MessageEvent).data) as { size?: number };
         if (typeof d.size === "number") {
           setSize(d.size);
-          if (!isPdf && d.size > previewLimit) {
+          if (!isPageRender && d.size > previewLimit) {
             setError(ext === "docx" ? t("desktop.docxTooLargeForPreview") : t("desktop.officeTooLargeForPreview"));
             return;
           }
         }
       } catch { /* ignore */ }
-      setError(null);
-      setBust((b) => b + 1);
+      // pdf/pptx：文件变化不自动重转（避免在用户编辑/保存过程中并发转换引发冲突），
+      // 由顶栏“刷新”按钮手动触发；docx/xlsx/csv 保持自动刷新
+      if (!isPageRender) {
+        setError(null);
+        setBust((b) => b + 1);
+      }
     });
 
     return () => {
       es.close();
       esRef.current = null;
     };
-  }, [ext, filePath, isPdf, previewLimit, sourceSessionId, t]);
+  }, [ext, filePath, isPageRender, previewLimit, sourceSessionId, t]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
@@ -729,7 +743,7 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
           {getRelativeFilePath(filePath, cwd)}
         </span>
         <span style={{ marginLeft: "auto" }}>
-          {isPdf ? "PDF" : isWord ? t("desktop.wordPreview") : t("desktop.spreadsheetPreview")}
+          {isPdf ? "PDF" : isPptx ? "PPT" : isWord ? t("desktop.wordPreview") : t("desktop.spreadsheetPreview")}
         </span>
         {size != null && <span>{formatSize(size)}</span>}
         <DownloadLink filePath={filePath} sourceSessionId={sourceSessionId} />
@@ -739,13 +753,15 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
           <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, color: "#f87171", fontSize: 13, textAlign: "center" }}>
             {error}
           </div>
+        ) : isPageRender ? (
+          <PdfViewer url={previewUrl} fileName={getFileName(filePath)} />
         ) : (
           <iframe
-            key={previewUrl}
+            key={`${previewUrl}#b${bust}`}
             src={previewUrl}
-            sandbox={isPdf ? undefined : "allow-same-origin"}
+            sandbox="allow-same-origin"
             title={t("desktop.previewFile", { file: getFileName(filePath) })}
-            style={{ width: "100%", height: "100%", border: "none", background: isPdf ? "var(--bg)" : "#eef1f5" }}
+            style={{ width: "100%", height: "100%", border: "none", background: "#eef1f5" }}
           />
         )}
       </div>

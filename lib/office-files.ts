@@ -2,6 +2,7 @@ import * as XLSX from "@e965/xlsx";
 import WordExtractor from "word-extractor";
 import fs from "fs";
 import path from "path";
+import type JSZipType from "jszip";
 
 XLSX.set_fs(fs);
 
@@ -60,11 +61,15 @@ function worksheetRows(
 }
 
 function loadWorkbook(filePath: string): XLSX.WorkBook {
-  return XLSX.readFile(filePath, {
+  const isDelimited = /\.(csv|tsv)$/i.test(filePath);
+  const options: XLSX.ParsingOptions = {
     cellDates: true,
     cellFormula: true,
     cellText: true,
-  });
+  };
+  // CSV/TSV 无 BOM 时 SheetJS 默认按本地代码页（如 cp1252）解析，中文会乱码；强制 UTF-8。
+  if (isDelimited) options.codepage = 65001;
+  return XLSX.readFile(filePath, options);
 }
 
 export function extractSpreadsheetText(
@@ -173,6 +178,39 @@ export function renderSpreadsheetPreviewBody(filePath: string): string {
   }).join("");
 
   return `<nav class="sheet-nav">${navigation}</nav>${sheets}`;
+}
+
+/**
+ * PPTX 预览：解包 zip，按页提取 slide XML 中的文本（<a:t>），生成大纲式 HTML。
+ * 说明：pptx 的信息在文字里（标题/要点），大纲预览已满足阅读需求；
+ * 版面还原（图表/图片位置）留待后续优化（当前为浅色文档样式）。
+ */
+export async function renderPptxPreviewBody(filePath: string): Promise<string> {
+  const JSZip: typeof JSZipType = (await import("jszip")).default;
+  const zip = await JSZip.loadAsync(fs.readFileSync(filePath));
+  const slideNames = Object.keys(zip.files)
+    .filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))
+    .sort((a, b) => {
+      const na = Number.parseInt(a.match(/slide(\d+)\.xml/)![1], 10);
+      const nb = Number.parseInt(b.match(/slide(\d+)\.xml/)![1], 10);
+      return na - nb;
+    });
+  if (slideNames.length === 0) {
+    return '<p class="empty">No slides found in this presentation.</p>';
+  }
+  const sections: string[] = [];
+  for (const name of slideNames) {
+    const xml = await zip.file(name)!.async("string");
+    const texts = [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)]
+      .map((match) => match[1])
+      .filter((text) => text.trim().length > 0);
+    const pageNumber = name.match(/slide(\d+)\.xml/)![1];
+    const items = texts.length
+      ? texts.map((text) => `<li>${escapeHtml(text)}</li>`).join("")
+      : '<p class="empty">（本页无文本内容）</p>';
+    sections.push(`<section class="slide"><h2>第 ${pageNumber} 页</h2><ul>${items}</ul></section>`);
+  }
+  return sections.join("");
 }
 
 export async function extractWordText(filePath: string): Promise<string> {

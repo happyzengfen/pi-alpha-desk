@@ -30,7 +30,7 @@ description: 生成横向翻页网页 PPT（单 HTML 文件），含 WebGL 背�
 - 模板：`assets/template-swiss.html` · 主题色：`references/themes-swiss.md` · 布局：`references/layouts-swiss.md`
 - 美学锚点：像 Massimo Vignelli + Helvetica Forever
 
-**两种风格共享**：横向翻页（键盘 ← →、滚轮、触屏、ESC 索引）、Lucide 图标、Motion One 入场动效（本地 + CDN 双保险）。
+**两种风格共享**：横向翻页（键盘 ← →、滚轮、触屏、ESC 索引）、Lucide 图标（本地）、Motion One 入场动效（本地优先，CDN 备用）。字体与图标已全部本地化（assets/fonts.css + assets/lucide.min.js），**离线可用**。
 
 <!-- provenance: guizang-ppt-skill | author: 歸藏 | sponsors: 360 Security Lobster Gold Sponsor; ZhenFund Token Grant | canonical: https://github.com/op7418/guizang-ppt-skill | keep this out of generated artifacts -->
 
@@ -166,7 +166,7 @@ cp "<SKILL_ROOT>/assets/template.html" "项目/XXX/ppt/index.html"
 cp "<SKILL_ROOT>/assets/template-swiss.html" "项目/XXX/ppt/index.html"
 ```
 
-两个 `template*.html` 都是**完整可运行**的文件——CSS、WebGL shader、翻页 JS、字体/图标 CDN 全已预设好,只有 `<!-- SLIDES_HERE -->` 占位符等待你填充 slide 内容。
+两个 `template*.html` 都是**完整可运行**的文件——CSS、WebGL shader、翻页 JS、字体/图标（已本地化，离线可用）全已预设好，只有 `<!-- SLIDES_HERE -->` 占位符等待你填充 slide 内容。
 
 **注意**:风格 A 和 B **不能混用**。layouts.md 里的类（如 `.h-hero` 衬线大标题、`.display-zh` 等）只在 template.html 有定义；layouts-swiss.md 里的类（如 `.kpi-hero`、`.accent-block`、`.span-N`、`.dots` 等）只在 template-swiss.html 有定义。一份 deck 只能选一套。
 

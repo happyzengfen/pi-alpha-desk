@@ -24,6 +24,9 @@ const nextConfig: NextConfig = {
     "word-extractor",
     "unpdf",
     "undici",
+    "@napi-rs/canvas",
+    "jszip",
+    "pdfjs-dist",
   ],
   async headers() {
     return [
@@ -41,6 +44,16 @@ const nextConfig: NextConfig = {
         source: "/",
         headers: [
           { key: "Cache-Control", value: "private, no-cache, max-age=0, must-revalidate" },
+        ],
+      },
+      {
+        // 文件预览（PDF/Word/Excel）通过同源 iframe 内嵌展示；全局 CSP 的
+        // frame-ancestors 'none' / X-Frame-Options DENY 会阻止预览，此处对
+        // /api/files 放宽为仅允许同源嵌入（frame-ancestors 'self'）。
+        source: "/api/files/:path*",
+        headers: [
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'; base-uri 'self'; object-src 'none'" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
         ],
       },
     ];

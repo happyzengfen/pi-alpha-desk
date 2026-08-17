@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules/
 
 # generated local pi package snapshots
 /.local-pi/
@@ -62,3 +63,7 @@ next-env.d.ts
 
 .myLastChat
 ref-repos
+
+# local tooling artifacts
+.replay-backup/
+*.log
