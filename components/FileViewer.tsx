@@ -754,7 +754,7 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
             {error}
           </div>
         ) : isPageRender ? (
-          <PdfViewer url={previewUrl} fileName={getFileName(filePath)} />
+          <PdfViewer url={previewUrl} fileName={getFileName(filePath)} filePath={filePath} />
         ) : (
           <iframe
             key={`${previewUrl}#b${bust}`}

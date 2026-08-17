@@ -7,6 +7,7 @@
  * - 切换文件：重置滚动位置到第一页
  */
 import { useCallback, useEffect, useMemo, useLayoutEffect, useRef, useState } from "react";
+import { useFileChangeIndicator } from "@/hooks/use-file-change-indicator";
 
 const btnBase: React.CSSProperties = {
   background: "transparent",
@@ -26,13 +27,24 @@ const btnActive: React.CSSProperties = {
   borderColor: "var(--accent, #4f8cff)",
 };
 
-export function PdfViewer({ url, fileName }: { url: string; fileName: string }) {
+export function PdfViewer({
+  url,
+  fileName,
+  filePath,
+}: {
+  url: string;
+  fileName: string;
+  filePath?: string;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
   const currentPageRef = useRef(1);
-  const pendingRestorePage = useRef<number | null>(null);
+  const pendingRestoreScroll = useRef<number | null>(null);
+  const recomputeRef = useRef<(() => void) | null>(null);
   const inputFocusedRef = useRef(false);
   const [refreshTick, setRefreshTick] = useState(0);
+  // 文件变更指示（独立增量：可整体移除——删除本行 + 刷新按钮变色样式即可）
+  const fileChanged = useFileChangeIndicator(filePath, refreshTick);
   const [containerWidth, setContainerWidth] = useState(0);
   const barRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLSpanElement>(null); // W1 页号/总数
@@ -58,7 +70,6 @@ export function PdfViewer({ url, fileName }: { url: string; fileName: string }) 
 
   const PAGE_GAP = 16; // 页间距（渲染区 gap）
   const CONTENT_PADDING = 16; // 内容区顶部 padding
-  const REF_OFFSET = 24; // 参考线位置：滚动容器顶部往下（功能栏下方固定点）
   // 固定页高：程序定值（与渲染同一公式），不依赖图片加载
   const pageHeight = useMemo(() => {
     if (!naturalSize) return 0;
@@ -169,10 +180,10 @@ export function PdfViewer({ url, fileName }: { url: string; fileName: string }) 
     return () => ro.disconnect();
   }, []);
 
-  // 刷新前记录当前位置（refreshTick 变化时）
+  // 刷新前记录像素滚动位置（refreshTick 变化时）——刷新后按原像素恢复，不做页顶对齐
   useEffect(() => {
     if (refreshTick > 0) {
-      pendingRestorePage.current = currentPageRef.current;
+      pendingRestoreScroll.current = containerRef.current?.scrollTop ?? null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshTick]);
@@ -206,13 +217,17 @@ export function PdfViewer({ url, fileName }: { url: string; fileName: string }) 
           if (count) {
             // 全量加载：打开即渲染全部页面
             setPageCount(count);
-            // 刷新后恢复原页（页数变化时钳制）
-            const restore = pendingRestorePage.current;
-            pendingRestorePage.current = null;
+            // 刷新后恢复原像素位置（固定页高 → 页面 div 高度立即可知；超出新内容范围时钳制）
+            const restore = pendingRestoreScroll.current;
+            pendingRestoreScroll.current = null;
             if (restore !== null && restore > 0) {
-              const target = Math.min(restore, count);
-              updateCurrentPage(target);
-              setTimeout(() => scrollToPage(target), 50);
+              setTimeout(() => {
+                const el = containerRef.current;
+                if (!el) return;
+                const max = Math.max(el.scrollHeight - el.clientHeight, 0);
+                el.scrollTo({ top: Math.min(restore, max) });
+                recomputeRef.current?.();
+              }, 50);
             }
           }
           if (w && h) setNaturalSize({ w, h });
@@ -229,7 +244,8 @@ export function PdfViewer({ url, fileName }: { url: string; fileName: string }) 
     };
   }, [pageUrlFor, updateCurrentPage, scrollToPage]);
 
-  // 重新计算当前页：功能栏下方固定参考线扫过的页（固定页高纯计算，不依赖图片/几何）
+  // 重新计算当前页：视口内可见面积最大的页（固定页高纯计算，不依赖图片/几何；
+  // 面积相同（严格大于比较）时保留先遍历到的页 = 页码更小者，即优先上方页）
   const recomputeCurrentPage = useCallback(() => {
     const el = containerRef.current;
     if (!el || pageHeight <= 0 || pageCount === 0) return;
@@ -238,22 +254,24 @@ export function PdfViewer({ url, fileName }: { url: string; fileName: string }) 
       if (currentPageRef.current !== 1) updateCurrentPage(1);
       return;
     }
-    // 参考线位置（容器内部坐标）：滚动位置 + 固定偏移
-    const refY = el.scrollTop + REF_OFFSET;
-    let target = currentPageRef.current;
+    const viewTop = el.scrollTop;
+    const viewBottom = el.scrollTop + el.clientHeight;
+    let bestPage = currentPageRef.current;
+    let bestVisible = -1;
     for (let i = 0; i < pageCount; i += 1) {
       const pageTop = CONTENT_PADDING + i * pageStep;
       const pageBottom = pageTop + pageHeight;
-      if (refY >= pageTop && refY < pageBottom) {
-        target = i + 1;
-        break;
+      const visible = Math.min(pageBottom, viewBottom) - Math.max(pageTop, viewTop);
+      if (visible > 0 && visible > bestVisible) {
+        bestVisible = visible;
+        bestPage = i + 1;
       }
     }
-    // 兜底：参考线越过最后一页（底部 padding/末尾提示区）→ 最后一页
-    const lastPageBottom = CONTENT_PADDING + (pageCount - 1) * pageStep + pageHeight;
-    if (refY >= lastPageBottom) target = pageCount;
-    if (target !== currentPageRef.current) updateCurrentPage(target);
+    if (bestPage !== currentPageRef.current) updateCurrentPage(bestPage);
   }, [pageCount, pageHeight, pageStep, updateCurrentPage]);
+
+  // 保持 recomputeRef 始终指向最新实现（供 setTimeout 恢复回调调用）
+  recomputeRef.current = recomputeCurrentPage;
 
   // 滚动：重新计算当前页
   const onScroll = useCallback(() => {
@@ -338,7 +356,7 @@ export function PdfViewer({ url, fileName }: { url: string; fileName: string }) 
             title="输入页码后回车跳转"
             style={{
               width: 44,
-              background: "var(--bg-elevated, #1e2530)",
+              background: "transparent",
               border: "1px solid var(--border)",
               borderRadius: 4,
               color: "var(--text)",
@@ -356,7 +374,11 @@ export function PdfViewer({ url, fileName }: { url: string; fileName: string }) 
         <button
           ref={refreshRef}
           onClick={() => setRefreshTick((t) => t + 1)}
-          style={{ ...btnBase, flexShrink: 0 }}
+          style={
+            fileChanged
+              ? { ...btnBase, flexShrink: 0, color: "var(--accent, #4f8cff)", borderColor: "var(--accent, #4f8cff)" }
+              : { ...btnBase, flexShrink: 0 }
+          }
           title="刷新预览（重新读取文件；不会影响正在使用的 PowerPoint/WPS）"
         >
           ⟳ 刷新

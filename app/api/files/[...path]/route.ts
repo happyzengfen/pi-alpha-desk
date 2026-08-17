@@ -43,7 +43,7 @@ const IGNORED_NAMES = new Set([
 
 const IGNORED_SUFFIXES = [".pyc"];
 
-const FILE_REQUEST_TYPES = ["list", "read", "download", "meta", "preview", "pdfpage", "watch", "authorize"] as const;
+const FILE_REQUEST_TYPES = ["list", "read", "download", "meta", "preview", "pdfpage", "watch", "authorize", "stat"] as const;
 type FileRequestType = typeof FILE_REQUEST_TYPES[number];
 const FILE_REQUEST_TYPE_SET = new Set<string>(FILE_REQUEST_TYPES);
 
@@ -483,6 +483,14 @@ export async function GET(
 
     if (type === "authorize") {
       return NextResponse.json({ allowed: true, isDirectory: stat.isDirectory() });
+    }
+
+    if (type === "stat") {
+      // 文件变更检测（独立增量：仅 stat 元数据，不读内容、不碰任何进程；可整体移除）
+      if (!stat.isFile()) {
+        return NextResponse.json({ error: "Not a file" }, { status: 400 });
+      }
+      return NextResponse.json({ mtimeMs: stat.mtimeMs, size: stat.size });
     }
 
     if (type === "pdfpage") {

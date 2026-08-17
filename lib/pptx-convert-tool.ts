@@ -23,12 +23,13 @@ const PS_EXE = process.env.POWERSHELL_PATH ?? "powershell.exe";
 const PPTX_TO_PDF_SCRIPT = `param(
   [Parameter(Mandatory = $true)][string]$InputPath,
   [Parameter(Mandatory = $true)][string]$OutputPath,
+  [Parameter(Mandatory = $true)][string]$OriginalPath,
   [string]$ProgId = ""
 )
 $ErrorActionPreference = "Stop"
 try {
   $resolvedInput = (Resolve-Path -LiteralPath $InputPath).Path
-  $OutputPath = $OutputPath -replace "/", "\\"   # COM SaveAs rejects forward slashes
+  $OutputPath = $OutputPath -replace "/", "\"
   $outDir = Split-Path -Parent $OutputPath
   if (-not (Test-Path -LiteralPath $outDir)) { New-Item -ItemType Directory -Path $outDir -Force | Out-Null }
   if (Test-Path -LiteralPath $OutputPath) { Remove-Item -LiteralPath $OutputPath -Force }
@@ -38,26 +39,38 @@ try {
   $app = $null
   $isNewInstance = $false
   foreach ($candidate in $progIds) {
-    # 程序运行（用户可能正在使用）→ 复用已有实例，但绝不 Quit（不干扰用户会话）
     $procName = ""
     if ($candidate -like "KWPP*") { $procName = "wpp" } else { $procName = "POWERPNT" }
     $running = Get-Process -Name $procName -ErrorAction SilentlyContinue
     if ($running) {
-      try {
-        $app = [System.Runtime.InteropServices.Marshal]::GetActiveObject($candidate)
-        $isNewInstance = $false
-        break
-      } catch { continue }
+      # running (user may be using it) -> reuse the live instance, NEVER quit it
+      try { $app = [System.Runtime.InteropServices.Marshal]::GetActiveObject($candidate); $isNewInstance = $false; break } catch { continue }
     }
     try { $app = New-Object -ComObject $candidate; $isNewInstance = $true; break } catch {}
   }
   if (-not $app) { throw "No usable COM (WPS/PowerPoint) found" }
+  $presentation = $null
+  $openedFromDisk = $false
   try {
-    $presentation = $app.Presentations.Open($resolvedInput, $true, $false, $false)
+    # Route B (memory direct): find the doc the user already has open and export it as-is.
+    # Read-only export: never closes the user's document, never touches it.
+    if ($OriginalPath) {
+      $origName = Split-Path -Leaf $OriginalPath
+      $origFull = (Resolve-Path -LiteralPath $OriginalPath).Path
+      foreach ($p in $app.Presentations) {
+        try { $fullName = $p.FullName; $name = $p.Name } catch { continue }
+        if ($fullName -eq $origFull -or $name -eq $origName) { $presentation = $p; break }
+      }
+    }
+    if (-not $presentation) {
+      # Route A fallback: open the disk copy (read-only) and export it
+      $presentation = $app.Presentations.Open($resolvedInput, $true, $false, $false)
+      $openedFromDisk = $true
+    }
     try {
       $presentation.SaveAs($OutputPath, [int]32)
     } finally {
-      try { $presentation.Close() } catch {}
+      if ($openedFromDisk) { try { $presentation.Close() } catch {} }
     }
   } finally {
     if ($isNewInstance) { try { $app.Quit() } catch {} }
@@ -100,62 +113,66 @@ function isFileLocked(filePath: string): boolean {
   }
 }
 
-/** 检测可用的演示 COM（KWPP=WPS 优先，PowerPoint 其次），返回 ProgID 或 null。
- * 铁律：程序正在运行 = 用户可能正在使用 → 该 progId 不可用（绝不连接/Quit 用户实例）；
- * 仅当程序未运行时才新建实例探测（此时 Quit 安全，且不留残留进程）。 */
-export function detectPresentationCom(): string | null {
-  for (const progId of ["KWPP.Application", "PowerPoint.Application"]) {
-    const procName = progId.startsWith("KWPP") ? "wpp" : "POWERPNT";
-    const { stdout } = runPowerShell([
-      "-Command",
-      // 运行中 → 输出 INUSE（跳过，不碰用户实例）；未运行 → 新建探测后 Quit（安全）
-      `if (Get-Process -Name ${procName} -ErrorAction SilentlyContinue) { Write-Output "INUSE"; exit 0 }
-try { $w = New-Object -ComObject ${progId}; $v = $w.Version; $w.Quit(); Write-Output "OK:$v" } catch { Write-Output "NO" }`,
-    ]);
-    if (stdout.includes("OK:")) return progId;
-  }
-  return null;
-}
-
 /**
  * 确保 pptx 有对应的 PDF（转换 + 缓存）。
  * @returns { pdf } 成功；{ locked } 文件被其他程序占用（跳过转换）；null 无可用 COM。
+ *
+ * 链路（一次 PowerShell 完成探测+转换，省 1-2s）：
+ *   1. 缓存命中（mtimeMs 毫秒级 + size 一致）→ 直接返回
+ *   2. 未命中 → 复制磁盘副本 → 脚本内：运行中实例优先内存直出（路 B，
+ *      拿到 PowerPoint 内存中的最新内容，即使保存后磁盘短暂锁定也不受影响），
+ *      未匹配到打开文档则打开副本导出（路 A）
+ *   3. 单飞锁：同一文件并发请求共享同一次转换，避免 N 页并发各转一次
  */
+const inFlight = new Map<string, Promise<{ pdf: string; stale?: boolean } | { locked: true } | null>>();
+
 export async function ensurePptxPdf(
   pptxPath: string,
 ): Promise<{ pdf: string; stale?: boolean } | { locked: true } | null> {
+  // 文件真正被锁定（连读都不行，如正在保存）→ 不转换；有旧缓存则兜底返回
+  if (isFileLocked(pptxPath)) {
+    const legacy = findCachedPdf(pptxPath);
+    if (legacy) return { pdf: legacy, stale: true };
+    return { locked: true };
+  }
+
+  const stat = fs.statSync(pptxPath);
+  // 固定 key（仅文件路径）：占用/失败时可用旧缓存兜底；mtime 变化由 meta 判断是否重转
+  const key = crypto.createHash("sha256").update(pptxPath).digest("hex").slice(0, 16);
+  const cacheDir = path.join(CACHE_ROOT, key);
+  const pdfPath = path.join(cacheDir, "converted.pdf");
+  const metaPath = path.join(cacheDir, "meta.json");
+
+  // 缓存命中且源文件未变化 → 直接返回（mtimeMs 毫秒级比较：同秒保存也能识别变化）
+  if (fs.existsSync(pdfPath)) {
+    try {
+      const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
+      if (meta.mtimeMs === stat.mtimeMs && meta.size === stat.size) {
+        return { pdf: pdfPath };
+      }
+    } catch { /* meta 缺失/损坏 → 重新转换 */ }
+  }
+
+  // 单飞锁：同一文件同一时刻只允许一次转换，其余请求共享结果
+  const existing = inFlight.get(key);
+  if (existing) return existing;
+  const task = doConvert(pptxPath, stat, cacheDir, pdfPath, metaPath);
+  inFlight.set(key, task);
   try {
-    // 文件真正被锁定（连读都不行，如正在保存）→ 不转换；有旧缓存则兜底返回
-    if (isFileLocked(pptxPath)) {
-      const legacy = findCachedPdf(pptxPath);
-      if (legacy) return { pdf: legacy, stale: true };
-      return { locked: true };
-    }
+    return await task;
+  } finally {
+    inFlight.delete(key);
+  }
+}
 
-    const stat = fs.statSync(pptxPath);
-    // 固定 key（仅文件路径）：占用/失败时可用旧缓存兜底；mtime 变化由 meta 判断是否重转
-    const key = crypto.createHash("sha256").update(pptxPath).digest("hex").slice(0, 16);
-    const cacheDir = path.join(CACHE_ROOT, key);
-    const pdfPath = path.join(cacheDir, "converted.pdf");
-    const metaPath = path.join(cacheDir, "meta.json");
-
-    // 缓存命中且源文件未变化 → 直接返回
-    if (fs.existsSync(pdfPath)) {
-      try {
-        const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
-        if (meta.mtimeMs === Math.floor(stat.mtimeMs) && meta.size === stat.size) {
-          return { pdf: pdfPath };
-        }
-      } catch { /* meta 缺失/损坏 → 重新转换 */ }
-    }
-
-    const progId = detectPresentationCom();
-    if (!progId) {
-      const legacy = findCachedPdf(pptxPath);
-      if (legacy) return { pdf: legacy, stale: true };
-      return null;
-    }
-
+async function doConvert(
+  pptxPath: string,
+  stat: { mtimeMs: number; size: number },
+  cacheDir: string,
+  pdfPath: string,
+  metaPath: string,
+): Promise<{ pdf: string; stale?: boolean } | { locked: true } | null> {
+  try {
     fs.mkdirSync(cacheDir, { recursive: true });
     const scriptPath = path.join(cacheDir, "pptx-to-pdf.ps1");
     fs.writeFileSync(scriptPath, PPTX_TO_PDF_SCRIPT, "utf8");
@@ -171,7 +188,13 @@ export async function ensurePptxPdf(
       return { locked: true };
     }
 
-    const { stdout } = runPowerShell(["-File", scriptPath, "-InputPath", inputCopy, "-OutputPath", pdfPath, "-ProgId", progId]);
+    // ProgId 留空 → 脚本内自探测（KWPP 优先、PowerPoint 其次；运行中复用实例）
+    const { stdout } = runPowerShell([
+      "-File", scriptPath,
+      "-InputPath", inputCopy,
+      "-OutputPath", pdfPath,
+      "-OriginalPath", pptxPath,
+    ]);
     if (!stdout.includes("OK:")) {
       // 转换失败/被占用 → 有旧缓存则兜底返回（用户仍可看到上次预览），否则报占用/不可用
       const legacy = findCachedPdf(pptxPath);
@@ -180,7 +203,7 @@ export async function ensurePptxPdf(
       return null;
     }
     if (fs.existsSync(pdfPath)) {
-      fs.writeFileSync(metaPath, JSON.stringify({ mtimeMs: Math.floor(stat.mtimeMs), size: stat.size }));
+      fs.writeFileSync(metaPath, JSON.stringify({ mtimeMs: stat.mtimeMs, size: stat.size }));
       return { pdf: pdfPath };
     }
     return null;
@@ -188,6 +211,7 @@ export async function ensurePptxPdf(
     return null;
   }
 }
+
 
 /** 查找该文件已存在的缓存 PDF（兜底用：占用/转换失败时返回旧预览） */
 function findCachedPdf(pptxPath: string): string | null {
