@@ -80,6 +80,7 @@ jobs:
           } finally {
             if (-not $process.HasExited) {
               taskkill /PID $process.Id /T /F | Out-Host
+              $global:LASTEXITCODE = 0
             }
             Get-Process "数字化AI助手" -ErrorAction SilentlyContinue |
               Stop-Process -Force -ErrorAction SilentlyContinue
@@ -139,7 +140,10 @@ jobs:
             Write-Host "Dynamic port fallback ready on $selectedPort"
           } finally {
             $listener.Stop()
-            if (-not $process.HasExited) { taskkill /PID $process.Id /T /F | Out-Host }
+            if (-not $process.HasExited) {
+              taskkill /PID $process.Id /T /F | Out-Host
+              $global:LASTEXITCODE = 0
+            }
             Get-Process "数字化AI助手" -ErrorAction SilentlyContinue |
               Stop-Process -Force -ErrorAction SilentlyContinue
           }
