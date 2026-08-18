@@ -1,26 +1,31 @@
 /**
- * pptx-convert-tool — PPTX → PDF 转换（WPS/Office COM 自动化）
+ * docx-convert-tool — DOCX → PDF 转换（WPS/Office COM 自动化）
  *
- * 方案 A：用内网机器现成的 WPS 演示（KWPP.Application）或 Microsoft PowerPoint
- * （PowerPoint.Application）COM 把 pptx 导出为 PDF，再走 PDF 渲染管线预览。
- * 无可用 COM 时返回 null（上层回退大纲预览）。
+ * 与 pptx-convert-tool 同构：用本机 WPS 文字（KWPS.Application）或 Microsoft Word
+ * （Word.Application）COM 把 docx 导出为 PDF，再走 PDF 渲染管线预览。
  *
- * 缓存：按文件（大小+mtime）哈希缓存转换结果，避免重复转换。
+ * 保护铁律（与 PPT 版一致）：
+ *  - 程序运行中 = 用户可能正在使用 → GetActiveObject 复用，绝不 Quit 用户实例
+ *  - 内存直出：Documents 集合按路径/文件名匹配用户已打开的文档 → 直接导出
+ *    （只读导出，不 Close 用户文档）；匹配失败才打开磁盘副本（路 A）
+ *  - 缓存：固定 key（仅文件路径）+ meta.json（mtimeMs 毫秒级 + size）；
+ *    失败/占用时返回旧缓存（stale）
+ *  - 单飞锁：同一文件并发请求共享同一次转换
  */
-import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 
-const CACHE_ROOT = process.env.PPTX_CACHE_DIR ?? path.join(os.tmpdir(), "pi-alpha-desk-pptx-cache");
+const CACHE_ROOT = process.env.DOCX_CACHE_DIR ?? path.join(os.tmpdir(), "pi-alpha-desk-docx-cache");
 const PS_EXE = process.env.POWERSHELL_PATH ?? "powershell.exe";
 
 /**
  * 内嵌 PowerShell 转换脚本（ASCII only——PowerShell 5.1 对无 BOM UTF-8 中文注释会解析出错）。
- * 运行时写入临时文件后执行，避免依赖打包目录中的脚本文件。
+ * 路径分隔符用 [string][char]92（反斜杠字面量在编译链中会丢失——历史教训）。
  */
-const PPTX_TO_PDF_SCRIPT = `param(
+const DOCX_TO_PDF_SCRIPT = `param(
   [Parameter(Mandatory = $true)][string]$InputPath,
   [Parameter(Mandatory = $true)][string]$OutputPath,
   [Parameter(Mandatory = $true)][string]$OriginalPath,
@@ -35,12 +40,12 @@ try {
   if (Test-Path -LiteralPath $OutputPath) { Remove-Item -LiteralPath $OutputPath -Force }
   $progIds = @()
   if ($ProgId) { $progIds += $ProgId }
-  else { $progIds += "KWPP.Application"; $progIds += "PowerPoint.Application" }
+  else { $progIds += "KWPS.Application"; $progIds += "Word.Application" }
   $app = $null
   $isNewInstance = $false
   foreach ($candidate in $progIds) {
     $procName = ""
-    if ($candidate -like "KWPP*") { $procName = "wpp" } else { $procName = "POWERPNT" }
+    if ($candidate -like "KWPS*") { $procName = "wps" } else { $procName = "WINWORD" }
     $running = Get-Process -Name $procName -ErrorAction SilentlyContinue
     if ($running) {
       # running (user may be using it) -> reuse the live instance, NEVER quit it
@@ -48,8 +53,8 @@ try {
     }
     try { $app = New-Object -ComObject $candidate; $isNewInstance = $true; break } catch {}
   }
-  if (-not $app) { throw "No usable COM (WPS/PowerPoint) found" }
-  $presentation = $null
+  if (-not $app) { throw "No usable COM (WPS/Word) found" }
+  $document = $null
   $openedFromDisk = $false
   try {
     # Route B (memory direct): find the doc the user already has open and export it as-is.
@@ -57,20 +62,21 @@ try {
     if ($OriginalPath) {
       $origName = Split-Path -Leaf $OriginalPath
       $origFull = (Resolve-Path -LiteralPath $OriginalPath).Path
-      foreach ($p in $app.Presentations) {
-        try { $fullName = $p.FullName; $name = $p.Name } catch { continue }
-        if ($fullName -eq $origFull -or $name -eq $origName) { $presentation = $p; break }
+      foreach ($d in $app.Documents) {
+        try { $fullName = $d.FullName; $name = $d.Name } catch { continue }
+        if ($fullName -eq $origFull -or $name -eq $origName) { $document = $d; break }
       }
     }
-    if (-not $presentation) {
+    if (-not $document) {
       # Route A fallback: open the disk copy (read-only) and export it
-      $presentation = $app.Presentations.Open($resolvedInput, $true, $false, $false)
+      $document = $app.Documents.Open($resolvedInput, $false, $true, $false)
       $openedFromDisk = $true
     }
     try {
-      $presentation.SaveAs($OutputPath, [int]32)
+      # 17 = wdFormatPDF
+      $document.SaveAs($OutputPath, [int]17)
     } finally {
-      if ($openedFromDisk) { try { $presentation.Close() } catch {} }
+      if ($openedFromDisk) { try { $document.Close($false) } catch {} }
     }
   } finally {
     if ($isNewInstance) { try { $app.Quit() } catch {} }
@@ -100,9 +106,7 @@ function runPowerShell(args: string[]): { stdout: string; ok: boolean } {
   }
 }
 
-/** 文件是否被锁定（只读探测：连读取都失败才算真正锁定）。
- * 放宽说明：PowerPoint/WPS 打开文件时通常允许其他程序读取（共享读），
- * 旧实现用 r+（读写）探测会误判"被占用"——改为 r（只读）探测，能读即可转换。 */
+/** 文件是否被锁定（只读探测：连读取都失败才算真正锁定） */
 function isFileLocked(filePath: string): boolean {
   try {
     const fd = fs.openSync(filePath, "r");
@@ -114,36 +118,26 @@ function isFileLocked(filePath: string): boolean {
 }
 
 /**
- * 确保 pptx 有对应的 PDF（转换 + 缓存）。
- * @returns { pdf } 成功；{ locked } 文件被其他程序占用（跳过转换）；null 无可用 COM。
- *
- * 链路（一次 PowerShell 完成探测+转换，省 1-2s）：
- *   1. 缓存命中（mtimeMs 毫秒级 + size 一致）→ 直接返回
- *   2. 未命中 → 复制磁盘副本 → 脚本内：运行中实例优先内存直出（路 B，
- *      拿到 PowerPoint 内存中的最新内容，即使保存后磁盘短暂锁定也不受影响），
- *      未匹配到打开文档则打开副本导出（路 A）
- *   3. 单飞锁：同一文件并发请求共享同一次转换，避免 N 页并发各转一次
+ * 确保 docx 有对应的 PDF（转换 + 缓存）。
+ * @returns { pdf } 成功；{ locked } 文件被其他程序占用；null 无可用 COM。
  */
 const inFlight = new Map<string, Promise<{ pdf: string; stale?: boolean } | { locked: true } | null>>();
 
-export async function ensurePptxPdf(
-  pptxPath: string,
+export async function ensureDocxPdf(
+  docxPath: string,
 ): Promise<{ pdf: string; stale?: boolean } | { locked: true } | null> {
-  // 文件真正被锁定（连读都不行，如正在保存）→ 不转换；有旧缓存则兜底返回
-  if (isFileLocked(pptxPath)) {
-    const legacy = findCachedPdf(pptxPath);
+  if (isFileLocked(docxPath)) {
+    const legacy = findCachedPdf(docxPath);
     if (legacy) return { pdf: legacy, stale: true };
     return { locked: true };
   }
 
-  const stat = fs.statSync(pptxPath);
-  // 固定 key（仅文件路径）：占用/失败时可用旧缓存兜底；mtime 变化由 meta 判断是否重转
-  const key = crypto.createHash("sha256").update(pptxPath).digest("hex").slice(0, 16);
+  const stat = fs.statSync(docxPath);
+  const key = crypto.createHash("sha256").update(docxPath).digest("hex").slice(0, 16);
   const cacheDir = path.join(CACHE_ROOT, key);
   const pdfPath = path.join(cacheDir, "converted.pdf");
   const metaPath = path.join(cacheDir, "meta.json");
 
-  // 缓存命中且源文件未变化 → 直接返回（mtimeMs 毫秒级比较：同秒保存也能识别变化）
   if (fs.existsSync(pdfPath)) {
     try {
       const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
@@ -153,10 +147,9 @@ export async function ensurePptxPdf(
     } catch { /* meta 缺失/损坏 → 重新转换 */ }
   }
 
-  // 单飞锁：同一文件同一时刻只允许一次转换，其余请求共享结果
   const existing = inFlight.get(key);
   if (existing) return existing;
-  const task = doConvert(pptxPath, stat, cacheDir, pdfPath, metaPath);
+  const task = doConvert(docxPath, stat, cacheDir, pdfPath, metaPath);
   inFlight.set(key, task);
   try {
     return await task;
@@ -166,7 +159,7 @@ export async function ensurePptxPdf(
 }
 
 async function doConvert(
-  pptxPath: string,
+  docxPath: string,
   stat: { mtimeMs: number; size: number },
   cacheDir: string,
   pdfPath: string,
@@ -174,30 +167,27 @@ async function doConvert(
 ): Promise<{ pdf: string; stale?: boolean } | { locked: true } | null> {
   try {
     fs.mkdirSync(cacheDir, { recursive: true });
-    const scriptPath = path.join(cacheDir, "pptx-to-pdf.ps1");
-    fs.writeFileSync(scriptPath, PPTX_TO_PDF_SCRIPT, "utf8");
+    const scriptPath = path.join(cacheDir, "docx-to-pdf.ps1");
+    fs.writeFileSync(scriptPath, DOCX_TO_PDF_SCRIPT, "utf8");
 
-    // 复制源文件到缓存副本：源文件可能正被 PowerPoint/WPS 打开（可读），
-    // 转换脚本打开副本可避免与用户编辑中的文件交互
-    const inputCopy = path.join(cacheDir, "input.pptx");
+    // 副本名保留原扩展名（Word 按扩展名识别 .doc/.docx 格式）
+    const inputCopy = path.join(cacheDir, `input${path.extname(docxPath).toLowerCase()}`);
     try {
-      fs.copyFileSync(pptxPath, inputCopy);
+      fs.copyFileSync(docxPath, inputCopy);
     } catch {
-      const legacy = findCachedPdf(pptxPath);
+      const legacy = findCachedPdf(docxPath);
       if (legacy) return { pdf: legacy, stale: true };
       return { locked: true };
     }
 
-    // ProgId 留空 → 脚本内自探测（KWPP 优先、PowerPoint 其次；运行中复用实例）
     const { stdout } = runPowerShell([
       "-File", scriptPath,
       "-InputPath", inputCopy,
       "-OutputPath", pdfPath,
-      "-OriginalPath", pptxPath,
+      "-OriginalPath", docxPath,
     ]);
     if (!stdout.includes("OK:")) {
-      // 转换失败/被占用 → 有旧缓存则兜底返回（用户仍可看到上次预览），否则报占用/不可用
-      const legacy = findCachedPdf(pptxPath);
+      const legacy = findCachedPdf(docxPath);
       if (legacy) return { pdf: legacy, stale: true };
       if (stdout.includes("in use")) return { locked: true };
       return null;
@@ -212,11 +202,10 @@ async function doConvert(
   }
 }
 
-
-/** 查找该文件已存在的缓存 PDF（兜底用：占用/转换失败时返回旧预览） */
-function findCachedPdf(pptxPath: string): string | null {
+/** 查找该文件已存在的缓存 PDF（兜底用） */
+function findCachedPdf(docxPath: string): string | null {
   try {
-    const key = crypto.createHash("sha256").update(pptxPath).digest("hex").slice(0, 16);
+    const key = crypto.createHash("sha256").update(docxPath).digest("hex").slice(0, 16);
     const pdfPath = path.join(CACHE_ROOT, key, "converted.pdf");
     return fs.existsSync(pdfPath) ? pdfPath : null;
   } catch {

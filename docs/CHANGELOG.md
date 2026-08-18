@@ -105,3 +105,43 @@ v8 档保存的是**刷新链路重构前的现状**。以下改动均含在 v9 
 - 自动刷新（检测到更新后定时自动重转）**未做**——检测机制已就绪，后续加定时调用即可衔接（用户计划）
 - 主动信号方案（fs.watch/ReadDirectoryChangesW）已讨论，**不采用**（保持 3 秒轮询）
 - GitHub 提交（PR #8 之后的新增量）已推送至 PR #8 并**已合并**（v8+v9 全部进入上游 main）
+
+
+---
+
+# v10 — PPT 转换脚本修复 + PATH 大小写修复（2026-08-18）
+
+## 修复 1：转换脚本反斜杠编译丢失
+
+- **现象**：PPT 预览"提示有更新但刷新后内容不更新"（安装版）
+- **根因**：源码 `-replace "/", "\\"` 经编译后反斜杠丢失变成 `-replace "/", ""` → PowerShell 5.1 解析异常（参数绑定失败）→ 转换必失败 → 静默返回旧缓存
+- **修复**：`lib/pptx-convert-tool.ts` 改用 `[string][char]92`（数字编码，对编译环境免疫）
+
+## 修复 2：electron 服务 PATH 大小写 bug
+
+- **现象**：修复 1 后安装版转换仍失败（501，快速失败）
+- **根因**：electron 环境变量 key 是 `Path`；`{...process.env}` 展开成普通对象后 `env.PATH` 为 undefined → 服务进程 PATH 被截断为只剩 node 目录 → `spawn powershell.exe` ENOENT
+- **修复**：`electron/node-runtime.js` 的 `prependExecutableDirectory` 大小写不敏感查找 PATH key
+
+---
+
+# v11 — 功能栏扩展到全类型预览 + 独立版本号 1.0.0（2026-08-18）
+
+## 功能栏扩展（PreviewToolbar 组件，独立增量）
+
+| 类型 | 功能栏 |
+| --- | --- |
+| docx/doc | Word/WPS 文字 COM 转 PDF（`lib/docx-convert-tool.ts`，同 PPT 机制：内存直出/缓存/绝不 Quit）→ 四部分（页数/刷新/适应宽度/缩放）|
+| xls/xlsx/csv/tsv | 三部分（刷新靠左/适应宽度/缩放，无页数）|
+| md/文本 | 三部分（缩放=字号）|
+| 图片 | 两部分（适应宽度/缩放，无刷新）|
+
+所有类型均带 **3 秒文件变更检测 → 刷新按钮变色**（图片除外）。
+
+## CSV 预览 BOM 修复
+
+`lib/office-files.ts` loadWorkbook：CSV/TSV 解析前剥离 UTF-8 BOM（codepage 65001 会把 BOM 解码成 U+FEFF 混入第一个单元格乱码）——有/无 BOM 两种文件都正常。
+
+## 版本号
+
+package.json version → **1.0.0**（独立发布线起点；electron-builder 产物自动命名 Setup 1.0.0.exe；latest.yml 更新判断以 1.0.0 为准，与上游 0.8.x 区分——同事建议）。

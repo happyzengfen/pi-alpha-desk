@@ -67,8 +67,19 @@ function loadWorkbook(filePath: string): XLSX.WorkBook {
     cellFormula: true,
     cellText: true,
   };
-  // CSV/TSV 无 BOM 时 SheetJS 默认按本地代码页（如 cp1252）解析，中文会乱码；强制 UTF-8。
-  if (isDelimited) options.codepage = 65001;
+  // CSV/TSV：强制 UTF-8 解析；带 BOM 文件先剥离 BOM（否则 BOM 混入第一个单元格乱码）。
+  if (isDelimited) {
+    options.codepage = 65001;
+    // 剥离 UTF-8 BOM：codepage 65001 会把 BOM 字节解码成 U+FEFF 混入第一个单元格（乱码）。
+    // Excel 生成的带 BOM CSV 必须先剥离再按 UTF-8 解析——有/无 BOM 两种文件都兼容。
+    try {
+      const buf = fs.readFileSync(filePath);
+      if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
+        return XLSX.read(buf.subarray(3), options);
+      }
+    } catch { /* 读取失败则回退 readFile 路径 */ }
+    return XLSX.readFile(filePath, options);
+  }
   return XLSX.readFile(filePath, options);
 }
 

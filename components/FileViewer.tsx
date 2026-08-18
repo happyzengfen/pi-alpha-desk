@@ -16,6 +16,7 @@ import {
 import { encodeFilePathForApi, getFileDirectory, getFileName, getRelativeFilePath } from "@/lib/file-paths";
 import { resolveLocalFileHref } from "@/lib/file-links";
 import { PdfViewer } from "./PdfViewer";
+import { PreviewToolbar, type PreviewViewState } from "./PreviewToolbar";
 import { resolveMarkdownImageSrc } from "@/lib/markdown-images";
 import { headingId, markdownRehypePlugins, markdownRemarkPlugins, normalizeDisplayMath } from "@/lib/markdown";
 import { prismTheme } from "@/lib/prism-theme";
@@ -447,6 +448,8 @@ function ImageViewer({ filePath, cwd, sourceSessionId }: Props) {
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const esRef = useRef<EventSource | null>(null);
+  // 图片预览功能栏（仅适应宽度 + 大小调整）
+  const [view, setView] = useState<PreviewViewState>({ fitWidth: true, zoom: 1 });
 
   const ext = getFileName(filePath).toLowerCase().split(".").pop() ?? "";
 
@@ -505,14 +508,21 @@ function ImageViewer({ filePath, cwd, sourceSessionId }: Props) {
         {formatSizeStr && <span>{formatSizeStr}</span>}
         <DownloadLink filePath={filePath} sourceSessionId={sourceSessionId} />
       </div>
+      <PreviewToolbar
+        filePath={filePath}
+        showRefresh={false}
+        refreshKey={bust}
+        onRefresh={() => setBust((b) => b + 1)}
+        onViewChange={setView}
+      />
       <div
         style={{
           flex: 1,
           overflow: "auto",
           background: "var(--bg-panel)",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          alignItems: view.fitWidth ? "center" : "flex-start",
+          justifyContent: view.fitWidth ? "center" : "flex-start",
           padding: 16,
           backgroundImage:
             "linear-gradient(45deg, var(--bg) 25%, transparent 25%), linear-gradient(-45deg, var(--bg) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--bg) 75%), linear-gradient(-45deg, transparent 75%, var(--bg) 75%)",
@@ -533,8 +543,10 @@ function ImageViewer({ filePath, cwd, sourceSessionId }: Props) {
             }}
             onError={() => setError(t("desktop.failedToLoadImage"))}
             style={{
+              width: view.fitWidth ? "100%" : `${view.zoom * 100}%`,
               maxWidth: "100%",
-              maxHeight: "100%",
+              maxHeight: view.fitWidth ? "100%" : "none",
+              height: "auto",
               objectFit: "contain",
               boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
             }}
@@ -655,12 +667,17 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
   const [size, setSize] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const esRef = useRef<EventSource | null>(null);
+  // 表格类预览功能栏（刷新/适应宽度/缩放，无页数）
+  const [view, setView] = useState<PreviewViewState>({ fitWidth: true, zoom: 1 });
 
   const ext = getFileExt(filePath);
   const isPdf = ext === "pdf";
   const isPptx = ext === "pptx";
+  const isDocx = ext === "docx";
+  const isDoc = ext === "doc";
   const isWord = ext === "doc" || ext === "docx";
-  const isPageRender = isPdf || isPptx;
+  // docx/doc 走 PDF 渲染管线（Word/WPS COM 转 PDF）——功能栏四部分（页数/刷新/适应宽度/缩放）
+  const isPageRender = isPdf || isPptx || isDocx || isDoc;
   const previewLimit = ext === "docx" ? DOCX_PREVIEW_MAX_BYTES : OFFICE_PREVIEW_MAX_BYTES;
   const previewUrl = isPageRender
     ? getFileApiUrl(filePath, "read", sourceSessionId, bust ? { v: bust } : undefined)
@@ -748,7 +765,15 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
         {size != null && <span>{formatSize(size)}</span>}
         <DownloadLink filePath={filePath} sourceSessionId={sourceSessionId} />
       </div>
-      <div style={{ flex: 1, minHeight: 0, background: "var(--bg-panel)" }}>
+      {!isPageRender && (
+        <PreviewToolbar
+          filePath={filePath}
+          refreshKey={bust}
+          onRefresh={() => setBust((b) => b + 1)}
+          onViewChange={setView}
+        />
+      )}
+      <div style={{ flex: 1, minHeight: 0, overflow: "hidden", background: "var(--bg-panel)" }}>
         {error ? (
           <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, color: "#f87171", fontSize: 13, textAlign: "center" }}>
             {error}
@@ -756,13 +781,22 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
         ) : isPageRender ? (
           <PdfViewer url={previewUrl} fileName={getFileName(filePath)} filePath={filePath} />
         ) : (
-          <iframe
-            key={`${previewUrl}#b${bust}`}
-            src={previewUrl}
-            sandbox="allow-same-origin"
-            title={t("desktop.previewFile", { file: getFileName(filePath) })}
-            style={{ width: "100%", height: "100%", border: "none", background: "#eef1f5" }}
-          />
+          <div
+            style={{
+              transform: `scale(${view.zoom})`,
+              transformOrigin: "top left",
+              width: `${100 / view.zoom}%`,
+              height: `${100 / view.zoom}%`,
+            }}
+          >
+            <iframe
+              key={`${previewUrl}#b${bust}`}
+              src={previewUrl}
+              sandbox="allow-same-origin"
+              title={t("desktop.previewFile", { file: getFileName(filePath) })}
+              style={{ width: "100%", height: "100%", border: "none", background: "#eef1f5" }}
+            />
+          </div>
         )}
       </div>
     </div>
@@ -794,6 +828,8 @@ function TextFileViewer({ filePath, cwd, sourceSessionId, onOpenFile, initialDis
   const [wrapLines, setWrapLines] = useState(false);
   const [changeCount, setChangeCount] = useState(0);
   const esRef = useRef<EventSource | null>(null);
+  // 文本/md 预览功能栏（刷新/适应宽度/缩放）
+  const [view, setView] = useState<PreviewViewState>({ fitWidth: true, zoom: 1 });
 
   const fetchGitDiff = useCallback(async (targetPath: string) => {
     if (!cwd) {
@@ -1045,9 +1081,15 @@ function TextFileViewer({ filePath, cwd, sourceSessionId, onOpenFile, initialDis
         )}
         <DownloadLink filePath={filePath} sourceSessionId={sourceSessionId} />
       </div>
+      <PreviewToolbar
+        filePath={filePath}
+        refreshKey={view}
+        onRefresh={() => fetchContent(filePath, true)}
+        onViewChange={setView}
+      />
 
       {/* Content area */}
-      <div style={{ flex: 1, overflow: "auto", background: "var(--bg)" }}>
+      <div style={{ flex: 1, overflow: "auto", background: "var(--bg)", fontSize: 13 * view.zoom }}>
         {viewMode === "diff" && hasDiff ? (
           hasGitDiff
             ? <GitDiffView patch={gitDiff.patch!} />
@@ -1186,7 +1228,7 @@ function TextFileViewer({ filePath, cwd, sourceSessionId, onOpenFile, initialDis
               margin: 0,
               padding: "12px 0",
               background: "var(--bg)",
-              fontSize: 13,
+              fontSize: 13 * view.zoom,
               lineHeight: 1.6,
               fontFamily: "var(--font-mono)",
               minHeight: "100%",
