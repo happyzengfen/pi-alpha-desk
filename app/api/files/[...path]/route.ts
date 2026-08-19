@@ -19,6 +19,7 @@ import {
 } from "@/lib/file-types";
 import { extractWordText, renderPptxPreviewBody, renderSpreadsheetPreviewBody } from "@/lib/office-files";
 import { renderPdfPage } from "@/lib/pdf-render-tool";
+import { ensureDocxPdf } from "@/lib/docx-convert-tool";
 import { ensurePptxPdf } from "@/lib/pptx-convert-tool";
 import { resolveDirentIsDirectory } from "@/lib/file-dirent";
 import { isFilePathReferencedBySession } from "@/lib/session-file-references";
@@ -499,8 +500,8 @@ export async function GET(
         return NextResponse.json({ error: "Not a file" }, { status: 400 });
       }
       const ext = path.extname(filePath).toLowerCase();
-      if (ext !== ".pdf" && ext !== ".pptx") {
-        return NextResponse.json({ error: "pdfpage only supports .pdf and .pptx files" }, { status: 400 });
+      if (ext !== ".pdf" && ext !== ".pptx" && ext !== ".docx" && ext !== ".doc") {
+        return NextResponse.json({ error: "pdfpage only supports .pdf, .pptx, .docx and .doc files" }, { status: 400 });
       }
       const pageNumber = Number.parseInt(request.nextUrl.searchParams.get("page") ?? "1", 10);
       let renderSource: string;
@@ -517,6 +518,22 @@ export async function GET(
           if ("locked" in conversion) {
             return NextResponse.json(
               { error: "File is in use by another program (e.g. PowerPoint/WPS); close it and refresh" },
+              { status: 423 },
+            );
+          }
+          renderSource = conversion.pdf;
+        } else if (ext === ".docx" || ext === ".doc") {
+          // DOCX 先经 WPS/Office Word COM 导出为 PDF（缓存），再走渲染管线；无 COM 则回退
+          const conversion = await ensureDocxPdf(filePath);
+          if (conversion === null) {
+            return NextResponse.json(
+              { error: "DOCX preview requires WPS or Microsoft Word on this machine" },
+              { status: 501 },
+            );
+          }
+          if ("locked" in conversion) {
+            return NextResponse.json(
+              { error: "File is in use by another program (e.g. Word/WPS); close it and refresh" },
               { status: 423 },
             );
           }

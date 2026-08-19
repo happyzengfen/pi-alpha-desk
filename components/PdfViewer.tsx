@@ -31,10 +31,12 @@ export function PdfViewer({
   url,
   fileName,
   filePath,
+  onUnsupported,
 }: {
   url: string;
   fileName: string;
   filePath?: string;
+  onUnsupported?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -203,6 +205,10 @@ export function PdfViewer({
         if (!r.ok) {
           // 501 = 转换器不可用；423 = 文件被其他程序占用
           if (r.status === 501) {
+            if (onUnsupported) {
+              onUnsupported();
+              return;
+            }
             throw new Error("当前机器缺少 WPS 或 Microsoft PowerPoint，无法预览 PPT");
           }
           if (r.status === 423) {
@@ -242,7 +248,7 @@ export function PdfViewer({
     return () => {
       cancelled = true;
     };
-  }, [pageUrlFor, updateCurrentPage, scrollToPage]);
+  }, [onUnsupported, pageUrlFor, updateCurrentPage, scrollToPage]);
 
   // 重新计算当前页：视口内可见面积最大的页（固定页高纯计算，不依赖图片/几何；
   // 面积相同（严格大于比较）时保留先遍历到的页 = 页码更小者，即优先上方页）

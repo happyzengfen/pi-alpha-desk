@@ -215,8 +215,9 @@ function resolveServerNodeExecutable({
 function prependExecutableDirectory(env, executable) {
   if (!executable) return env;
   const directory = path.dirname(executable);
-  const currentPath = env.PATH ?? "";
-  return { ...env, PATH: currentPath ? `${directory}${path.delimiter}${currentPath}` : directory };
+  const pathKey = Object.keys(env).find((k) => k.toLowerCase() === "path") ?? "PATH";
+  const currentPath = env[pathKey] ?? "";
+  return { ...env, [pathKey]: currentPath ? `${directory}${path.delimiter}${currentPath}` : directory };
 }
 
 module.exports = {
