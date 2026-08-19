@@ -73,8 +73,15 @@ try {
       $openedFromDisk = $true
     }
     try {
-      # 17 = wdFormatPDF
-      $document.SaveAs($OutputPath, [int]17)
+      # 17 = wdExportFormatPDF. ExportAsFixedFormat does not rename or mutate
+      # a document already opened by the user. Older WPS versions may only
+      # support SaveAs, which is safe only for the disposable disk copy.
+      try {
+        $document.ExportAsFixedFormat($OutputPath, [int]17)
+      } catch {
+        if (-not $openedFromDisk) { throw }
+        $document.SaveAs($OutputPath, [int]17)
+      }
     } finally {
       if ($openedFromDisk) { try { $document.Close($false) } catch {} }
     }

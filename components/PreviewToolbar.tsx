@@ -10,6 +10,7 @@
  */
 import { useCallback, useRef, useState } from "react";
 import { useFileChangeIndicator } from "@/hooks/use-file-change-indicator";
+import { useI18n } from "@/hooks/useI18n";
 
 const btnBase: React.CSSProperties = {
   background: "transparent",
@@ -32,20 +33,19 @@ export interface PreviewViewState {
 export function PreviewToolbar({
   filePath,
   showRefresh = true,
-  refreshKey,
   onRefresh,
   onViewChange,
 }: {
   filePath: string;
   showRefresh?: boolean;
-  refreshKey: unknown;
   onRefresh: () => void;
   onViewChange: (view: PreviewViewState) => void;
 }) {
+  const { t } = useI18n();
   const [fitWidth, setFitWidth] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [refreshTick, setRefreshTick] = useState(0);
-  const changed = useFileChangeIndicator(filePath, refreshTick);
+  const changed = useFileChangeIndicator(showRefresh ? filePath : null, refreshTick);
   const lastViewRef = useRef<PreviewViewState>({ fitWidth: true, zoom: 1 });
 
   const emit = useCallback(
@@ -107,20 +107,20 @@ export function PreviewToolbar({
               ? { ...btnBase, color: "var(--accent, #4f8cff)", borderColor: "var(--accent, #4f8cff)" }
               : btnBase
           }
-          title="刷新预览（重新读取文件；不会影响正在使用的 Word/PowerPoint/WPS）"
+          title={t("desktop.refreshPreviewTitle")}
         >
-          ⟳ 刷新
+          ⟳ {t("desktop.refresh")}
         </button>
       )}
       <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-        <button onClick={handleFitWidth} style={fitWidth ? { ...btnBase, color: "var(--accent, #4f8cff)", borderColor: "var(--accent, #4f8cff)" } : btnBase} title="适应宽度">
-          适应宽度
+        <button onClick={handleFitWidth} style={fitWidth ? { ...btnBase, color: "var(--accent, #4f8cff)", borderColor: "var(--accent, #4f8cff)" } : btnBase} title={t("desktop.fitWidth")}>
+          {t("desktop.fitWidth")}
         </button>
-        <button onClick={zoomOut} style={btnBase} title="缩小">
+        <button onClick={zoomOut} style={btnBase} title={t("desktop.zoomOut")}>
           −
         </button>
         <span style={{ fontFamily: "var(--font-mono)", minWidth: 44, textAlign: "center" }}>{percent}%</span>
-        <button onClick={zoomIn} style={btnBase} title="放大">
+        <button onClick={zoomIn} style={btnBase} title={t("desktop.zoomIn")}>
           ＋
         </button>
       </span>

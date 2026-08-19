@@ -511,7 +511,6 @@ function ImageViewer({ filePath, cwd, sourceSessionId }: Props) {
       <PreviewToolbar
         filePath={filePath}
         showRefresh={false}
-        refreshKey={bust}
         onRefresh={() => setBust((b) => b + 1)}
         onViewChange={setView}
       />
@@ -544,7 +543,7 @@ function ImageViewer({ filePath, cwd, sourceSessionId }: Props) {
             onError={() => setError(t("desktop.failedToLoadImage"))}
             style={{
               width: view.fitWidth ? "100%" : `${view.zoom * 100}%`,
-              maxWidth: "100%",
+              maxWidth: view.fitWidth ? "100%" : "none",
               maxHeight: view.fitWidth ? "100%" : "none",
               height: "auto",
               objectFit: "contain",
@@ -666,6 +665,8 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
   const [bust, setBust] = useState(0);
   const [size, setSize] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [wordPdfUnsupported, setWordPdfUnsupported] = useState(false);
+  const handleWordPdfUnsupported = useCallback(() => setWordPdfUnsupported(true), []);
   const esRef = useRef<EventSource | null>(null);
   // 表格类预览功能栏（刷新/适应宽度/缩放，无页数）
   const [view, setView] = useState<PreviewViewState>({ fitWidth: true, zoom: 1 });
@@ -677,11 +678,15 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
   const isDoc = ext === "doc";
   const isWord = ext === "doc" || ext === "docx";
   // docx/doc 走 PDF 渲染管线（Word/WPS COM 转 PDF）——功能栏四部分（页数/刷新/适应宽度/缩放）
-  const isPageRender = isPdf || isPptx || isDocx || isDoc;
+  const isPageRender = isPdf || isPptx || ((isDocx || isDoc) && !wordPdfUnsupported);
   const previewLimit = ext === "docx" ? DOCX_PREVIEW_MAX_BYTES : OFFICE_PREVIEW_MAX_BYTES;
   const previewUrl = isPageRender
     ? getFileApiUrl(filePath, "read", sourceSessionId, bust ? { v: bust } : undefined)
     : getFileApiUrl(filePath, "preview", sourceSessionId, bust ? { v: bust } : undefined);
+
+  useEffect(() => {
+    setWordPdfUnsupported(false);
+  }, [filePath]);
 
   useEffect(() => {
     setBust(0);
@@ -768,7 +773,6 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
       {!isPageRender && (
         <PreviewToolbar
           filePath={filePath}
-          refreshKey={bust}
           onRefresh={() => setBust((b) => b + 1)}
           onViewChange={setView}
         />
@@ -779,7 +783,12 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
             {error}
           </div>
         ) : isPageRender ? (
-          <PdfViewer url={previewUrl} fileName={getFileName(filePath)} filePath={filePath} />
+          <PdfViewer
+            url={previewUrl}
+            fileName={getFileName(filePath)}
+            filePath={filePath}
+            onUnsupported={isWord ? handleWordPdfUnsupported : undefined}
+          />
         ) : (
           <div
             style={{
@@ -1083,7 +1092,6 @@ function TextFileViewer({ filePath, cwd, sourceSessionId, onOpenFile, initialDis
       </div>
       <PreviewToolbar
         filePath={filePath}
-        refreshKey={view}
         onRefresh={() => fetchContent(filePath, true)}
         onViewChange={setView}
       />
