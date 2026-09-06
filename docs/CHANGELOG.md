@@ -145,3 +145,30 @@ v8 档保存的是**刷新链路重构前的现状**。以下改动均含在 v9 
 ## 版本号
 
 package.json version → **1.0.0**（独立发布线起点；electron-builder 产物自动命名 Setup 1.0.0.exe；latest.yml 更新判断以 1.0.0 为准，与上游 0.8.x 区分——同事建议）。
+
+---
+
+# Pi 0.85.1 升级与桌面构建验证（2026-09-06）
+
+产品版本号保持 **1.0.0**。
+
+## 依赖与兼容修复
+
+- 将 `@earendil-works/pi-agent-core`、`pi-ai`、`pi-coding-agent`、`pi-tui` 从 **0.84.0** 升至 **0.85.1**，同步更新 `pi-mcp-adapter` 的 `pi-ai` override 和 `package-lock.json`。
+- 为 `PlainTextTheme` 补齐 `muted`、`text` 回退颜色，修复新版 Pi 主题构造器初始化失败导致会话模块无法加载的问题。
+- 更新回归测试，覆盖滚动条、搜索高亮与最高思考等级的回退颜色，确保扩展纯文本输出不含 ANSI 样式。
+
+## 验证结果
+
+- 本次提交内容的独立快照验证：自动化测试 **373 项通过，0 项失败**；TypeScript 检查通过。
+- ESLint：0 个错误，3 条已有的 `PdfViewer` 警告。
+- Next.js 生产构建通过；会话 HTML 导出路由仍有已有的动态导入警告。
+- Windows x64 安装版、便携版构建完成，运行文件完整性和原生依赖架构校验通过；尚未在 Windows 主机实际启动。
+- macOS Apple Silicon（arm64）应用与 DMG 构建完成；应用启动以及首页、会话、模型接口检查通过，DMG 校验和有效。窗口自动检查因工具超时未完成。
+- 两个平台产物内的四个 Pi 依赖均为 **0.85.1**。macOS 产物为本地未签名版本，构建机没有 Developer ID Application 证书。
+
+安装包保留在本地 `release/`，不随源码提交，也未发布 GitHub Release。
+
+## 辅助 CLI 与默认模型
+
+本地全局辅助 CLI `@agegr/pi-web` 已从 **0.7.8** 升至 **0.9.0**。升级后在 Pi 的 `/model` 中搜索 `gpt-6-astra`，选中 `openai-codex` 提供的模型并按 `Ctrl+S` 保存默认值，已通过模型接口确认生效。全局 CLI 和默认模型属于本机配置，不会由拉取本仓库自动设置。
