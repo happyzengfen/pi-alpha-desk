@@ -22,12 +22,12 @@ const PROJECT_ROOT = resolve(SCRIPT_DIR, "..");
 const DEFAULT_SOURCE = resolve(PROJECT_ROOT, "..", "pi");
 
 const PACKAGES = [
-  { directory: "packages/tui", name: "@earendil-works/pi-tui", build: "build" },
-  { directory: "packages/ai", name: "@earendil-works/pi-ai", build: "build:offline" },
-  { directory: "packages/agent", name: "@earendil-works/pi-agent-core", build: "build" },
-  { directory: "packages/protocol", name: "@earendil-works/pi-protocol", build: "build" },
-  { directory: "packages/client", name: "@earendil-works/pi-client", build: "build" },
-  { directory: "packages/coding-agent", name: "@earendil-works/pi-coding-agent", build: "build" },
+  { directory: "packages/chord", name: "@earendil-works/chord" },
+  { directory: "packages/tui", name: "@earendil-works/pi-tui" },
+  { directory: "packages/telemetry", name: "@earendil-works/pi-telemetry" },
+  { directory: "packages/ai", name: "@earendil-works/pi-ai" },
+  { directory: "packages/agent", name: "@earendil-works/pi-agent-core" },
+  { directory: "packages/coding-agent", name: "@earendil-works/pi-coding-agent" },
 ];
 
 function printUsage() {
@@ -41,6 +41,7 @@ Options:
   --skip-install-deps  fail instead of installing missing pi build dependencies
   --verify             verify the currently installed local snapshot only
   --restore            reinstall the latest generated snapshot without rebuilding pi
+  --snapshot <commit>  select a specific snapshot for --restore or --verify
   --os <platform>      npm target OS for --restore (for example win32)
   --cpu <arch>         npm target CPU for --restore (for example x64)
   --help               show this help
@@ -55,6 +56,7 @@ function parseArgs() {
     restoreOnly: false,
     targetOs: undefined,
     targetCpu: undefined,
+    snapshot: undefined,
   };
   const args = process.argv.slice(2);
 
@@ -82,6 +84,12 @@ function parseArgs() {
       options.restoreOnly = true;
       continue;
     }
+    if (arg === "--snapshot") {
+      const value = args[++i];
+      if (!value || !/^[a-f0-9]{7,40}$/.test(value)) throw new Error("--snapshot requires a Git commit ID (7-40 hex characters)");
+      options.snapshot = value;
+      continue;
+    }
     if (arg === "--os") {
       const value = args[++i];
       if (!value) throw new Error("--os requires a platform");
@@ -96,7 +104,9 @@ function parseArgs() {
     }
     throw new Error(`Unknown option: ${arg}`);
   }
-
+  if (options.snapshot && !options.restoreOnly && !options.verifyOnly) {
+    throw new Error("--snapshot requires --restore or --verify");
+  }
   return options;
 }
 
@@ -162,6 +172,9 @@ function validateSource(source) {
   if (rootPackage.name !== "pi-monorepo") {
     throw new Error(`Expected pi-monorepo at ${source}, found ${rootPackage.name ?? "unnamed package"}`);
   }
+  if (!rootPackage.scripts?.["build:offline"]) {
+    throw new Error("The pi source must provide the workspace build:offline script (Pi 0.87.1 or compatible)");
+  }
   for (const pkg of PACKAGES) {
     const packagePath = join(source, pkg.directory, "package.json");
     if (!existsSync(packagePath)) throw new Error(`Required pi package not found: ${packagePath}`);
@@ -185,11 +198,9 @@ function buildPackages(source) {
   if (!existsSync(modelDataPath)) {
     run("npm", ["run", "hydrate:model-data"], { cwd: source });
   }
-  for (const pkg of PACKAGES) {
-    const cwd = join(source, pkg.directory);
-    run("npm", ["run", "clean"], { cwd });
-    run("npm", ["run", pkg.build], { cwd });
-  }
+  // Upstream owns the build order, including source-only packages required
+  // to type-check coding-agent. Only the supported runtime packages are packed.
+  run("npm", ["run", "build:offline"], { cwd: source });
 }
 
 function createSnapshotPackage(source, pkg, stagingRoot, snapshotVersion, sourceMetadata, localVersions) {
@@ -264,6 +275,7 @@ function installSnapshots(tarballs, options = {}) {
   const stagedRoot = join(PROJECT_ROOT, ".local-pi", "installing");
   const backupRoot = join(PROJECT_ROOT, ".local-pi", "backup");
   const dependencies = Object.fromEntries(tarballs.map((entry) => [entry.name, `file:${entry.path}`]));
+  let installed = false;
   try {
     rmSync(installRoot, { recursive: true, force: true });
     mkdirSync(installRoot, { recursive: true });
@@ -302,9 +314,9 @@ function installSnapshots(tarballs, options = {}) {
           mkdirSync(dirname(backupDirectory), { recursive: true });
           renameSync(targetDirectory, backupDirectory);
         }
+        moved.push({ targetDirectory, backupDirectory });
         mkdirSync(dirname(targetDirectory), { recursive: true });
         renameSync(stagedDirectory, targetDirectory);
-        moved.push({ targetDirectory, backupDirectory });
       }
     } catch (error) {
       for (const { targetDirectory, backupDirectory } of moved.reverse()) {
@@ -316,20 +328,24 @@ function installSnapshots(tarballs, options = {}) {
       }
       throw error;
     }
+    installed = true;
   } finally {
     rmSync(stagedRoot, { recursive: true, force: true });
-    rmSync(backupRoot, { recursive: true, force: true });
+    // Preserve any unrecovered original package if rollback itself failed.
+    if (installed) rmSync(backupRoot, { recursive: true, force: true });
   }
 }
 
-function findLatestManifest() {
+function findLatestManifest(commit) {
   const snapshotsRoot = join(PROJECT_ROOT, ".local-pi", "snapshots");
   if (!existsSync(snapshotsRoot)) throw new Error("No local pi snapshots found; run npm run pi:sync-local first");
   const manifests = readdirSync(snapshotsRoot)
     .map((directory) => join(snapshotsRoot, directory, "manifest.json"))
     .filter(existsSync)
+    .filter((path) => !commit || readJson(path).commit.startsWith(commit))
     .sort((a, b) => readJson(b).generatedAt.localeCompare(readJson(a).generatedAt));
-  if (manifests.length === 0) throw new Error("No local pi snapshot manifest found");
+  if (manifests.length === 0) throw new Error(`No local pi snapshot manifest found${commit ? ` for ${commit}` : ""}`);
+  if (commit && manifests.length > 1) throw new Error(`Ambiguous snapshot commit: ${commit}`);
   return manifests[0];
 }
 
@@ -374,12 +390,19 @@ function verifySnapshots(tarballs, commit) {
 
 const options = parseArgs();
 if (options.verifyOnly || options.restoreOnly) {
-  const manifestPath = findLatestManifest();
+  const installedMarker = join(PROJECT_ROOT, "node_modules", "@earendil-works", "pi-coding-agent", "pi-local-source.json");
+  const commit = options.snapshot ?? (options.verifyOnly && existsSync(installedMarker) ? readJson(installedMarker).commit : undefined);
+  const manifestPath = findLatestManifest(commit);
   const manifest = readJson(manifestPath);
   const tarballs = manifest.packages.map((entry) => ({
     ...entry,
     path: join(dirname(manifestPath), entry.file),
   }));
+  for (const entry of tarballs) {
+    if (entry.sha256 && sha256(entry.path) !== entry.sha256) {
+      throw new Error(`${entry.name} tarball checksum does not match manifest`);
+    }
+  }
   if (options.restoreOnly) {
     installSnapshots(tarballs, options);
   }

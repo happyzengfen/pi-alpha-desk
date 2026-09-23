@@ -112,22 +112,22 @@ const PKG     = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
 const VER     = PKG.version;
 const RELDIR  = join(ROOT, "release");
 const UNPKDIR = join(RELDIR, "win-unpacked");
-const LOCAL_PI_MANIFEST_ROOT = join(ROOT, ".local-pi", "snapshots");
-
-function hasLocalPiSnapshot() {
-  if (!existsSync(LOCAL_PI_MANIFEST_ROOT)) return false;
-  return readdirSync(LOCAL_PI_MANIFEST_ROOT).some((directory) =>
-    existsSync(join(LOCAL_PI_MANIFEST_ROOT, directory, "manifest.json")),
-  );
-}
+const LOCAL_PI_MARKER = join(ROOT, "node_modules", "@earendil-works", "pi-coding-agent", "pi-local-source.json");
+// Capture the active SDK before npm changes the tree. Cached snapshots alone
+// must never replace a registry upgrade, and newer caches must not change commits.
+const LOCAL_PI_COMMIT = existsSync(LOCAL_PI_MARKER)
+  ? JSON.parse(readFileSync(LOCAL_PI_MARKER, "utf8")).commit
+  : undefined;
 
 function restoreLocalPiSnapshot() {
-  if (!hasLocalPiSnapshot()) return;
+  if (!LOCAL_PI_COMMIT) return;
   run("npm", [
     "run",
     "pi:sync-local",
     "--",
     "--restore",
+    "--snapshot",
+    LOCAL_PI_COMMIT,
     "--os",
     "win32",
     "--cpu",
@@ -136,8 +136,8 @@ function restoreLocalPiSnapshot() {
 }
 
 function verifyLocalPiSnapshot() {
-  if (!hasLocalPiSnapshot()) return;
-  run("npm", ["run", "pi:sync-local", "--", "--verify"]);
+  if (!LOCAL_PI_COMMIT) return;
+  run("npm", ["run", "pi:sync-local", "--", "--verify", "--snapshot", LOCAL_PI_COMMIT]);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

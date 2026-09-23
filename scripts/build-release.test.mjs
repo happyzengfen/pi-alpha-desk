@@ -39,6 +39,9 @@ async function createFixture() {
 test("builds and verifies the unpacked app before creating Windows installers", async () => {
   const fixture = await createFixture();
   try {
+    const cachedSnapshot = join(fixture.root, ".local-pi", "snapshots", "old-cache");
+    await mkdir(cachedSnapshot, { recursive: true });
+    await writeFile(join(cachedSnapshot, "manifest.json"), "{}");
     const result = spawnSync(process.execPath, [
       join(fixture.root, "scripts", "build-release.mjs"),
       "--target=dir,nsis,portable",
@@ -60,6 +63,7 @@ test("builds and verifies the unpacked app before creating Windows installers", 
       .split("\n")
       .map((line) => JSON.parse(line));
     const builderCalls = calls.filter((call) => call.command === "npx");
+    assert.ok(calls.every((call) => !call.args.includes("pi:sync-local")), "a registry build must ignore cached snapshots");
     const unpackedDirectory = join(fixture.root, "release", "win-unpacked");
 
     assert.deepEqual(builderCalls, [
@@ -88,6 +92,31 @@ test("builds and verifies the unpacked app before creating Windows installers", 
     );
     const nsisIndex = calls.findIndex((call) => call.command === "npx" && call.args.includes("nsis"));
     assert.ok(verifyIndex !== -1 && verifyIndex < nsisIndex);
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("restores and verifies only the snapshot active before the release build", async () => {
+  const fixture = await createFixture();
+  const commit = "1234567890abcdef1234567890abcdef12345678";
+  try {
+    const sdk = join(fixture.root, "node_modules", "@earendil-works", "pi-coding-agent");
+    await mkdir(sdk, { recursive: true });
+    await writeFile(join(sdk, "pi-local-source.json"), JSON.stringify({ commit }));
+    const result = spawnSync(process.execPath, [
+      join(fixture.root, "scripts", "build-release.mjs"), "--target=dir", "--no-zip",
+    ], {
+      cwd: fixture.root, encoding: "utf8",
+      env: { ...process.env, BUILD_RELEASE_CALL_LOG: fixture.callLog,
+        PATH: `${fixture.bin}${delimiter}${process.env.PATH ?? ""}` },
+    });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const calls = (await readFile(fixture.callLog, "utf8")).trim().split("\n").map(JSON.parse);
+    const snapshotCalls = calls.filter((call) => call.args.includes("pi:sync-local"));
+    assert.ok(snapshotCalls.some((call) => call.args.includes("--restore")));
+    assert.ok(snapshotCalls.some((call) => call.args.includes("--verify")));
+    assert.ok(snapshotCalls.every((call) => call.args[call.args.indexOf("--snapshot") + 1] === commit));
   } finally {
     await rm(fixture.root, { recursive: true, force: true });
   }
