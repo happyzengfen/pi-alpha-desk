@@ -17,6 +17,7 @@ import { createHeadlessCustomUiTui, DEFAULT_CUSTOM_UI_COLUMNS } from "./custom-u
 import { getBundledPiPackageResourceLoaderOptions } from "./bundled-pi-packages";
 import { createPdfReadTool } from "./pdf-read-tool";
 import { createSpreadsheetReadTool, createWordReadTool } from "./office-read-tool";
+import { createToolFreePromptPolicy } from "./tool-free-prompt";
 
 // ============================================================================
 // Types
@@ -63,17 +64,13 @@ type ExtensionCommandContextActionsLike = {
   reload: () => Promise<void>;
 };
 
-type ExtensionBindingOptions = {
-  forceEmptySystemPrompt?: boolean;
-};
-
 export interface RpcSessionStartOptions {
   toolNames?: string[];
   initialModel?: { provider: string; modelId: string };
   thinkingLevel?: ThinkingLevel;
 }
 
-const CODING_TOOL_NAMES = ["read", "bash", "edit", "write", "grep", "find", "ls"];
+const CODING_TOOL_NAMES = ["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"];
 
 export function createPersistedEmptyForkSession(
   sourceManager: SessionManager,
@@ -153,14 +150,17 @@ export class AgentSessionWrapper {
   private extensionsBound = false;
   private extensionBindingPromise: Promise<void> | null = null;
   private extensionBindingError: unknown = null;
-  private forceEmptySystemPrompt = false;
   private unsubscribe: (() => void) | null = null;
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
   private onDestroyCallback: (() => void) | null = null;
   private shutdownPromise: Promise<void> | null = null;
   private _alive = true;
 
-  constructor(public readonly inner: AgentSessionLike, public readonly cwd: string) {}
+  constructor(
+    public readonly inner: AgentSessionLike,
+    public readonly cwd: string,
+    private readonly toolFreePrompt = { enabled: false },
+  ) {}
 
   get sessionId(): string {
     return this.inner.sessionId;
@@ -180,6 +180,10 @@ export class AgentSessionWrapper {
 
   start(): void {
     this.unsubscribe = this.inner.subscribe((event: AgentEvent) => {
+      if (event.type === "message_start" || event.type === "message_update" || event.type === "message_end") {
+        const message = event.message as { role?: string } | undefined;
+        if (message?.role === "system") return;
+      }
       if (event.type === "agent_end") {
         invalidateSessionListCache();
       }
@@ -193,20 +197,17 @@ export class AgentSessionWrapper {
   }
 
   setForceEmptySystemPrompt(force: boolean): void {
-    this.forceEmptySystemPrompt = force;
-    this.applyForcedEmptySystemPrompt();
+    this.toolFreePrompt.enabled = force;
   }
 
-  beginExtensionBinding(options: ExtensionBindingOptions = {}): void {
-    void this.ensureExtensionsBound(options).catch((err) => {
+  beginExtensionBinding(): void {
+    void this.ensureExtensionsBound().catch((err) => {
       console.error("[pi-web] failed to dispatch session_start to extensions:", err instanceof Error ? err.message : err);
     });
   }
 
-  private ensureExtensionsBound(options: ExtensionBindingOptions = {}): Promise<void> {
-    if (options.forceEmptySystemPrompt) this.forceEmptySystemPrompt = true;
+  private ensureExtensionsBound(): Promise<void> {
     if (this.extensionsBound) {
-      this.applyForcedEmptySystemPrompt();
       return Promise.resolve();
     }
     if (this.extensionBindingPromise) return this.extensionBindingPromise;
@@ -245,7 +246,6 @@ export class AgentSessionWrapper {
         this.inner.extensionRunner.setUIContext?.(uiContext, "rpc");
       }
       this.extensionsBound = true;
-      this.applyForcedEmptySystemPrompt();
       console.log(`[pi-web] session_start dispatched to extensions for session ${this.inner.sessionId}`);
     })().catch((err) => {
       this.extensionBindingError = err;
@@ -296,12 +296,6 @@ export class AgentSessionWrapper {
     void this.inner.abort().catch((error) => {
       console.error("[pi-web] failed to abort a terminal provider error:", error instanceof Error ? error.message : error);
     });
-  }
-
-  private applyForcedEmptySystemPrompt(): void {
-    if (this.forceEmptySystemPrompt && this.inner.agent.state) {
-      this.inner.agent.state.systemPrompt = "";
-    }
   }
 
   private emit(event: AgentEvent): void {
@@ -449,7 +443,7 @@ export class AgentSessionWrapper {
           contextUsage: contextUsage
             ? { percent: contextUsage.percent, contextWindow: contextUsage.contextWindow, tokens: contextUsage.tokens }
             : null,
-          systemPrompt: this.inner.agent.state?.systemPrompt ?? "",
+          systemPrompt: this.toolFreePrompt.enabled ? "" : this.inner.systemPrompt,
           thinkingLevel: this.inner.agent.state?.thinkingLevel ?? "off",
           extensionStatuses: this.getExtensionStatuses(),
           extensionWidgets: this.getExtensionWidgets(),
@@ -605,7 +599,6 @@ export class AgentSessionWrapper {
         const toolNames = command.toolNames as string[];
         this.setForceEmptySystemPrompt(toolNames.length === 0);
         this.inner.setActiveToolsByName(withExtensionTools(this.inner, toolNames));
-        this.applyForcedEmptySystemPrompt();
         return null;
       }
 
@@ -618,7 +611,6 @@ export class AgentSessionWrapper {
         if (typeof this.inner.bindExtensions !== "function") {
           this.inner.extensionRunner.setUIContext?.(this.createExtensionUiContext(), "rpc");
         }
-        this.applyForcedEmptySystemPrompt();
         return { success: true };
       }
 
@@ -1037,7 +1029,6 @@ export class AgentSessionWrapper {
             this.inner.extensionRunner.setUIContext?.(this.createExtensionUiContext(), "rpc");
           },
         });
-        this.applyForcedEmptySystemPrompt();
       },
     };
   }
@@ -1188,11 +1179,15 @@ export async function startRpcSession(
     const settingsManager = SettingsManager.create(sessionCwd, agentDir, {
       projectTrusted: projectTrust.trusted,
     });
+    const toolFreePrompt = createToolFreePromptPolicy(toolNames?.length === 0);
     const services = await createAgentSessionServices({
       cwd: sessionCwd,
       agentDir,
       settingsManager,
-      resourceLoaderOptions: getBundledPiPackageResourceLoaderOptions(settingsManager),
+      resourceLoaderOptions: {
+        ...getBundledPiPackageResourceLoaderOptions(settingsManager),
+        extensionFactories: [toolFreePrompt.extension],
+      },
       ...(trustReloadOptions ? { resourceLoaderReloadOptions: trustReloadOptions } : {}),
     });
     const scope = await resolveVisibleModels(
@@ -1246,13 +1241,7 @@ export async function startRpcSession(
       inner.setActiveToolsByName(withExtensionTools(inner, toolNames));
     }
 
-    const wrapper = new AgentSessionWrapper(inner, sessionCwd);
-    // When all tools are disabled, clear the system prompt entirely.
-    // pi's buildSystemPrompt always produces a non-empty prompt even with no tools;
-    // keep this forced after extension resource discovery and reloads as well.
-    if (toolNames?.length === 0) {
-      wrapper.setForceEmptySystemPrompt(true);
-    }
+    const wrapper = new AgentSessionWrapper(inner, sessionCwd, toolFreePrompt.policy);
     wrapper.start();
 
     const realSessionId = inner.sessionId as string;
@@ -1261,7 +1250,7 @@ export async function startRpcSession(
 
     wrapper.onDestroy(() => registry.delete(realSessionId));
     registry.set(realSessionId, wrapper);
-    wrapper.beginExtensionBinding({ forceEmptySystemPrompt: toolNames?.length === 0 });
+    wrapper.beginExtensionBinding();
 
     return { session: wrapper, realSessionId };
   })().finally(() => {

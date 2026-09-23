@@ -1,4 +1,7 @@
-// Types mirrored from pi-mono coding-agent session-manager
+import type { SystemMessage } from "@earendil-works/pi-ai";
+import type { ContextEditEntry } from "@earendil-works/pi-coding-agent";
+
+// Types mirrored from pi coding-agent session-manager
 
 export interface SessionHeader {
   type: "session";
@@ -206,7 +209,7 @@ export interface ExtensionWidgetItem {
 
 export interface SessionMessageEntry extends SessionEntryBase {
   type: "message";
-  message: AgentMessage;
+  message: AgentMessage | SystemMessage;
 }
 
 export interface ThinkingLevelChangeEntry extends SessionEntryBase {
@@ -264,6 +267,7 @@ export interface SessionInfoEntry extends SessionEntryBase {
 
 export type SessionEntry =
   | SessionMessageEntry
+  | ContextEditEntry
   | ThinkingLevelChangeEntry
   | ModelChangeEntry
   | CompactionEntry

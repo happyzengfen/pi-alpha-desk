@@ -288,6 +288,7 @@ function entryToUiMessage(
 ): AgentMessage | null {
   switch (entry.type) {
     case "message": {
+      if (entry.message.role === "system") return null;
       const message = options.deferToolResultImages
         ? omitToolResultBase64Images(normalizeToolCalls(entry.message))
         : normalizeToolCalls(entry.message);

@@ -66,6 +66,8 @@ function findClipboardNativeModule(appNodeModules) {
     "clipboard.win32-x64-msvc.node",
   );
   const candidates = [
+    join(appNodeModules, "@earendil-works", "pi-tui", "native", "win32", "prebuilds", "win32-x64", "win32-platform.node"),
+    join(appNodeModules, "@earendil-works", "pi-coding-agent", "node_modules", "@earendil-works", "pi-tui", "native", "win32", "prebuilds", "win32-x64", "win32-platform.node"),
     join(appNodeModules, packagePath),
     join(
       appNodeModules,
@@ -108,8 +110,11 @@ export function verifyWindowsPackage(unpackedDirectory) {
   ];
 
   const missing = requiredPaths.filter((path) => !existsSync(path));
-  if (!findClipboardNativeModule(appNodeModules)) {
-    missing.push(join(appNodeModules, "**", "clipboard.win32-x64-msvc.node"));
+  const clipboardModule = findClipboardNativeModule(appNodeModules);
+  if (!clipboardModule) {
+    missing.push("Pi clipboard native helper (win32-x64)");
+  } else if (clipboardModule.endsWith("win32-platform.node") && readPeMachine(clipboardModule) !== PE_MACHINE_AMD64) {
+    throw new Error(`Expected an x64 Windows clipboard native helper: ${clipboardModule}`);
   }
   const nextExternalPackages = join(root, "resources", "app", ".next", "node_modules");
   if (existsSync(nextExternalPackages) && !hasDirectoryEntry(nextExternalPackages)) {

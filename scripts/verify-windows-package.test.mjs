@@ -119,3 +119,19 @@ test("reports missing runtime resources", async () => {
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("accepts the Pi 0.86+ clipboard helper and rejects missing or wrong-architecture helpers", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pi-web-win-package-"));
+  const helper = "resources/app/node_modules/@earendil-works/pi-tui/native/win32/prebuilds/win32-x64/win32-platform.node";
+  try {
+    await createValidPackage(root);
+    await rm(join(root, "resources/app/node_modules/@earendil-works/pi-coding-agent/node_modules/@mariozechner"), { recursive: true });
+    assert.throws(() => verifyWindowsPackage(root), /Pi clipboard native helper/);
+    await writeFixtureFile(root, helper, createPe(0x8664));
+    assert.equal(verifyWindowsPackage(root).machine, "x64");
+    await writeFixtureFile(root, helper, createPe(0xaa64));
+    assert.throws(() => verifyWindowsPackage(root), /Expected an x64 Windows clipboard native helper/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
