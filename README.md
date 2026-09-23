@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  An Electron-first desktop client for the <a href="https://github.com/badlogic/pi-mono">pi coding agent</a>.
+  An Electron-first desktop client for the <a href="https://github.com/earendil-works/pi">pi coding agent</a>.
 </p>
 
 <p align="center">
@@ -26,12 +26,14 @@ This repository is not an upstream mirror. It prioritizes its own desktop experi
 
 | Area | Version |
 | --- | --- |
-| Application | `0.8.7` |
+| Application | `1.0.0` |
 | Node.js | `>=22.19.0` |
 | Next.js | `16.3.0` |
 | React | `19.2.x` |
 | Electron | `43.x` |
-| pi SDK registry fallback | `0.84.0` |
+| pi SDK registry fallback | `0.87.1` |
+
+The 2026-09-23 update upgrades the Pi SDK from `0.85.1` to `0.87.1`, adapts tool-free prompts and session history, and updates source snapshot builds. The macOS arm64 package was rebuilt and checked in a running Electron window. See the [changelog](./docs/CHANGELOG.md#pi-0871-升级与-macos-arm64-重新构建2026-09-23) and [release guide (Chinese)](./docs/release.md).
 
 ## Highlights
 
@@ -72,9 +74,24 @@ Download the NSIS installer or portable executable from [GitHub Releases](https:
 - `数字化AI助手 Setup <version>.exe` — standard installer
 - `数字化AI助手-<version>-portable.exe` — portable executable
 
-The current automated release workflow targets Windows x64. Other platforms can run the project from source or use the Electron build configuration as a starting point for local packaging.
+The Windows release workflow targets x64. The manually triggered **Desktop packages** workflow also builds macOS DMGs and Linux AppImages for arm64 and x64.
 
 Unsigned development builds may trigger Windows SmartScreen. Verify the download source before choosing **More info → Run anyway**.
+
+### macOS Apple Silicon desktop app
+
+On an Apple Silicon Mac, build the native arm64 package in a checkout without an active development server:
+
+```bash
+npm ci
+npm run icons
+npm run build
+CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --mac dmg --arm64 --publish never
+node scripts/verify-macos-package.mjs --dir release/mac-arm64 --arch arm64
+hdiutil verify release/*.dmg
+```
+
+This produces `release/数字化AI助手-1.0.0-arm64.dmg` and `release/mac-arm64/数字化AI助手.app`. Quit an existing installation before opening the DMG and dragging the app to Applications. These local builds have no Developer ID signing or notarization. See the [release guide (Chinese)](./docs/release.md) for isolated build directories, installation, and runtime checks.
 
 ### Run from source
 
@@ -104,7 +121,7 @@ npm run electron:dev
 - Closing the window hides it to the tray. Use the tray's **Quit** action to exit completely.
 - Startup diagnostics are written to `pi-web-server.log` in the Electron application-data directory.
 - Five general-purpose Pi plugins are bundled as exact application dependencies: subagents, MCP, web access, structured questions, and goals. Their versions and npm integrity values are recorded in `bundled-plugins/manifest.json`.
-- Bundled starter skills are copied to `~/.pi/agent/skills/` when missing. Existing user copies are preserved. Version `0.8.7` bundles `guizang-ppt-skill`, `office-viewer`, `pdf`, and `windows-word-docx`; their source, license, platform, and content hashes are recorded in `bundled-skills/manifest.json`.
+- Bundled starter skills are copied to `~/.pi/agent/skills/` when missing. Existing user copies are preserved. The current skill list, source, license, platform, and content hashes are recorded in `bundled-skills/manifest.json`.
 
 ## Data, sessions, and project access
 
@@ -186,24 +203,26 @@ Avoid `next build` / `npm run build` while a development server is active. It wr
 
 ### Local pi snapshots
 
-The four direct pi SDK dependencies use registry version `0.84.0` as the reproducible fallback. For local development, the sync script can build and install six commit-stamped packages from a clean pi checkout without changing `package.json` or `package-lock.json`:
+The four direct pi SDK dependencies are pinned to registry version `0.87.1`; `npm ci` installs the supported SDK and its locked dependencies. For source development, the snapshot script uses upstream's complete `build:offline` workspace order, then packs the six supported runtime packages: chord, pi-tui, pi-telemetry, pi-ai, pi-agent-core, and pi-coding-agent. This workflow is validated against Pi `v0.87.1` and does not change `package.json` or `package-lock.json`.
 
 ```bash
-# Uses the default sibling directory ../pi
+# Uses the default sibling directory ../pi (must be a compatible clean checkout)
 npm run pi:sync-local
 
 # Or choose an explicit source checkout
 npm run pi:sync-local -- --source /absolute/path/to/pi
 ```
 
-Restore or verify the most recent cached snapshot after npm rewrites `node_modules`:
+Restore the most recent cached snapshot, or select a specific commit. Verification defaults to the installed snapshot's commit:
 
 ```bash
 npm run pi:sync-local -- --restore
 npm run pi:sync-local -- --verify
+# Pin a particular snapshot when multiple commits are cached
+npm run pi:sync-local -- --restore --snapshot <commit>
 ```
 
-Normal `npm install`, `npm ci`, or `npm dedupe` restores the registry fallback. See [Local pi snapshot updates](./docs/local-pi-update-2026-08-03.md) for package identity, checksums, verification, and rollback details.
+Normal `npm install`, `npm ci`, or `npm dedupe` restores the registry fallback. Windows release builds restore a snapshot only when the installed SDK has a local source marker, and preserve that exact commit. Cached snapshots cannot silently replace a registry build. The [older snapshot notes](./docs/local-pi-update-2026-08-03.md) are historical records.
 
 ## Windows x64 packaging and CI
 

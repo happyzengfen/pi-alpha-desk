@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**pi-alpha-desk** (`@happyzengfen/pi-alpha-desk`) is a web-based UI for the [pi coding agent](https://github.com/badlogic/pi-mono). It provides a browser workspace for session browsing, real-time chat, model configuration, skill management, and project file preview — all powered by the pi SDK (`@earendil-works/pi-coding-agent`).
+**pi-alpha-desk** (`@happyzengfen/pi-alpha-desk`) is a web-based UI for the [pi coding agent](https://github.com/earendil-works/pi). It provides a browser workspace for session browsing, real-time chat, model configuration, skill management, and project file preview — all powered by the pi SDK (`@earendil-works/pi-coding-agent`).
 
 - **Purpose**: Give pi users a visual alternative to the CLI with session browsing, file exploration, and settings management.
 - **Target Audience**: Developers using pi as their coding agent who want a richer UI.
@@ -52,9 +52,10 @@ Keep upstream-comparison notes outside the public repository; `ref-repos/` is in
 | **Fonts** | IA Writer Quattro, Lilex (mono) | |
 | **Desktop** | Electron + electron-builder | ^43.2.0 / ^26.15.3 |
 | **Linting** | ESLint (eslint-config-next) | ^9 |
-| **SDK** | @earendil-works/pi-coding-agent | 0.84.0 |
-| **SDK** | @earendil-works/pi-ai | 0.84.0 |
-| **SDK** | @earendil-works/pi-tui | 0.84.0 |
+| **SDK** | @earendil-works/pi-coding-agent | 0.87.1 |
+| **SDK** | @earendil-works/pi-ai | 0.87.1 |
+| **SDK** | @earendil-works/pi-tui | 0.87.1 |
+| **SDK** | @earendil-works/pi-agent-core | 0.87.1 |
 | **Package Manager** | npm (package-lock.json present) | |
 
 ---
@@ -310,7 +311,7 @@ Then open [http://localhost:30141](http://localhost:30141).
 ```bash
 npm run pi:sync-local -- --source /absolute/path/to/pi
 ```
-This builds and installs one commit-stamped snapshot set without changing the registry fallback lockfile. See `docs/local-pi-update-2026-08-03.md`.
+This uses upstream's full `build:offline` workspace build and installs six commit-stamped runtime packages (chord, pi-tui, pi-telemetry, pi-ai, pi-agent-core, pi-coding-agent) without changing the registry fallback lockfile. Validated against Pi v0.87.1. Use `--restore --snapshot <commit>` to select a cached snapshot; `--verify` follows the installed commit. Release builds preserve the active snapshot commit and ignore cached snapshots when using registry packages. `docs/local-pi-update-2026-08-03.md` is historical.
 
 ### Type Checking
 ```bash
@@ -441,7 +442,7 @@ Body: { cwd: string, message: string, toolNames?: string[], provider?: string, m
 Pi stores toolCall blocks as `{type:"toolCall", id, name, arguments}` but `ToolCallContent` uses `{toolCallId, toolName, input}`. `normalizeToolCalls()` in `lib/normalize.ts` handles this — called in both `session-reader.ts` (file load) and `ChatWindow.handleAgentEvent()` (streaming).
 
 ### New Session Tool Preset
-Tool names are passed at session creation (`POST /api/agent/new` → `toolNames[]`). For existing sessions, the active preset is inferred on mount via `get_tools` → `getPresetFromTools()`. When tools are fully disabled (`toolNames = []`), `rpc-manager.ts` passes an empty tool allow-list and forces `agent.state.systemPrompt = ""` after startup/reload/resource discovery.
+Tool names are passed at session creation (`POST /api/agent/new` → `toolNames[]`). For existing sessions, the active preset is inferred on mount via `get_tools` → `getPresetFromTools()`. When tools are fully disabled (`toolNames = []`), `rpc-manager.ts` passes an empty tool allow-list. The inline extension in `lib/tool-free-prompt.ts` forces an empty prompt and tool set through `before_agent_start`, including after resource reloads. Pi 0.86+ stores system messages in the transcript; `agent.state.systemPrompt` is read-only. Read the effective prompt from `session.systemPrompt`. System transcript messages are excluded from desktop history and SSE message events; `context_edit` changes provider context without replacing the original visible messages or their entry IDs.
 
 ### Model Defaults for New Sessions
 `GET /api/models` returns `defaultModel` read from `~/.pi/agent/settings.json`. `ChatWindow` pre-selects this on mount for new sessions.

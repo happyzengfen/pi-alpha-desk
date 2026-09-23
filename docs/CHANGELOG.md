@@ -172,3 +172,36 @@ package.json version → **1.0.0**（独立发布线起点；electron-builder �
 ## 辅助 CLI 与默认模型
 
 本地全局辅助 CLI `@agegr/pi-web` 已从 **0.7.8** 升至 **0.9.0**。升级后在 Pi 的 `/model` 中搜索 `gpt-6-astra`，选中 `openai-codex` 提供的模型并按 `Ctrl+S` 保存默认值，已通过模型接口确认生效。全局 CLI 和默认模型属于本机配置，不会由拉取本仓库自动设置。
+
+---
+
+# Pi 0.87.1 升级与 macOS arm64 重新构建（2026-09-23）
+
+产品版本号保持 **1.0.0**；更新中英文 README 的当前版本和桌面构建说明。
+
+## SDK 与会话兼容
+
+- `pi-agent-core`、`pi-ai`、`pi-coding-agent`、`pi-tui` 从 **0.85.1** 同步升级到 **0.87.1**，同步锁文件和 `pi-mcp-adapter` 的 `pi-ai` override。
+- 禁用工具时通过内联扩展的 `before_agent_start` 设置空提示词和工具集，适配只读的系统提示词状态，并覆盖资源重载及重新启用工具。
+- 系统消息不进入桌面聊天历史和 SSE 消息事件；`context_edit` 保留原始可见历史及 entry ID。
+- 将 PowerShell 识别为 SDK 内置工具，避免随扩展工具意外启用。
+- Windows 包校验兼容 Pi 内置的 `win32-platform.node`，并验证其 PE 架构。
+
+## 本地源码快照
+
+- 使用上游完整 `build:offline` 构建顺序，打包 chord、pi-tui、pi-telemetry、pi-ai、pi-agent-core、pi-coding-agent 六个运行时包。
+- 增加 `--snapshot <commit>`；恢复前校验 tarball SHA-256，验证默认跟随已安装快照的 commit。
+- 发布只恢复构建开始时已激活的快照，并固定原 commit；历史缓存不会覆盖 registry 版本。
+- 在官方 `v0.87.1` 源码上完成实际构建、安装、指定 commit 恢复与 SDK 导入验证。
+
+## 构建与验证
+
+- 源码测试、TypeScript 检查通过；ESLint 无错误，保留 `PdfViewer.tsx` 的 3 条已有警告。
+- macOS arm64 生产构建和 DMG 打包通过，包内四个核心 SDK 均为 **0.87.1**。
+- 在 Apple Silicon、macOS 26.5.2 上实际验证 Electron 窗口、桌面桥接、聊天输入区、主要接口和会话 HTML 导出；DMG 完整性校验通过。
+- Next.js 构建仍提示导出路由存在动态 import 警告；新包实际导出返回 200 并生成有效 HTML。
+- 此轮未运行真实模型付费调用，未生成新的 Windows 安装包；macOS 本地包未配置 Developer ID 签名或公证。
+
+重新构建的 DMG 约 311 MiB，SHA-256 为 `a37b9faf2c30b1afca6733f79c6bd009199523f1a6433d19b9527eb41ffb53a8`。这是本次本地构建产物的校验值；后续重新构建可能产生不同的哈希。安装包留在被忽略的 `release/` 目录，源码推送不包含二进制资产。
+
+可复现步骤见[构建、安装与发布说明](./release.md)。

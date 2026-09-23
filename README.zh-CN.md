@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  面向 <a href="https://github.com/badlogic/pi-mono">pi 编程智能体</a> 的 Electron-first 桌面客户端。
+  面向 <a href="https://github.com/earendil-works/pi">pi 编程智能体</a> 的 Electron-first 桌面客户端。
 </p>
 
 <p align="center">
@@ -26,12 +26,21 @@
 
 | 项目 | 版本 |
 | --- | --- |
-| 应用 | `0.8.7` |
+| 应用 | `1.0.0` |
 | Node.js | `>=22.19.0` |
 | Next.js | `16.3.0` |
 | React | `19.2.x` |
 | Electron | `43.x` |
-| Pi SDK registry fallback | `0.84.0` |
+| Pi SDK registry fallback | `0.87.1` |
+
+## 2026-09-23 更新重点
+
+- 四个核心 Pi SDK 从 `0.85.1` 同步升级为 `0.87.1`，并更新锁文件与插件依赖覆盖。
+- 适配新版 SDK 的提示词生命周期、系统消息与上下文编辑，保留桌面会话历史及分支 ID。
+- 本地源码快照采用上游完整 workspace 构建顺序，支持按 commit 恢复，发布流程保留当前启用的快照。
+- 重新生成 Apple Silicon 原生 arm64 的 DMG 与 `.app`，实际验证 Electron 窗口、聊天输入区、主要接口和会话 HTML 导出。
+
+应用版本保持 `1.0.0`。详见[更新日志](./docs/CHANGELOG.md#pi-0871-升级与-macos-arm64-重新构建2026-09-23)和[构建与发布说明](./docs/release.md)。
 
 ## 2026-08-09 更新重点
 
@@ -92,13 +101,17 @@
 
 ### macOS arm64 桌面版
 
-仓库已提供 macOS arm64 构建、包结构校验和实际启动 smoke。当前本地构建为 ad-hoc 签名，未配置 Developer ID 和 Apple notarization；首次打开可能需要在 Finder 中右键应用并选择“打开”。
+仓库提供 macOS arm64 构建、包结构校验和实际启动验证。2026-09-23 已在 Apple Silicon、macOS 26.5.2 上验证当前 `1.0.0` / Pi `0.87.1` 包。此类本地构建未配置 Developer ID 签名和 Apple notarization。
 
-Apple Silicon 本机构建：
+在没有运行开发服务器的独立 checkout 中构建：
 
 ```bash
 npm ci
-npm run electron:build
+npm run icons
+npm run build
+CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --mac dmg --arm64 --publish never
+node scripts/verify-macos-package.mjs --dir release/mac-arm64 --arch arm64
+hdiutil verify release/*.dmg
 ```
 
 默认生成：
@@ -108,7 +121,7 @@ release/数字化AI助手-<版本>-arm64.dmg
 release/mac-arm64/数字化AI助手.app
 ```
 
-对外分发前应补齐 Developer ID 签名、notarization 和真实安装验证。
+先从应用菜单或托盘完全退出旧版，再打开 DMG，将应用拖入“应用程序”进行安装或替换。完整的独立构建目录、校验与安装步骤见[构建与发布说明](./docs/release.md)。安装包保存在本地，不随源码提交自动上传到 GitHub Releases。
 
 ### 从源码运行
 
@@ -221,30 +234,32 @@ npm CLI 还支持 `--port` / `-p`、`--hostname` / `-H` 和 `--no-open`。
 
 ### 本地 pi 快照
 
-四个直接 pi SDK 依赖使用 registry `0.84.0` 作为可复现 fallback。同步脚本可从干净的本地 pi checkout 构建并安装六个带 commit 标记的包，不修改 `package.json` 或 `package-lock.json`：
+四个直接 Pi SDK 依赖固定为 registry `0.87.1`；`npm ci` 按锁文件安装当前支持的 SDK 和依赖。本地源码快照脚本采用上游完整的 `build:offline` workspace 构建顺序，再打包六个运行时包：chord、pi-tui、pi-telemetry、pi-ai、pi-agent-core、pi-coding-agent。该流程已在 Pi `v0.87.1` 上验证，不修改 `package.json` 或 `package-lock.json`。
 
 ```bash
-# 使用默认相邻目录 ../pi
+# 使用默认相邻目录 ../pi（需为兼容版本且工作树干净）
 npm run pi:sync-local
 
 # 或指定源码目录
 npm run pi:sync-local -- --source /absolute/path/to/pi
 ```
 
-npm 重写 `node_modules` 后可恢复或验证最近快照：
+可恢复最新缓存快照，也可指定 commit；验证默认跟随当前已安装快照的 commit：
 
 ```bash
 npm run pi:sync-local -- --restore
 npm run pi:sync-local -- --verify
+# 多个快照并存时指定要恢复的 commit
+npm run pi:sync-local -- --restore --snapshot <commit>
 ```
 
-普通 `npm install`、`npm ci` 或 `npm dedupe` 会恢复 registry fallback。详见[本地 pi 快照更新记录](./docs/local-pi-update-2026-08-03.md)。
+普通 `npm install`、`npm ci` 或 `npm dedupe` 会恢复 registry fallback。Windows 发布脚本仅在已安装 SDK 带有本地源码标记时恢复快照，并锁定同一个 commit；历史缓存不会自动覆盖 registry 版本。[旧快照记录](./docs/local-pi-update-2026-08-03.md)仅作为历史资料保留。
 
 ## CI 与发布验证
 
 - **Quality**：Ubuntu 24.04、Windows 2025、macOS 15 的 PR/push 快速矩阵，执行安装、测试、TypeScript、Lint 和 diff check。
 - **Windows x64**：构建并验证 unpacked、NSIS、portable，覆盖固定端口和占用 `30141` 后的动态端口启动。
-- **macOS arm64**：手动生成未签名 arm64 目录包，验证 Mach-O、Next/Pi/Undici/runtime/bundled skills，并实际启动到 Renderer 可交互。
+- **Desktop packages**：手动构建 macOS arm64/x64 DMG 与 Linux arm64/x64 AppImage；执行包结构校验和 Renderer 启动验证。
 
 ### Windows x64 本地打包
 
@@ -305,6 +320,7 @@ public/               图标、字体相关资源和文件图标主题
 
 ## 相关文档
 
+- [构建、安装与发布说明](./docs/release.md)
 - [2026-08-09 更新记录](./docs/2026-08-09-183710.md)
 - [桌面助手优化报告](./docs/desktop-assistant-optimization.zh-CN.md)
 - [桌面性能基线](./docs/desktop-performance-baseline-2026-08-09.md)
