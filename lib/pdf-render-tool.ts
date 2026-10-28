@@ -11,36 +11,27 @@
  *  - 文档解析缓存：最近使用的 PDF 解析结果（30s 内复用），避免 N 页请求各自
  *    重新解析整个 PDF（串行解析 N 次 ≈ 每页多花 0.5-1s）。
  */
-import { createCanvas } from "@napi-rs/canvas";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { PDFDocumentProxy } from "pdfjs-dist";
+import { getPdfRuntime } from "./pdf-runtime";
 
 const DEFAULT_SCALE = 1.5;
 const PAGE_CACHE_ROOT = process.env.PDF_PAGE_CACHE_DIR ?? path.join(os.tmpdir(), "pi-alpha-desk-pdf-pages");
 const DOC_CACHE_TTL_MS = 30_000;
 
-class NodeCanvasFactory {
-  create(width: number, height: number) {
-    const canvas = createCanvas(width, height);
-    return { canvas, context: canvas.getContext("2d") };
-  }
-  reset(canvasAndContext: { canvas: { width: number; height: number } }, width: number, height: number) {
-    canvasAndContext.canvas.width = width;
-    canvasAndContext.canvas.height = height;
-  }
-  destroy(canvasAndContext: { canvas: { width: number; height: number } }) {
-    canvasAndContext.canvas.width = 0;
-    canvasAndContext.canvas.height = 0;
+export class PdfRendererUnavailableError extends Error {
+  constructor() {
+    super("Native PDF rendering is unavailable on this platform");
   }
 }
 
 async function loadDocument(filePath: string): Promise<PDFDocumentProxy> {
-  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const { pdfjs, options } = await getPdfRuntime();
   const data = new Uint8Array(fs.readFileSync(filePath));
-  return getDocument({ data }).promise;
+  return pdfjs.getDocument({ data, ...options }).promise;
 }
 
 /** 文档解析缓存：同文件（mtime+size 未变）30 秒内复用同一解析结果 */
@@ -72,11 +63,11 @@ async function loadDocumentCached(filePath: string): Promise<PDFDocumentProxy> {
   return doc;
 }
 
-/** 页面图缓存键：PDF 路径 + mtimeMs(毫秒) + size */
-function pageCacheDir(filePath: string): { dir: string; mtimeMs: number; size: number } | null {
+/** 页面图缓存键：渲染版本 + PDF 路径 + mtimeMs(毫秒) + size + scale */
+function pageCacheDir(filePath: string, scale: number): { dir: string; mtimeMs: number; size: number } | null {
   try {
     const stat = fs.statSync(filePath);
-    const key = crypto.createHash("sha256").update(`${filePath}:${stat.mtimeMs}:${stat.size}`).digest("hex").slice(0, 16);
+    const key = crypto.createHash("sha256").update(`v2:${filePath}:${stat.mtimeMs}:${stat.size}:${scale}`).digest("hex").slice(0, 16);
     return { dir: path.join(PAGE_CACHE_ROOT, key), mtimeMs: stat.mtimeMs, size: stat.size };
   } catch {
     return null;
@@ -92,10 +83,12 @@ export async function renderPdfPage(
   pageNumber: number,
   scale = DEFAULT_SCALE,
 ): Promise<{ png: Buffer; pageCount: number; width: number; height: number }> {
-  const cache = pageCacheDir(filePath);
+  if (!Number.isSafeInteger(pageNumber) || pageNumber < 1) throw new RangeError("Invalid PDF page number");
+  if (!Number.isFinite(scale) || scale <= 0) throw new RangeError("Invalid PDF scale");
+  const cache = pageCacheDir(filePath, scale);
   const pagePng = cache ? path.join(cache.dir, `page-${pageNumber}.png`) : null;
   if (cache && pagePng) {
-    const metaPath = path.join(cache.dir, "meta.json");
+    const metaPath = path.join(cache.dir, `page-${pageNumber}.json`);
     try {
       const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
       if (meta.mtimeMs === cache.mtimeMs && meta.size === cache.size && fs.existsSync(pagePng)) {
@@ -105,25 +98,29 @@ export async function renderPdfPage(
     } catch { /* 缓存缺失/损坏 → 重新渲染 */ }
   }
 
+  // Unsupported optional native addons must not prevent other file routes loading.
+  const { createCanvas } = await import("@napi-rs/canvas").catch(() => {
+    throw new PdfRendererUnavailableError();
+  });
   const doc = await loadDocumentCached(filePath);
   const pageCount = doc.numPages;
   const pageIndex = Math.min(Math.max(1, pageNumber), pageCount);
   const page = await doc.getPage(pageIndex);
   const viewport = page.getViewport({ scale });
-  const factory = new NodeCanvasFactory();
-  const { canvas, context } = factory.create(Math.ceil(viewport.width), Math.ceil(viewport.height));
+  const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
+  const context = canvas.getContext("2d");
   await page.render({ canvasContext: context as unknown as CanvasRenderingContext2D, viewport }).promise;
   const png = canvas.toBuffer("image/png");
   const width = Math.ceil(viewport.width);
   const height = Math.ceil(viewport.height);
 
-  // 写页面图缓存（整文件键：任意页渲染时都写入 meta + 本页 PNG）
+  // 每页独立保存尺寸，避免混合页面大小的文档覆盖其它页的元数据。
   if (cache && pagePng) {
     try {
       fs.mkdirSync(cache.dir, { recursive: true });
       fs.writeFileSync(pagePng, png);
       fs.writeFileSync(
-        path.join(cache.dir, "meta.json"),
+        path.join(cache.dir, `page-${pageNumber}.json`),
         JSON.stringify({ mtimeMs: cache.mtimeMs, size: cache.size, pageCount, width, height }),
       );
     } catch { /* 缓存写失败不影响返回 */ }

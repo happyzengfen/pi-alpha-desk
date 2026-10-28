@@ -67,18 +67,17 @@ function loadWorkbook(filePath: string): XLSX.WorkBook {
     cellFormula: true,
     cellText: true,
   };
-  // CSV/TSV：强制 UTF-8 解析；带 BOM 文件先剥离 BOM（否则 BOM 混入第一个单元格乱码）。
   if (isDelimited) {
-    options.codepage = 65001;
-    // 剥离 UTF-8 BOM：codepage 65001 会把 BOM 字节解码成 U+FEFF 混入第一个单元格（乱码）。
-    // Excel 生成的带 BOM CSV 必须先剥离再按 UTF-8 解析——有/无 BOM 两种文件都兼容。
-    try {
-      const buf = fs.readFileSync(filePath);
-      if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
-        return XLSX.read(buf.subarray(3), options);
-      }
-    } catch { /* 读取失败则回退 readFile 路径 */ }
-    return XLSX.readFile(filePath, options);
+    // Excel's Unicode Text export uses UTF-16; decode BOMs before SheetJS parses cells.
+    const buffer = fs.readFileSync(filePath);
+    const encoding = buffer[0] === 0xff && buffer[1] === 0xfe
+      ? "utf-16le"
+      : buffer[0] === 0xfe && buffer[1] === 0xff ? "utf-16be" : "utf-8";
+    return XLSX.read(new TextDecoder(encoding).decode(buffer), {
+      ...options,
+      type: "string",
+      ...(path.extname(filePath).toLowerCase() === ".tsv" ? { FS: "\t" } : {}),
+    });
   }
   return XLSX.readFile(filePath, options);
 }
@@ -191,6 +190,22 @@ export function renderSpreadsheetPreviewBody(filePath: string): string {
   return `<nav class="sheet-nav">${navigation}</nav>${sheets}`;
 }
 
+function decodeXmlText(text: string): string {
+  const entities: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+  return text.replace(/&(amp|lt|gt|quot|apos|#x[\da-f]+|#\d+);/gi, (entity, name: string) => {
+    if (!name.startsWith("#")) return entities[name] ?? entity;
+    const codePoint = name[1].toLowerCase() === "x"
+      ? Number.parseInt(name.slice(2), 16)
+      : Number.parseInt(name.slice(1), 10);
+    return codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : entity;
+  });
+}
+
+function xmlAttribute(attributes: string, name: string): string | undefined {
+  const match = attributes.match(new RegExp(`(?:^|\\s)${name}\\s*=\\s*(["'])(.*?)\\1`));
+  return match ? decodeXmlText(match[2]) : undefined;
+}
+
 /**
  * PPTX 预览：解包 zip，按页提取 slide XML 中的文本（<a:t>），生成大纲式 HTML。
  * 说明：pptx 的信息在文字里（标题/要点），大纲预览已满足阅读需求；
@@ -199,23 +214,39 @@ export function renderSpreadsheetPreviewBody(filePath: string): string {
 export async function renderPptxPreviewBody(filePath: string): Promise<string> {
   const JSZip: typeof JSZipType = (await import("jszip")).default;
   const zip = await JSZip.loadAsync(fs.readFileSync(filePath));
-  const slideNames = Object.keys(zip.files)
+  let slideNames = Object.keys(zip.files)
     .filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))
     .sort((a, b) => {
       const na = Number.parseInt(a.match(/slide(\d+)\.xml/)![1], 10);
       const nb = Number.parseInt(b.match(/slide(\d+)\.xml/)![1], 10);
       return na - nb;
     });
+  const presentation = zip.file("ppt/presentation.xml");
+  const relationships = zip.file("ppt/_rels/presentation.xml.rels");
+  if (presentation && relationships) {
+    const targets = new Map<string, string>();
+    for (const match of (await relationships.async("string")).matchAll(/<Relationship\b([^>]*)>/g)) {
+      const id = xmlAttribute(match[1], "Id");
+      const target = xmlAttribute(match[1], "Target");
+      if (id && target && xmlAttribute(match[1], "TargetMode") !== "External") {
+        targets.set(id, path.posix.normalize(target.startsWith("/") ? target.slice(1) : `ppt/${target}`));
+      }
+    }
+    // Filenames remain unchanged when slides are reordered or removed in PowerPoint.
+    slideNames = [...(await presentation.async("string")).matchAll(/<p:sldId\b([^>]*)>/g)]
+      .map((match) => targets.get(xmlAttribute(match[1], "r:id") ?? ""))
+      .filter((name): name is string => typeof name === "string" && zip.file(name) !== null);
+  }
   if (slideNames.length === 0) {
     return '<p class="empty">No slides found in this presentation.</p>';
   }
   const sections: string[] = [];
-  for (const name of slideNames) {
+  for (const [index, name] of slideNames.entries()) {
     const xml = await zip.file(name)!.async("string");
-    const texts = [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)]
-      .map((match) => match[1])
+    const texts = [...xml.matchAll(/<a:t\b[^>]*>([^<]*)<\/a:t>/g)]
+      .map((match) => decodeXmlText(match[1]))
       .filter((text) => text.trim().length > 0);
-    const pageNumber = name.match(/slide(\d+)\.xml/)![1];
+    const pageNumber = index + 1;
     const items = texts.length
       ? texts.map((text) => `<li>${escapeHtml(text)}</li>`).join("")
       : '<p class="empty">（本页无文本内容）</p>';

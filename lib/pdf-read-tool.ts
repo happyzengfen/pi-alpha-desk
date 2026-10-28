@@ -2,7 +2,8 @@ import { defineTool } from "@earendil-works/pi-coding-agent";
 import { readFile, realpath } from "fs/promises";
 import path from "path";
 import { Type } from "typebox";
-import { extractText, getDocumentProxy } from "unpdf";
+import { getDocumentProxy } from "unpdf";
+import { getPdfRuntime } from "./pdf-runtime";
 
 const DEFAULT_PAGE_COUNT = 10;
 const MAX_PAGE_COUNT = 20;
@@ -54,19 +55,25 @@ export async function extractPdfText(
   const data = await readFile(filePath);
   if (!hasPdfHeader(data)) throw new Error("File does not contain a PDF header");
 
-  const pdf = await getDocumentProxy(Uint8Array.from(data));
-  const extracted = await extractText(pdf);
-  const pages = extracted.text;
-  if (startPage > extracted.totalPages) {
-    throw new Error(`startPage ${startPage} is beyond the end of the PDF (${extracted.totalPages} pages)`);
+  const { options } = await getPdfRuntime();
+  const pdf = await getDocumentProxy(Uint8Array.from(data), options);
+  try {
+    if (startPage > pdf.numPages) {
+      throw new Error(`startPage ${startPage} is beyond the end of the PDF (${pdf.numPages} pages)`);
+    }
+    const endPage = Math.min(pdf.numPages, startPage + pageCount - 1);
+    const pages: string[] = [];
+    for (let pageNumber = startPage; pageNumber <= endPage; pageNumber++) {
+      const content = await (await pdf.getPage(pageNumber)).getTextContent();
+      pages.push(content.items.map((item) => "str" in item ? item.str + (item.hasEOL ? "\n" : "") : "").join(""));
+    }
+    return {
+      text: formatPdfPages(pages, pdf.numPages, startPage, endPage),
+      details: { totalPages: pdf.numPages, startPage, endPage },
+    };
+  } finally {
+    await pdf.loadingTask.destroy();
   }
-
-  const endPage = Math.min(extracted.totalPages, startPage + pageCount - 1);
-  const selectedPages = pages.slice(startPage - 1, endPage);
-  return {
-    text: formatPdfPages(selectedPages, extracted.totalPages, startPage, endPage),
-    details: { totalPages: extracted.totalPages, startPage, endPage },
-  };
 }
 
 export function createPdfReadTool(cwd: string) {

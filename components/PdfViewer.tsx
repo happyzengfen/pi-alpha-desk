@@ -8,6 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useLayoutEffect, useRef, useState } from "react";
 import { useFileChangeIndicator } from "@/hooks/use-file-change-indicator";
+import { useI18n } from "@/hooks/useI18n";
 
 const btnBase: React.CSSProperties = {
   background: "transparent",
@@ -38,6 +39,7 @@ export function PdfViewer({
   filePath?: string;
   onUnsupported?: () => void;
 }) {
+  const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
   const currentPageRef = useRef(1);
@@ -68,18 +70,19 @@ export function PdfViewer({
   const [fitWidth, setFitWidth] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
+  const [pageSizes, setPageSizes] = useState<Record<number, { w: number; h: number }>>({});
+  const [failedPages, setFailedPages] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const PAGE_GAP = 16; // 页间距（渲染区 gap）
   const CONTENT_PADDING = 16; // 内容区顶部 padding
-  // 固定页高：程序定值（与渲染同一公式），不依赖图片加载
-  const pageHeight = useMemo(() => {
-    if (!naturalSize) return 0;
-    const ratio = naturalSize.h / naturalSize.w;
-    const baseWidth = fitWidth ? (containerWidth || 800) : naturalSize.w * zoom;
-    return baseWidth * ratio;
-  }, [naturalSize, fitWidth, zoom, containerWidth]);
-  const pageStep = pageHeight + PAGE_GAP;
+  // 尚未加载的页面用首张尺寸占位，加载后按各页真实尺寸排版。
+  const pageHeights = useMemo(() => Array.from({ length: pageCount }, (_, index) => {
+    const size = pageSizes[index + 1] ?? naturalSize;
+    if (!size) return 0;
+    const width = fitWidth ? Math.max((containerWidth || 800) - 32, 50) : size.w * zoom;
+    return width * size.h / size.w;
+  }), [pageCount, pageSizes, naturalSize, fitWidth, zoom, containerWidth]);
 
   const pageUrlFor = useCallback(
     (page: number) => {
@@ -98,6 +101,11 @@ export function PdfViewer({
     currentPageRef.current = page;
     if (!inputFocusedRef.current) setPageInput(String(page));
   }, []);
+
+  useEffect(() => {
+    setPageSizes({});
+    pendingRestoreScroll.current = null;
+  }, [url]);
 
   /** 滚动到指定页（等待该页渲染后定位） */
   const scrollToPage = useCallback((target: number) => {
@@ -196,25 +204,26 @@ export function PdfViewer({
     setLoading(true);
     setPageCount(0);
     setNaturalSize(null);
+    setFailedPages([]);
     setError(null);
     updateCurrentPage(1);
     // 切换文件/刷新：先回到顶部（刷新后由恢复逻辑重新定位）
     containerRef.current?.scrollTo(0, 0);
     fetch(pageUrlFor(1))
-      .then((r) => {
+      .then(async (r) => {
         if (!r.ok) {
           // 501 = 转换器不可用；423 = 文件被其他程序占用
           if (r.status === 501) {
             if (onUnsupported) {
-              onUnsupported();
+              if (!cancelled) onUnsupported();
               return;
             }
-            throw new Error("当前机器缺少 WPS 或 Microsoft PowerPoint，无法预览 PPT");
           }
           if (r.status === 423) {
-            throw new Error("文件可能正被其他程序使用（如 PowerPoint/WPS），请关闭后点击刷新重试");
+            throw new Error(t("desktop.previewFileInUse"));
           }
-          throw new Error(`HTTP ${r.status}`);
+          const data: { error?: unknown } | null = await r.json().catch(() => null);
+          throw new Error(typeof data?.error === "string" && data.error ? data.error : `HTTP ${r.status}`);
         }
         const count = Number(r.headers.get("X-PDF-PageCount"));
         const w = Number(r.headers.get("X-PDF-Width"));
@@ -228,6 +237,7 @@ export function PdfViewer({
             pendingRestoreScroll.current = null;
             if (restore !== null && restore > 0) {
               setTimeout(() => {
+                if (cancelled) return;
                 const el = containerRef.current;
                 if (!el) return;
                 const max = Math.max(el.scrollHeight - el.clientHeight, 0);
@@ -248,13 +258,13 @@ export function PdfViewer({
     return () => {
       cancelled = true;
     };
-  }, [onUnsupported, pageUrlFor, updateCurrentPage, scrollToPage]);
+  }, [onUnsupported, pageUrlFor, updateCurrentPage, scrollToPage, t]);
 
-  // 重新计算当前页：视口内可见面积最大的页（固定页高纯计算，不依赖图片/几何；
+  // 重新计算当前页：按各页实际高度，选择视口内可见面积最大的页；
   // 面积相同（严格大于比较）时保留先遍历到的页 = 页码更小者，即优先上方页）
   const recomputeCurrentPage = useCallback(() => {
     const el = containerRef.current;
-    if (!el || pageHeight <= 0 || pageCount === 0) return;
+    if (!el || !pageHeights[0] || pageCount === 0) return;
     // 兜底：拉到最顶部 → 第 1 页
     if (el.scrollTop <= 1) {
       if (currentPageRef.current !== 1) updateCurrentPage(1);
@@ -264,31 +274,27 @@ export function PdfViewer({
     const viewBottom = el.scrollTop + el.clientHeight;
     let bestPage = currentPageRef.current;
     let bestVisible = -1;
+    let pageTop = CONTENT_PADDING;
     for (let i = 0; i < pageCount; i += 1) {
-      const pageTop = CONTENT_PADDING + i * pageStep;
-      const pageBottom = pageTop + pageHeight;
+      const pageBottom = pageTop + pageHeights[i];
       const visible = Math.min(pageBottom, viewBottom) - Math.max(pageTop, viewTop);
       if (visible > 0 && visible > bestVisible) {
         bestVisible = visible;
         bestPage = i + 1;
       }
+      pageTop = pageBottom + PAGE_GAP;
     }
     if (bestPage !== currentPageRef.current) updateCurrentPage(bestPage);
-  }, [pageCount, pageHeight, pageStep, updateCurrentPage]);
+  }, [pageCount, pageHeights, updateCurrentPage]);
 
   // 保持 recomputeRef 始终指向最新实现（供 setTimeout 恢复回调调用）
   recomputeRef.current = recomputeCurrentPage;
+  useEffect(recomputeCurrentPage, [recomputeCurrentPage]);
 
   // 滚动：重新计算当前页
   const onScroll = useCallback(() => {
     recomputeCurrentPage();
   }, [recomputeCurrentPage]);
-
-  const imgWidth = useMemo(() => {
-    if (!naturalSize) return undefined;
-    if (fitWidth) return "100%";
-    return `${Math.round(naturalSize.w * zoom)}px`;
-  }, [naturalSize, fitWidth, zoom]);
 
   // 显示缩放比例：fitWidth 时 = 实际渲染比例（容器宽 ÷ 页面原始宽），非固定 100%
   const displayPercent = useMemo(() => {
@@ -359,7 +365,7 @@ export function PdfViewer({
               inputFocusedRef.current = true;
             }}
             disabled={!pageCount}
-            title="输入页码后回车跳转"
+            title={t("desktop.jumpToPage")}
             style={{
               width: 44,
               background: "transparent",
@@ -375,7 +381,7 @@ export function PdfViewer({
           />
           <span>/</span>
           <span>{pageCount || "–"}</span>
-          <span style={{ marginLeft: 4 }}>页</span>
+          <span style={{ marginLeft: 4 }}>{t("desktop.pages")}</span>
         </span>
         <button
           ref={refreshRef}
@@ -385,23 +391,23 @@ export function PdfViewer({
               ? { ...btnBase, flexShrink: 0, color: "var(--accent, #4f8cff)", borderColor: "var(--accent, #4f8cff)" }
               : { ...btnBase, flexShrink: 0 }
           }
-          title="刷新预览（重新读取文件；不会影响正在使用的 PowerPoint/WPS）"
+          title={t("desktop.refreshPreviewTitle")}
         >
-          ⟳ 刷新
+          ⟳ {t("desktop.refresh")}
         </button>
         <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          <button ref={fitWidthRef} onClick={() => setFitWidth(true)} style={fitWidth ? btnActive : btnBase} title="适应宽度">
-            适应宽度
+          <button ref={fitWidthRef} onClick={() => setFitWidth(true)} style={fitWidth ? btnActive : btnBase} title={t("desktop.fitWidth")}>
+            {t("desktop.fitWidth")}
           </button>
           {showZoomControls && (
             <span ref={zoomRef} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <button onClick={zoomOut} style={btnBase} title="缩小">
+              <button onClick={zoomOut} style={btnBase} title={t("desktop.zoomOut")}>
                 −
               </button>
               <span style={{ fontFamily: "var(--font-mono)", minWidth: 44, textAlign: "center" }}>
                 {displayPercent}%
               </span>
-              <button onClick={zoomIn} style={btnBase} title="放大">
+              <button onClick={zoomIn} style={btnBase} title={t("desktop.zoomIn")}>
                 ＋
               </button>
             </span>
@@ -423,41 +429,54 @@ export function PdfViewer({
       >
         {loading && !error ? (
           <div style={{ marginTop: 48, color: "var(--text-dim)", fontSize: 13, textAlign: "center" }}>
-            正在更新预览…
+            {t("desktop.updatingPreview")}
           </div>
         ) : error ? (
           <div style={{ marginTop: 48, color: "#f87171", fontSize: 13, textAlign: "center", maxWidth: 480 }}>
-            无法预览：{error}
+            {t("desktop.previewFailed", { error })}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-            {Array.from({ length: pageCount }, (_, index) => (
-              <div
-                key={`${index + 1}-${refreshTick}`}
-                ref={(el) => {
-                  pageRefs.current[index] = el;
-                }}
-                style={{ width: "100%", display: "flex", justifyContent: "center" }}
-              >
-                <img
-                  src={pageUrlFor(index + 1)}
-                  alt={`${fileName} 第 ${index + 1} 页`}
-                  onLoad={recomputeCurrentPage}
-                  style={{
-                    width: imgWidth,
-                    height: pageHeight || undefined,
-                    maxWidth: "none",
-                    background: "#ffffff",
-                    boxShadow: "0 2px 14px rgba(0,0,0,0.4)",
-                    borderRadius: 2,
-                    flexShrink: 0,
+            {Array.from({ length: pageCount }, (_, index) => {
+              const page = index + 1;
+              const size = pageSizes[page] ?? naturalSize;
+              const imgWidth = fitWidth ? "100%" : size ? `${Math.round(size.w * zoom)}px` : undefined;
+              return (
+                <div
+                  key={`${index + 1}-${refreshTick}`}
+                  ref={(el) => {
+                    pageRefs.current[index] = el;
                   }}
-                />
-              </div>
-            ))}
+                  style={{ width: "100%", display: "flex", justifyContent: "center" }}
+                >
+                  {failedPages.includes(page) ? (
+                    <div style={{ width: imgWidth, height: pageHeights[index] || undefined, padding: 24, color: "var(--accent-red)", textAlign: "center" }}>
+                      {t("desktop.previewPageFailed", { page })}
+                    </div>
+                  ) : <img
+                    src={pageUrlFor(index + 1)}
+                    alt={t("desktop.previewPage", { file: fileName, page })}
+                    onLoad={(event) => {
+                      const { naturalWidth: w, naturalHeight: h } = event.currentTarget;
+                      if (w && h) setPageSizes((sizes) => sizes[page]?.w === w && sizes[page]?.h === h ? sizes : { ...sizes, [page]: { w, h } });
+                    }}
+                    onError={() => setFailedPages((pages) => pages.includes(page) ? pages : [...pages, page])}
+                    style={{
+                      width: imgWidth,
+                      height: pageHeights[index] || undefined,
+                      maxWidth: "none",
+                      background: "#ffffff",
+                      boxShadow: "0 2px 14px rgba(0,0,0,0.4)",
+                      borderRadius: 2,
+                      flexShrink: 0,
+                    }}
+                  />}
+                </div>
+              );
+            })}
             {pageCount > 0 && (
               <div style={{ padding: "8px 0", fontSize: 11, color: "var(--text-dim)" }}>
-                — 已到末尾（共 {pageCount} 页）—
+                {t("desktop.previewEnd", { count: pageCount })}
               </div>
             )}
           </div>

@@ -55,11 +55,10 @@ try {
     # Route B (memory direct): find the doc the user already has open and export it as-is.
     # Read-only export: never closes the user's document, never touches it.
     if ($OriginalPath) {
-      $origName = Split-Path -Leaf $OriginalPath
       $origFull = (Resolve-Path -LiteralPath $OriginalPath).Path
       foreach ($p in $app.Presentations) {
-        try { $fullName = $p.FullName; $name = $p.Name } catch { continue }
-        if ($fullName -eq $origFull -or $name -eq $origName) { $presentation = $p; break }
+        try { $fullName = $p.FullName } catch { continue }
+        if ($fullName -eq $origFull) { $presentation = $p; break }
       }
     }
     if (-not $presentation) {
@@ -68,7 +67,13 @@ try {
       $openedFromDisk = $true
     }
     try {
-      $presentation.SaveAs($OutputPath, [int]32)
+      # 2 = ppFixedFormatTypePDF; SaveAs is safe only for the disposable copy.
+      try {
+        $presentation.ExportAsFixedFormat($OutputPath, [int]2)
+      } catch {
+        if (-not $openedFromDisk) { throw }
+        $presentation.SaveAs($OutputPath, [int]32)
+      }
     } finally {
       if ($openedFromDisk) { try { $presentation.Close() } catch {} }
     }
@@ -172,6 +177,7 @@ async function doConvert(
   pdfPath: string,
   metaPath: string,
 ): Promise<{ pdf: string; stale?: boolean } | { locked: true } | null> {
+  const pendingPdfPath = path.join(cacheDir, "converted.pending.pdf");
   try {
     fs.mkdirSync(cacheDir, { recursive: true });
     const scriptPath = path.join(cacheDir, "pptx-to-pdf.ps1");
@@ -189,26 +195,31 @@ async function doConvert(
     }
 
     // ProgId 留空 → 脚本内自探测（KWPP 优先、PowerPoint 其次；运行中复用实例）
-    const { stdout } = runPowerShell([
+    const { stdout, ok } = runPowerShell([
       "-File", scriptPath,
       "-InputPath", inputCopy,
-      "-OutputPath", pdfPath,
+      "-OutputPath", pendingPdfPath,
       "-OriginalPath", pptxPath,
     ]);
-    if (!stdout.includes("OK:")) {
+    if (!ok || !stdout.includes("OK:")) {
       // 转换失败/被占用 → 有旧缓存则兜底返回（用户仍可看到上次预览），否则报占用/不可用
       const legacy = findCachedPdf(pptxPath);
       if (legacy) return { pdf: legacy, stale: true };
       if (stdout.includes("in use")) return { locked: true };
       return null;
     }
-    if (fs.existsSync(pdfPath)) {
+    if (fs.existsSync(pendingPdfPath) && fs.statSync(pendingPdfPath).size > 0) {
+      // Keep the last preview intact until Office finishes exporting its replacement.
+      fs.renameSync(pendingPdfPath, pdfPath);
       fs.writeFileSync(metaPath, JSON.stringify({ mtimeMs: stat.mtimeMs, size: stat.size }));
       return { pdf: pdfPath };
     }
     return null;
   } catch {
-    return null;
+    const legacy = findCachedPdf(pptxPath);
+    return legacy ? { pdf: legacy, stale: true } : null;
+  } finally {
+    try { fs.rmSync(pendingPdfPath, { force: true }); } catch { /* Office may still hold the failed export. */ }
   }
 }
 

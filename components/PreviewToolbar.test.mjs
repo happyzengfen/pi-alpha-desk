@@ -17,10 +17,10 @@ test("manual image zoom is not capped at the fitted container width", async () =
   assert.match(source, /maxWidth: view\.fitWidth \? "100%" : "none"/);
 });
 
-test("Word previews fall back to the existing HTML renderer when COM conversion is unavailable", async () => {
+test("document previews use the existing renderer fallback when page conversion is unavailable", async () => {
   const fileViewer = await readFile(new URL("./FileViewer.tsx", import.meta.url), "utf8");
   const pdfViewer = await readFile(new URL("./PdfViewer.tsx", import.meta.url), "utf8");
 
-  assert.match(fileViewer, /onUnsupported=\{isWord \? handleWordPdfUnsupported : undefined\}/);
-  assert.match(pdfViewer, /if \(onUnsupported\) \{\s*onUnsupported\(\);\s*return;/);
+  assert.match(fileViewer, /onUnsupported=\{handlePagePreviewUnsupported\}/);
+  assert.match(pdfViewer, /if \(onUnsupported\) \{\s*if \(!cancelled\) onUnsupported\(\);\s*return;/);
 });

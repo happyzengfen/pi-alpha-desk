@@ -18,7 +18,7 @@ import {
   getImageMime,
 } from "@/lib/file-types";
 import { extractWordText, renderPptxPreviewBody, renderSpreadsheetPreviewBody } from "@/lib/office-files";
-import { renderPdfPage } from "@/lib/pdf-render-tool";
+import { PdfRendererUnavailableError, renderPdfPage } from "@/lib/pdf-render-tool";
 import { ensureDocxPdf } from "@/lib/docx-convert-tool";
 import { ensurePptxPdf } from "@/lib/pptx-convert-tool";
 import { resolveDirentIsDirectory } from "@/lib/file-dirent";
@@ -503,7 +503,10 @@ export async function GET(
       if (ext !== ".pdf" && ext !== ".pptx" && ext !== ".docx" && ext !== ".doc") {
         return NextResponse.json({ error: "pdfpage only supports .pdf, .pptx, .docx and .doc files" }, { status: 400 });
       }
-      const pageNumber = Number.parseInt(request.nextUrl.searchParams.get("page") ?? "1", 10);
+      const pageNumber = Number(request.nextUrl.searchParams.get("page") ?? "1");
+      if (!Number.isSafeInteger(pageNumber) || pageNumber < 1) {
+        return NextResponse.json({ error: "Invalid PDF page number" }, { status: 400 });
+      }
       let renderSource: string;
       try {
         // PPTX 先经 WPS/Office COM 导出为 PDF（缓存），再走渲染管线；无 COM 则回退
@@ -554,7 +557,7 @@ export async function GET(
       } catch (error) {
         return NextResponse.json(
           { error: `Failed to render PDF page: ${error instanceof Error ? error.message : String(error)}` },
-          { status: 500 },
+          { status: error instanceof PdfRendererUnavailableError ? 501 : 500 },
         );
       }
     }
@@ -579,7 +582,7 @@ export async function GET(
         return streamFile(filePath, stat, documentMime, request.headers.get("range"));
       }
       if (stat.size > TEXT_PREVIEW_MAX_BYTES) {
-        return NextResponse.json({ error: "File too large for preview (>256KB)" }, { status: 413 });
+        return NextResponse.json({ error: "File too large for preview (>5MB)" }, { status: 413 });
       }
       const content = fs.readFileSync(filePath, "utf-8");
       const language = getLanguage(filePath);

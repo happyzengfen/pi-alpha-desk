@@ -6,7 +6,7 @@
  *
  * 保护铁律（与 PPT 版一致）：
  *  - 程序运行中 = 用户可能正在使用 → GetActiveObject 复用，绝不 Quit 用户实例
- *  - 内存直出：Documents 集合按路径/文件名匹配用户已打开的文档 → 直接导出
+ *  - 内存直出：Documents 集合按完整路径匹配用户已打开的文档 → 直接导出
  *    （只读导出，不 Close 用户文档）；匹配失败才打开磁盘副本（路 A）
  *  - 缓存：固定 key（仅文件路径）+ meta.json（mtimeMs 毫秒级 + size）；
  *    失败/占用时返回旧缓存（stale）
@@ -60,11 +60,10 @@ try {
     # Route B (memory direct): find the doc the user already has open and export it as-is.
     # Read-only export: never closes the user's document, never touches it.
     if ($OriginalPath) {
-      $origName = Split-Path -Leaf $OriginalPath
       $origFull = (Resolve-Path -LiteralPath $OriginalPath).Path
       foreach ($d in $app.Documents) {
-        try { $fullName = $d.FullName; $name = $d.Name } catch { continue }
-        if ($fullName -eq $origFull -or $name -eq $origName) { $document = $d; break }
+        try { $fullName = $d.FullName } catch { continue }
+        if ($fullName -eq $origFull) { $document = $d; break }
       }
     }
     if (-not $document) {
@@ -172,6 +171,7 @@ async function doConvert(
   pdfPath: string,
   metaPath: string,
 ): Promise<{ pdf: string; stale?: boolean } | { locked: true } | null> {
+  const pendingPdfPath = path.join(cacheDir, "converted.pending.pdf");
   try {
     fs.mkdirSync(cacheDir, { recursive: true });
     const scriptPath = path.join(cacheDir, "docx-to-pdf.ps1");
@@ -187,25 +187,30 @@ async function doConvert(
       return { locked: true };
     }
 
-    const { stdout } = runPowerShell([
+    const { stdout, ok } = runPowerShell([
       "-File", scriptPath,
       "-InputPath", inputCopy,
-      "-OutputPath", pdfPath,
+      "-OutputPath", pendingPdfPath,
       "-OriginalPath", docxPath,
     ]);
-    if (!stdout.includes("OK:")) {
+    if (!ok || !stdout.includes("OK:")) {
       const legacy = findCachedPdf(docxPath);
       if (legacy) return { pdf: legacy, stale: true };
       if (stdout.includes("in use")) return { locked: true };
       return null;
     }
-    if (fs.existsSync(pdfPath)) {
+    if (fs.existsSync(pendingPdfPath) && fs.statSync(pendingPdfPath).size > 0) {
+      // Keep the last preview intact until Office finishes exporting its replacement.
+      fs.renameSync(pendingPdfPath, pdfPath);
       fs.writeFileSync(metaPath, JSON.stringify({ mtimeMs: stat.mtimeMs, size: stat.size }));
       return { pdf: pdfPath };
     }
     return null;
   } catch {
-    return null;
+    const legacy = findCachedPdf(docxPath);
+    return legacy ? { pdf: legacy, stale: true } : null;
+  } finally {
+    try { fs.rmSync(pendingPdfPath, { force: true }); } catch { /* Office may still hold the failed export. */ }
   }
 }
 

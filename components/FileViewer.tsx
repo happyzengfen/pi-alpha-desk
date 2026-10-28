@@ -472,6 +472,8 @@ function ImageViewer({ filePath, cwd, sourceSessionId }: Props) {
         const d = JSON.parse((e as MessageEvent).data) as { size?: number };
         if (typeof d.size === "number") setSize(d.size);
       } catch { /* ignore */ }
+      setNaturalSize(null);
+      setError(null);
       setBust((b) => b + 1);
     });
 
@@ -665,8 +667,8 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
   const [bust, setBust] = useState(0);
   const [size, setSize] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [wordPdfUnsupported, setWordPdfUnsupported] = useState(false);
-  const handleWordPdfUnsupported = useCallback(() => setWordPdfUnsupported(true), []);
+  const [pagePreviewUnsupported, setPagePreviewUnsupported] = useState(false);
+  const handlePagePreviewUnsupported = useCallback(() => setPagePreviewUnsupported(true), []);
   const esRef = useRef<EventSource | null>(null);
   // 表格类预览功能栏（刷新/适应宽度/缩放，无页数）
   const [view, setView] = useState<PreviewViewState>({ fitWidth: true, zoom: 1 });
@@ -678,14 +680,14 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
   const isDoc = ext === "doc";
   const isWord = ext === "doc" || ext === "docx";
   // docx/doc 走 PDF 渲染管线（Word/WPS COM 转 PDF）——功能栏四部分（页数/刷新/适应宽度/缩放）
-  const isPageRender = isPdf || isPptx || ((isDocx || isDoc) && !wordPdfUnsupported);
+  const isPageRender = (isPdf || isPptx || isDocx || isDoc) && !pagePreviewUnsupported;
   const previewLimit = ext === "docx" ? DOCX_PREVIEW_MAX_BYTES : OFFICE_PREVIEW_MAX_BYTES;
-  const previewUrl = isPageRender
+  const previewUrl = isPageRender || isPdf
     ? getFileApiUrl(filePath, "read", sourceSessionId, bust ? { v: bust } : undefined)
     : getFileApiUrl(filePath, "preview", sourceSessionId, bust ? { v: bust } : undefined);
 
   useEffect(() => {
-    setWordPdfUnsupported(false);
+    setPagePreviewUnsupported(false);
   }, [filePath]);
 
   useEffect(() => {
@@ -704,7 +706,7 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
         if (d.error) setError(d.error);
         if (typeof d.size === "number") {
           setSize(d.size);
-          if (!isPageRender && d.size > previewLimit) {
+          if (!isPageRender && !isPdf && d.size > previewLimit) {
             setError(ext === "docx" ? t("desktop.docxTooLargeForPreview") : t("desktop.officeTooLargeForPreview"));
           }
         }
@@ -712,7 +714,7 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
       .catch((e) => setError(String(e)));
 
     // pdf/pptx：不建立文件监听（避免长期监控；内容更新一律由顶栏“刷新”按钮手动触发）
-    if (isPageRender) {
+    if (isPageRender || isPdf) {
       return () => {
         esRef.current = null;
       };
@@ -744,7 +746,7 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
       es.close();
       esRef.current = null;
     };
-  }, [ext, filePath, isPageRender, previewLimit, sourceSessionId, t]);
+  }, [ext, filePath, isPageRender, isPdf, previewLimit, sourceSessionId, t]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
@@ -770,12 +772,26 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
         {size != null && <span>{formatSize(size)}</span>}
         <DownloadLink filePath={filePath} sourceSessionId={sourceSessionId} />
       </div>
-      {!isPageRender && (
+      {!isPageRender && !isPdf && (
         <PreviewToolbar
           filePath={filePath}
-          onRefresh={() => setBust((b) => b + 1)}
+          onRefresh={() => {
+            setError(null);
+            setBust((b) => b + 1);
+          }}
           onViewChange={setView}
         />
+      )}
+      {!isPageRender && isPdf && (
+        <div style={{ padding: "4px 16px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+          <button
+            onClick={() => { setError(null); setBust((b) => b + 1); }}
+            title={t("desktop.refreshPreviewTitle")}
+            style={{ padding: "2px 10px", background: "transparent", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text-dim)", fontSize: 11, cursor: "pointer" }}
+          >
+            ⟳ {t("desktop.refresh")}
+          </button>
+        </div>
       )}
       <div style={{ flex: 1, minHeight: 0, overflow: "hidden", background: "var(--bg-panel)" }}>
         {error ? (
@@ -787,7 +803,13 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
             url={previewUrl}
             fileName={getFileName(filePath)}
             filePath={filePath}
-            onUnsupported={isWord ? handleWordPdfUnsupported : undefined}
+            onUnsupported={handlePagePreviewUnsupported}
+          />
+        ) : isPdf ? (
+          <iframe
+            src={previewUrl}
+            title={t("desktop.previewFile", { file: getFileName(filePath) })}
+            style={{ width: "100%", height: "100%", border: "none" }}
           />
         ) : (
           <div
@@ -803,6 +825,14 @@ function DocumentViewer({ filePath, cwd, sourceSessionId }: Props) {
               src={previewUrl}
               sandbox="allow-same-origin"
               title={t("desktop.previewFile", { file: getFileName(filePath) })}
+              onLoad={(event) => {
+                const document = event.currentTarget.contentDocument;
+                if (document?.contentType !== "application/json") return;
+                try {
+                  const result: { error?: unknown } = JSON.parse(document.body.textContent ?? "");
+                  if (typeof result.error === "string") setError(result.error);
+                } catch { /* A successful HTML preview has no JSON error body. */ }
+              }}
               style={{ width: "100%", height: "100%", border: "none", background: "#eef1f5" }}
             />
           </div>
@@ -863,6 +893,7 @@ function TextFileViewer({ filePath, cwd, sourceSessionId, onOpenFile, initialDis
           setError(d.error);
           return null;
         }
+        setError(null);
         if (isRefresh) {
           setData((prev) => {
             if (prev) setPrevContent(prev.content);
