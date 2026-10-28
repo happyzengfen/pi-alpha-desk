@@ -1529,8 +1529,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     if (lvl === "auto" || !thinkingLevelMap) return thinkingLevelLabels[lvl];
     return thinkingLevelMap[lvl] ?? thinkingLevelLabels[lvl];
   })();
-  const toolPresetKey = Object.entries(TOOL_PRESET_MAP).find(([, value]) => value === (toolPreset ?? "default"))?.[0] as typeof TOOL_PRESETS[number] | undefined;
-  const toolPresetLabel = toolPresetLabels[toolPresetKey ?? "default"];
+  const toolPresetKey = Object.entries(TOOL_PRESET_MAP).find(([, value]) => value === (toolPreset ?? "full"))?.[0] as typeof TOOL_PRESETS[number] | undefined;
+  const toolPresetLabel = toolPresetLabels[toolPresetKey ?? "full"];
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -2676,7 +2676,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                     <div style={{ padding: 4, display: "flex", flexDirection: "column", gap: 2 }}>
                     {TOOL_PRESETS.map((lvl) => {
                       const preset = TOOL_PRESET_MAP[lvl];
-                      const isActive = (toolPreset ?? "default") === preset;
+                      const isActive = (toolPreset ?? "full") === preset;
                       const desc = lvl === "off" ? t("desktop.noToolsReadOnly") : lvl === "default" ? t("desktop.fourBuiltInTools") : t("desktop.allBuiltInTools");
                       return (
                         <button

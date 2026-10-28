@@ -27,7 +27,7 @@ let serverUrl = `http://${HOSTNAME}:${port}`;
 const LOADING_HTML =
   "data:text/html;charset=utf-8," +
   encodeURIComponent(
-    `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#1a1a1a;height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif"><div style="text-align:center"><div style="font-size:26px;color:#e6e6e6;letter-spacing:2px">数字化AI助手</div><div style="font-size:13px;color:#8b949e;margin-top:10px">正在启动…</div></div></body></html>`,
+    `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#1a1a1a;height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif"><div style="text-align:center"><div style="font-size:26px;color:#e6e6e6;letter-spacing:2px">运维数字化Ai助手</div><div style="font-size:13px;color:#8b949e;margin-top:10px">正在启动…</div></div></body></html>`,
   );
 
 let mainWindow = null;
@@ -59,7 +59,7 @@ function getStartupFailureMessage(error) {
   const details = serverLogTail.trim();
   const logHint = serverLogPath ? `\n\nServer log:\n${serverLogPath}` : "";
   const detailHint = details ? `\n\nLast server output:\n${details}` : "";
-  return `Failed to start 数字化AI助手: ${error.message}${logHint}${detailHint}`;
+  return `Failed to start 运维数字化Ai助手: ${error.message}${logHint}${detailHint}`;
 }
 
 function waitForServer(timeoutMs = 30000) {
@@ -220,7 +220,7 @@ function createTray() {
     : sourceIcon;
   if (process.platform === "darwin") trayIcon.setTemplateImage(true);
   tray = new Tray(trayIcon);
-  tray.setToolTip("数字化AI助手");
+  tray.setToolTip("运维数字化Ai助手");
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -259,7 +259,7 @@ function createWindow() {
     height: 800,
     minWidth: 480,
     minHeight: 400,
-    title: "数字化AI助手",
+    title: "运维数字化Ai助手",
     icon: iconPath,
     // macOS: keep the native frame so the traffic-light buttons render, but
     // hide the title bar text (the renderer draws its own title bar).

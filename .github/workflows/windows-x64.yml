@@ -82,7 +82,7 @@ jobs:
               taskkill /PID $process.Id /T /F | Out-Host
               $global:LASTEXITCODE = 0
             }
-            Get-Process "数字化AI助手" -ErrorAction SilentlyContinue |
+            Get-Process "运维数字化Ai助手" -ErrorAction SilentlyContinue |
               Stop-Process -Force -ErrorAction SilentlyContinue
           }
 
@@ -144,7 +144,7 @@ jobs:
               taskkill /PID $process.Id /T /F | Out-Host
               $global:LASTEXITCODE = 0
             }
-            Get-Process "数字化AI助手" -ErrorAction SilentlyContinue |
+            Get-Process "运维数字化Ai助手" -ErrorAction SilentlyContinue |
               Stop-Process -Force -ErrorAction SilentlyContinue
           }
 

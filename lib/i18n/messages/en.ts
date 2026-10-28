@@ -27,7 +27,7 @@ export const enLocale = {
     "desktop.system": "System",
     "desktop.english": "English",
     "desktop.chinese": "简体中文",
-    "desktop.themeDescription": "Choose the appearance of Pi Web.",
+    "desktop.themeDescription": "Choose the appearance of 运维数字化Ai助手.",
     "desktop.languageDescription": "Choose the display language for the interface.",
     "desktop.colorScheme": "Color Scheme",
     "desktop.openThemeFolder": "Open Pi theme folder",

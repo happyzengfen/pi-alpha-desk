@@ -6,6 +6,7 @@ import { resolveAllowedNewSessionCwd } from "@/lib/new-session-cwd";
 import { invalidateSessionListCache } from "@/lib/session-reader";
 import { startRpcSession } from "@/lib/rpc-manager";
 import { hasJsonContentType, isApiRequestAllowed } from "@/lib/request-security";
+import { PRESET_FULL } from "@/lib/tool-presets";
 
 const THINKING_LEVELS = new Set<ThinkingLevel>([
   "off", "minimal", "low", "medium", "high", "xhigh", "max",
@@ -75,7 +76,7 @@ export async function POST(req: Request) {
     // new requests in the same millisecond from accidentally sharing a session.
     const temporaryKey = `__new__${randomUUID()}`;
     const { session, realSessionId } = await startRpcSession(temporaryKey, "", legalCwd, {
-      ...(toolNames ? { toolNames } : {}),
+      toolNames: toolNames ?? [...PRESET_FULL],
       ...(provider && modelId ? { initialModel: { provider, modelId } } : {}),
       ...(explicitThinkingLevel ? { thinkingLevel: explicitThinkingLevel } : {}),
     });

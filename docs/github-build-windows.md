@@ -45,8 +45,8 @@ git push origin v0.7.17
 
 | 文件 | 说明 |
 |------|------|
-| `数字化AI助手 Setup X.X.X.exe` | NSIS 安装程序（推荐） |
-| `数字化AI助手-X.X.X-portable.exe` | 免安装便携版 |
+| `运维数字化Ai助手 Setup X.X.X.exe` | NSIS 安装程序（推荐） |
+| `运维数字化Ai助手-X.X.X-portable.exe` | 免安装便携版 |
 | `latest.yml` | electron-updater 自动更新清单 |
 
 ---

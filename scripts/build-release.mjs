@@ -110,6 +110,7 @@ if (!new Set(["x64", "arm64", "ia32"]).has(TARGET_ARCH)) {
 
 const PKG     = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
 const VER     = PKG.version;
+const PRODUCT_NAME = PKG.build?.productName ?? PKG.name;
 const RELDIR  = join(ROOT, "release");
 const UNPKDIR = join(RELDIR, "win-unpacked");
 const LOCAL_PI_MARKER = join(ROOT, "node_modules", "@earendil-works", "pi-coding-agent", "pi-local-source.json");
@@ -367,7 +368,7 @@ if (!DO_ZIP) {
 } else if (!existsSync(UNPKDIR) || !statSync(UNPKDIR).isDirectory()) {
   log("Step 4: no win-unpacked/ directory.");
 } else {
-  const ZIP = join(RELDIR, `PiWeb-${VER}-portable-win.zip`);
+  const ZIP = join(RELDIR, `${PRODUCT_NAME}-${VER}-portable-win.zip`);
   log(`Step 4: zipping -> ${ZIP}`);
   rmSync(ZIP, { force: true });
 
@@ -376,14 +377,14 @@ if (!DO_ZIP) {
     run("tar", ["-a", "-c", "-f", ZIP, "-C", RELDIR, "win-unpacked"]);
   } else {
     // macOS / Linux: rename to the product name, then use zip
-    const NICE = join(RELDIR, PKG.build?.productName ?? "Pi Web");
+    const NICE = join(RELDIR, PRODUCT_NAME);
     if (existsSync(NICE)) rmSync(NICE, { recursive: true, force: true });
     renameSync(UNPKDIR, NICE);
     try {
-      run("zip", ["-r", "-q", ZIP, PKG.build?.productName ?? "Pi Web"], RELDIR);
+      run("zip", ["-r", "-q", ZIP, PRODUCT_NAME], RELDIR);
     } catch (error) {
       // fallback: tar.gz
-      const TGZ = join(RELDIR, `PiWeb-${VER}-portable-linux.tar.gz`);
+      const TGZ = join(RELDIR, `${PRODUCT_NAME}-${VER}-portable-linux.tar.gz`);
       log(`zip failed (${error.message}), falling back to tar.gz -> ${TGZ}`);
       renameSync(NICE, UNPKDIR);
       run("tar", ["-czf", TGZ, "-C", RELDIR, "win-unpacked"]);

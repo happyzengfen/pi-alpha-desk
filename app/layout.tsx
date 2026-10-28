@@ -8,7 +8,7 @@ import "@fontsource/ia-writer-quattro/700-italic.css";
 import "@fontsource/lilex";
 
 export const metadata: Metadata = {
-  title: "数字化AI助手",
+  title: "运维数字化Ai助手",
   description: "Pi Coding Agent Web Interface",
   icons: {
     icon: "/favicon.svg",

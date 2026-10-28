@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 import { verifyWindowsPackage } from "./verify-windows-package.mjs";
 
-const PRODUCT_EXECUTABLE = "数字化AI助手.exe";
+const PRODUCT_EXECUTABLE = "运维数字化Ai助手.exe";
 
 async function writeFixtureFile(root, relativePath, contents = "fixture") {
   const path = join(root, relativePath);

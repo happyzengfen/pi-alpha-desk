@@ -1,9 +1,9 @@
-# 数字化AI助手
+# 运维数字化Ai助手
 
 [English](./README.md)
 
 <p align="center">
-  <img src="./public/favicon.svg" alt="数字化AI助手" width="128" />
+  <img src="./public/favicon.svg" alt="运维数字化Ai助手" width="128" />
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@
 
 ## 项目概览
 
-数字化AI助手（`@happyzengfen/pi-alpha-desk`）从上游 [pi-web](https://github.com/agegr/pi-web) `v0.7.16` 起步，目前已发展为独立的 Electron-first 桌面产品。它为本地 pi 会话提供可视化工作区，同时保持与 pi 的会话存储、模型、认证、Skills、插件和主题格式兼容。
+运维数字化Ai助手（`@happyzengfen/pi-alpha-desk`）从上游 [pi-web](https://github.com/agegr/pi-web) `v0.7.16` 起步，目前已发展为独立的 Electron-first 桌面产品。它为本地 pi 会话提供可视化工作区，同时保持与 pi 的会话存储、模型、认证、Skills、插件和主题格式兼容。
 
 本仓库不是上游镜像。产品优先保护桌面窗口、标题栏、侧栏、流程时间线、主题、字体和文件工作区体验；上游的 SDK 兼容、安全、数据完整性、认证、SSE 与可靠性修复会经过适配后选择性引入。
 
@@ -94,8 +94,8 @@
 
 从 [GitHub Releases](https://github.com/happyzengfen/pi-alpha-desk/releases) 下载：
 
-- `数字化AI助手 Setup <版本>.exe`：NSIS 安装版
-- `数字化AI助手-<版本>-portable.exe`：免安装便携版
+- `运维数字化Ai助手 Setup <版本>.exe`：NSIS 安装版
+- `运维数字化Ai助手-<版本>-portable.exe`：免安装便携版
 
 未签名开发包可能触发 Windows SmartScreen。请先核对下载来源，再选择“更多信息 → 仍要运行”；对外发行应配置正式代码签名证书。
 
@@ -117,8 +117,8 @@ hdiutil verify release/*.dmg
 默认生成：
 
 ```text
-release/数字化AI助手-<版本>-arm64.dmg
-release/mac-arm64/数字化AI助手.app
+release/运维数字化Ai助手-<版本>-arm64.dmg
+release/mac-arm64/运维数字化Ai助手.app
 ```
 
 先从应用菜单或托盘完全退出旧版，再打开 DMG，将应用拖入“应用程序”进行安装或替换。完整的独立构建目录、校验与安装步骤见[构建与发布说明](./docs/release.md)。安装包保存在本地，不随源码提交自动上传到 GitHub Releases。
@@ -167,7 +167,7 @@ npm run electron:dev
 
 ## 主题
 
-数字化AI助手读取 pi 兼容主题：
+运维数字化Ai助手读取 pi 兼容主题：
 
 ```text
 ~/.pi/agent/themes/       # 全局主题

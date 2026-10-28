@@ -1,7 +1,7 @@
-# 数字化AI助手
+# 运维数字化Ai助手
 
 <p align="center">
-  <img src="./public/favicon.svg" alt="数字化AI助手" width="128" />
+  <img src="./public/favicon.svg" alt="运维数字化Ai助手" width="128" />
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@
 
 ## Overview
 
-数字化AI助手 (`@happyzengfen/pi-alpha-desk`) is a desktop-focused derivative of upstream [pi-web](https://github.com/agegr/pi-web) `v0.7.16`. It provides a visual workspace for local pi sessions while preserving compatibility with pi's session storage, models, authentication, skills, plugins, and theme formats.
+运维数字化Ai助手 (`@happyzengfen/pi-alpha-desk`) is a desktop-focused derivative of upstream [pi-web](https://github.com/agegr/pi-web) `v0.7.16`. It provides a visual workspace for local pi sessions while preserving compatibility with pi's session storage, models, authentication, skills, plugins, and theme formats.
 
 This repository is not an upstream mirror. It prioritizes its own desktop experience and selectively adopts upstream SDK compatibility, security, correctness, and reliability improvements.
 
@@ -71,8 +71,8 @@ File diff preview:
 
 Download the NSIS installer or portable executable from [GitHub Releases](https://github.com/happyzengfen/pi-alpha-desk/releases):
 
-- `数字化AI助手 Setup <version>.exe` — standard installer
-- `数字化AI助手-<version>-portable.exe` — portable executable
+- `运维数字化Ai助手 Setup <version>.exe` — standard installer
+- `运维数字化Ai助手-<version>-portable.exe` — portable executable
 
 The Windows release workflow targets x64. The manually triggered **Desktop packages** workflow also builds macOS DMGs and Linux AppImages for arm64 and x64.
 
@@ -91,7 +91,7 @@ node scripts/verify-macos-package.mjs --dir release/mac-arm64 --arch arm64
 hdiutil verify release/*.dmg
 ```
 
-This produces `release/数字化AI助手-1.0.0-arm64.dmg` and `release/mac-arm64/数字化AI助手.app`. Quit an existing installation before opening the DMG and dragging the app to Applications. These local builds have no Developer ID signing or notarization. See the [release guide (Chinese)](./docs/release.md) for isolated build directories, installation, and runtime checks.
+This produces `release/运维数字化Ai助手-1.0.0-arm64.dmg` and `release/mac-arm64/运维数字化Ai助手.app`. Quit an existing installation before opening the DMG and dragging the app to Applications. These local builds have no Developer ID signing or notarization. See the [release guide (Chinese)](./docs/release.md) for isolated build directories, installation, and runtime checks.
 
 ### Run from source
 
@@ -135,7 +135,7 @@ npm run electron:dev
 
 ## Themes
 
-数字化AI助手 reads pi-compatible theme JSON files from:
+运维数字化Ai助手 reads pi-compatible theme JSON files from:
 
 ```text
 ~/.pi/agent/themes/       # global themes

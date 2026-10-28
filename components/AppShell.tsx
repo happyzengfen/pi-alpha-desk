@@ -370,7 +370,7 @@ export function AppShell() {
   // Update browser tab title when workspace changes
   useEffect(() => {
     const name = activeCwd ? getFileName(activeCwd) || activeCwd : null;
-    document.title = name ? `${name} — 数字化AI助手` : "数字化AI助手";
+    document.title = name ? `${name} — 运维数字化Ai助手` : "运维数字化Ai助手";
   }, [activeCwd]);
 
   const handleSelectSession = useCallback((session: SessionInfo, isRestore = false) => {

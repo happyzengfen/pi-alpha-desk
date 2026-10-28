@@ -128,7 +128,7 @@
   },
   "build": {
     "appId": "com.iswitthere.pi-web-desktop",
-    "productName": "数字化AI助手",
+    "productName": "运维数字化Ai助手",
     "directories": {
       "output": "release"
     },

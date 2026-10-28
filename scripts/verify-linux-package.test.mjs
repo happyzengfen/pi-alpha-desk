@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { verifyLinuxPackage } from "./verify-linux-package.mjs";
 
-function makeFixture(t, { architecture = "x64", executableName = "数字化AI助手", omit = null } = {}) {
+function makeFixture(t, { architecture = "x64", executableName = "运维数字化Ai助手", omit = null } = {}) {
   const release = fs.mkdtempSync(path.join(os.tmpdir(), "pi-web-linux-package-"));
   t.after(() => fs.rmSync(release, { recursive: true, force: true }));
   const appRoot = path.join(release, "resources", "app");

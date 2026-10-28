@@ -38,8 +38,8 @@ CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder \
 产物：
 
 ```text
-release/macos-arm64/数字化AI助手-1.0.0-arm64.dmg
-release/macos-arm64/mac-arm64/数字化AI助手.app
+release/macos-arm64/运维数字化Ai助手-1.0.0-arm64.dmg
+release/macos-arm64/mac-arm64/运维数字化Ai助手.app
 ```
 
 `directories.output` 可以替换为不同的日期目录，保留前次构建。不要误用 `npm run release` 来做本地打包：该命令还会修改应用版本并发布 npm 包。
@@ -51,8 +51,8 @@ release/macos-arm64/mac-arm64/数字化AI助手.app
 ```bash
 node scripts/verify-macos-package.mjs \
   --dir release/macos-arm64/mac-arm64 --arch arm64
-hdiutil verify release/macos-arm64/数字化AI助手-1.0.0-arm64.dmg
-shasum -a 256 release/macos-arm64/数字化AI助手-1.0.0-arm64.dmg
+hdiutil verify release/macos-arm64/运维数字化Ai助手-1.0.0-arm64.dmg
+shasum -a 256 release/macos-arm64/运维数字化Ai助手-1.0.0-arm64.dmg
 ```
 
 包校验会检查 Mach-O 架构、主进程与 preload、Next/Pi 运行依赖、内置插件、技能和图标。还需要实际启动 `.app`，确认窗口和聊天输入区可用，检查会话浏览、模型设置和 HTML 导出。启动成功不代表所有 provider 或第三方插件已经完成端到端验证。

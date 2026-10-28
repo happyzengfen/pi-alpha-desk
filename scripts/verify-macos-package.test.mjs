@@ -8,9 +8,9 @@ import { verifyMacPackage } from "./verify-macos-package.mjs";
 function makeFixture(t, { machine = 0x0100000c, omit = null } = {}) {
   const release = fs.mkdtempSync(path.join(os.tmpdir(), "pi-web-mac-package-"));
   t.after(() => fs.rmSync(release, { recursive: true, force: true }));
-  const app = path.join(release, "数字化AI助手.app");
+  const app = path.join(release, "运维数字化Ai助手.app");
   const appRoot = path.join(app, "Contents", "Resources", "app");
-  const executable = path.join(app, "Contents", "MacOS", "数字化AI助手");
+  const executable = path.join(app, "Contents", "MacOS", "运维数字化Ai助手");
   const required = [
     ["electron/main.js", "main"],
     ["electron/preload.js", "preload"],
