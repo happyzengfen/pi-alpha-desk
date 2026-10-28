@@ -15,6 +15,7 @@
  *   node scripts/build-release.mjs --target=portable
  *   node scripts/build-release.mjs --target=nsis
  *   node scripts/build-release.mjs --target=dir,nsis,portable --arch=x64
+ *   node scripts/build-release.mjs --target=dir,nsis,portable --arch=ia32 --output=release-ia32 --no-prune
  *   node scripts/build-release.mjs --no-zip
  *   node scripts/build-release.mjs --git-backup
  *   node scripts/build-release.mjs --no-clean
@@ -36,7 +37,7 @@ import {
   rmSync,
   statSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import process from "node:process";
 
@@ -96,9 +97,11 @@ const TARGETS = String(raw.target ?? process.env.PI_WEB_RELEASE_TARGET ?? "dir")
   .map((target) => target.trim())
   .filter(Boolean);
 const TARGET_ARCH = String(raw.arch ?? process.env.npm_config_arch ?? "x64").toLowerCase();
+const OUTPUT_DIRECTORY = String(raw.output ?? "release").trim();
 const DO_ZIP   = !raw["no-zip"];
 const DO_BAK   = !!raw["git-backup"];
 const DO_CLEAN = !raw["no-clean"];
+const DO_PRUNE = !raw["no-prune"];
 
 const SUPPORTED_TARGETS = new Set(["dir", "nsis", "portable"]);
 if (TARGETS.length === 0 || TARGETS.some((target) => !SUPPORTED_TARGETS.has(target))) {
@@ -111,8 +114,11 @@ if (!new Set(["x64", "arm64", "ia32"]).has(TARGET_ARCH)) {
 const PKG     = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
 const VER     = PKG.version;
 const PRODUCT_NAME = PKG.build?.productName ?? PKG.name;
-const RELDIR  = join(ROOT, "release");
-const UNPKDIR = join(RELDIR, "win-unpacked");
+const RELDIR  = resolve(ROOT, OUTPUT_DIRECTORY);
+if (!OUTPUT_DIRECTORY || RELDIR === ROOT || !RELDIR.startsWith(`${ROOT}${sep}`)) {
+  throw new Error(`Release output directory must be inside the project: ${OUTPUT_DIRECTORY || "(empty)"}`);
+}
+const UNPKDIR = join(RELDIR, `win${TARGET_ARCH === "x64" ? "" : `-${TARGET_ARCH}`}-unpacked`);
 const LOCAL_PI_MARKER = join(ROOT, "node_modules", "@earendil-works", "pi-coding-agent", "pi-local-source.json");
 // Capture the active SDK before npm changes the tree. Cached snapshots alone
 // must never replace a registry upgrade, and newer caches must not change commits.
@@ -273,6 +279,95 @@ function stripTypeAndMapFiles(directory) {
   return removed;
 }
 
+function packageDirectory(nodeModulesDirectory, packageName) {
+  return join(nodeModulesDirectory, ...packageName.split("/"));
+}
+
+function collectTargetOptionalDependencies(nodeModulesDirectory) {
+  const dependencies = [];
+
+  function visit(currentNodeModules) {
+    let entries;
+    try {
+      entries = readdirSync(currentNodeModules, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    const packageDirectories = [];
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const entryPath = join(currentNodeModules, entry.name);
+      if (entry.name.startsWith("@")) {
+        let scopedEntries = [];
+        try {
+          scopedEntries = readdirSync(entryPath, { withFileTypes: true });
+        } catch {}
+        for (const scopedEntry of scopedEntries) {
+          if (scopedEntry.isDirectory()) packageDirectories.push(join(entryPath, scopedEntry.name));
+        }
+      } else {
+        packageDirectories.push(entryPath);
+      }
+    }
+
+    for (const directory of packageDirectories) {
+      try {
+        const metadata = JSON.parse(readFileSync(join(directory, "package.json"), "utf8"));
+        for (const [name, version] of Object.entries(metadata.optionalDependencies ?? {})) {
+          if (name.includes(`win32-${TARGET_ARCH}`)) {
+            dependencies.push({ name, version: String(version), nodeModulesDirectory: currentNodeModules });
+          }
+        }
+      } catch {}
+      visit(join(directory, "node_modules"));
+    }
+  }
+
+  visit(nodeModulesDirectory);
+  return dependencies;
+}
+
+function installTargetOptionalDependencies(appNodeModules) {
+  const dependencies = collectTargetOptionalDependencies(appNodeModules)
+    .filter(({ name, nodeModulesDirectory }) =>
+      !existsSync(join(packageDirectory(nodeModulesDirectory, name), "package.json")),
+    );
+  if (dependencies.length === 0) return;
+
+  const stagingDirectory = join(RELDIR, ".native-deps");
+  log(`Step 3b: injecting ${TARGET_ARCH} Windows optional dependencies`);
+  try {
+    for (const [index, dependency] of dependencies.entries()) {
+      rmSync(stagingDirectory, { recursive: true, force: true });
+      mkdirSync(stagingDirectory, { recursive: true });
+      run("npm", [
+        "pack",
+        "--silent",
+        "--pack-destination",
+        stagingDirectory,
+        `${dependency.name}@${dependency.version}`,
+      ]);
+      const archives = readdirSync(stagingDirectory).filter((name) => name.endsWith(".tgz"));
+      if (archives.length !== 1) {
+        throw new Error(`Expected one npm archive for ${dependency.name}, found ${archives.length}`);
+      }
+      const destination = packageDirectory(dependency.nodeModulesDirectory, dependency.name);
+      mkdirSync(destination, { recursive: true });
+      run("tar", [
+        "-xzf",
+        join(stagingDirectory, archives[0]),
+        "--strip-components=1",
+        "-C",
+        destination,
+      ]);
+      log(`  ${index + 1}/${dependencies.length} ${dependency.name}@${dependency.version}`);
+    }
+  } finally {
+    rmSync(stagingDirectory, { recursive: true, force: true });
+  }
+}
+
 if (existsSync(NEXT_NM)) {
   materializeSymlinks(NEXT_NM);
 }
@@ -285,20 +380,24 @@ if (existsSync(NEXT_NM)) {
 // ══════════════════════════════════════════════════════════════════════════════
 let dependenciesPruned = false;
 try {
-  log("Step 2c: npm prune --production");
-  dependenciesPruned = true;
-  run("npm", ["prune", "--production"]);
+  if (DO_PRUNE) {
+    log("Step 2c: npm prune --production");
+    dependenciesPruned = true;
+    run("npm", ["prune", "--production"]);
 
-  log("  reinstalling Electron build tools");
-  run("npm", [
-    "install",
-    "--no-save",
-    "--package-lock=false",
-    `electron@${PKG.devDependencies.electron}`,
-    `electron-builder@${PKG.devDependencies["electron-builder"]}`,
-  ]);
-  restoreLocalPiSnapshot();
-  verifyLocalPiSnapshot();
+    log("  reinstalling Electron build tools");
+    run("npm", [
+      "install",
+      "--no-save",
+      "--package-lock=false",
+      `electron@${PKG.devDependencies.electron}`,
+      `electron-builder@${PKG.devDependencies["electron-builder"]}`,
+    ]);
+    restoreLocalPiSnapshot();
+    verifyLocalPiSnapshot();
+  } else {
+    log("Step 2c: skipped dependency pruning (--no-prune)");
+  }
 
   // ════════════════════════════════════════════════════════════════════════════
   // 3. electron-builder
@@ -311,6 +410,7 @@ try {
     "--win",
     "dir",
     `--${TARGET_ARCH}`,
+    `--config.directories.output=${RELDIR}`,
     "--publish",
     "never",
   ]);
@@ -328,8 +428,18 @@ try {
     log("  done");
   }
 
+  if (existsSync(UNPKDIR)) {
+    installTargetOptionalDependencies(join(UNPKDIR, "resources", "app", "node_modules"));
+  }
+
   log("Step 3c: verifying Windows unpacked package");
-  run("node", ["scripts/verify-windows-package.mjs", "--dir", UNPKDIR]);
+  run("node", [
+    "scripts/verify-windows-package.mjs",
+    "--dir",
+    UNPKDIR,
+    "--arch",
+    TARGET_ARCH,
+  ]);
 
   for (const target of TARGETS.filter((target) => target !== "dir")) {
     log(`Step 3d: electron-builder --win ${target} --prepackaged ${UNPKDIR}`);
@@ -340,6 +450,7 @@ try {
       "--prepackaged",
       UNPKDIR,
       `--${TARGET_ARCH}`,
+      `--config.directories.output=${RELDIR}`,
       "--publish",
       "never",
     ]);
@@ -374,7 +485,7 @@ if (!DO_ZIP) {
 
   if (process.platform === "win32") {
     // Windows 10+ bsdtar auto-detects zip format by .zip extension
-    run("tar", ["-a", "-c", "-f", ZIP, "-C", RELDIR, "win-unpacked"]);
+    run("tar", ["-a", "-c", "-f", ZIP, "-C", RELDIR, basename(UNPKDIR)]);
   } else {
     // macOS / Linux: rename to the product name, then use zip
     const NICE = join(RELDIR, PRODUCT_NAME);
@@ -387,7 +498,7 @@ if (!DO_ZIP) {
       const TGZ = join(RELDIR, `${PRODUCT_NAME}-${VER}-portable-linux.tar.gz`);
       log(`zip failed (${error.message}), falling back to tar.gz -> ${TGZ}`);
       renameSync(NICE, UNPKDIR);
-      run("tar", ["-czf", TGZ, "-C", RELDIR, "win-unpacked"]);
+      run("tar", ["-czf", TGZ, "-C", RELDIR, basename(UNPKDIR)]);
     }
   }
 }

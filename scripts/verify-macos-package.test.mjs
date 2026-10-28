@@ -25,6 +25,15 @@ function makeFixture(t, { machine = 0x0100000c, omit = null } = {}) {
     ["node_modules/unpdf/package.json", "{}"],
     ["node_modules/word-extractor/package.json", "{}"],
     ["node_modules/undici/package.json", "{}"],
+    ["node_modules/pdfjs-dist/package.json", "{}"],
+    ["node_modules/pdfjs-dist/legacy/build/pdf.mjs", "pdfjs"],
+    ["node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs", "worker"],
+    ["node_modules/pdfjs-dist/cmaps/GB-EUC-H.bcmap", "cmap"],
+    ["node_modules/pdfjs-dist/cmaps/Adobe-GB1-UCS2.bcmap", "cmap"],
+    ["node_modules/pdfjs-dist/standard_fonts/LiberationSans-Regular.ttf", "font"],
+    ["node_modules/mammoth/package.json", "{}"],
+    ["node_modules/jszip/package.json", "{}"],
+    ["node_modules/@napi-rs/canvas/package.json", "{}"],
     [".next/BUILD_ID", "build"],
     ["bundled-plugins/manifest.json", "{}"],
     ["public/icon-mac.png", "icon"],
@@ -89,4 +98,23 @@ test("reports a missing Office reader runtime", (t) => {
     () => verifyMacPackage(makeFixture(t, { omit: "node_modules/@e965/xlsx/package.json" })),
     /node_modules[/\\]@e965[/\\]xlsx[/\\]package\.json/,
   );
+});
+
+test("reports missing PDF preview and Office preview resources", (t) => {
+  for (const relative of [
+    "node_modules/pdfjs-dist/package.json",
+    "node_modules/pdfjs-dist/legacy/build/pdf.mjs",
+    "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs",
+    "node_modules/pdfjs-dist/cmaps/GB-EUC-H.bcmap",
+    "node_modules/pdfjs-dist/cmaps/Adobe-GB1-UCS2.bcmap",
+    "node_modules/pdfjs-dist/standard_fonts/LiberationSans-Regular.ttf",
+    "node_modules/mammoth/package.json",
+    "node_modules/jszip/package.json",
+    "node_modules/@napi-rs/canvas/package.json",
+  ]) {
+    assert.throws(
+      () => verifyMacPackage(makeFixture(t, { omit: relative })),
+      (error) => error.message.includes(relative.split("/").join(path.sep)),
+    );
+  }
 });

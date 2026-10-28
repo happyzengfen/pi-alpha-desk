@@ -23,6 +23,7 @@ function createPe(machine) {
 }
 
 async function createValidPackage(root, machine = 0x8664) {
+  const architecture = machine === 0x014c ? "ia32" : machine === 0xaa64 ? "arm64" : "x64";
   await writeFixtureFile(root, PRODUCT_EXECUTABLE, createPe(machine));
   await writeFixtureFile(root, "resources/app/electron/main.js");
   await writeFixtureFile(root, "resources/app/electron/preload.js");
@@ -37,13 +38,51 @@ async function createValidPackage(root, machine = 0x8664) {
   await writeFixtureFile(root, "resources/app/node_modules/unpdf/package.json", "{}");
   await writeFixtureFile(root, "resources/app/node_modules/word-extractor/package.json", "{}");
   await writeFixtureFile(root, "resources/app/node_modules/undici/package.json", "{}");
+  for (const relative of [
+    "pdfjs-dist/package.json",
+    "pdfjs-dist/legacy/build/pdf.mjs",
+    "pdfjs-dist/legacy/build/pdf.worker.mjs",
+    "pdfjs-dist/cmaps/GB-EUC-H.bcmap",
+    "pdfjs-dist/cmaps/Adobe-GB1-UCS2.bcmap",
+    "pdfjs-dist/standard_fonts/LiberationSans-Regular.ttf",
+    "mammoth/package.json",
+    "jszip/package.json",
+    "@napi-rs/canvas/package.json",
+  ]) {
+    await writeFixtureFile(root, `resources/app/node_modules/${relative}`);
+  }
+  if (architecture !== "ia32") {
+    await writeFixtureFile(
+      root,
+      `resources/app/node_modules/@napi-rs/canvas-win32-${architecture}-msvc/skia.node`,
+      createPe(machine),
+    );
+  }
+  await writeFixtureFile(root, "resources/app/node_modules/sharp/package.json", "{}");
+  await writeFixtureFile(root, "resources/app/node_modules/next/node_modules/sharp/package.json", "{}");
+  await writeFixtureFile(root, "resources/app/node_modules/@napi-rs/keyring/package.json", "{}");
+  await writeFixtureFile(
+    root,
+    `resources/app/node_modules/@img/sharp-win32-${architecture}/sharp.node`,
+    createPe(machine),
+  );
+  await writeFixtureFile(
+    root,
+    `resources/app/node_modules/next/node_modules/@img/sharp-win32-${architecture}/sharp.node`,
+    createPe(machine),
+  );
+  await writeFixtureFile(
+    root,
+    `resources/app/node_modules/@napi-rs/keyring-win32-${architecture}-msvc/keyring.node`,
+    createPe(machine),
+  );
   await writeFixtureFile(root, "resources/app/.next/BUILD_ID");
   await writeFixtureFile(root, "resources/app/bundled-plugins/manifest.json", "{}");
   await writeFixtureFile(root, "resources/app/.next/node_modules/external-package/index.js");
   await writeFixtureFile(root, "resources/app/public/icon.ico");
   await writeFixtureFile(
     root,
-    "resources/app/node_modules/@earendil-works/pi-coding-agent/node_modules/@mariozechner/clipboard-win32-x64-msvc/clipboard.win32-x64-msvc.node",
+    `resources/app/node_modules/@earendil-works/pi-coding-agent/node_modules/@mariozechner/clipboard-win32-${architecture}-msvc/clipboard.win32-${architecture}-msvc.node`,
   );
   await writeFixtureFile(root, "resources/bundled-skills/example/SKILL.md");
   await writeFixtureFile(root, "resources/bundled-skills/manifest.json", "{}");
@@ -61,6 +100,55 @@ test("accepts a complete Windows x64 package", async () => {
   }
 });
 
+test("accepts a complete Windows arm64 package", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pi-web-win-package-"));
+  try {
+    await createValidPackage(root, 0xaa64);
+    assert.equal(verifyWindowsPackage(root, "arm64").machine, "arm64");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("reports missing PDF preview and Office preview resources", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pi-web-win-package-"));
+  try {
+    await createValidPackage(root);
+    for (const relative of [
+      "pdfjs-dist/package.json",
+      "pdfjs-dist/legacy/build/pdf.mjs",
+      "pdfjs-dist/legacy/build/pdf.worker.mjs",
+      "pdfjs-dist/cmaps/GB-EUC-H.bcmap",
+      "pdfjs-dist/cmaps/Adobe-GB1-UCS2.bcmap",
+      "pdfjs-dist/standard_fonts/LiberationSans-Regular.ttf",
+      "mammoth/package.json",
+      "jszip/package.json",
+      "@napi-rs/canvas/package.json",
+    ]) {
+      const missingPath = join(root, "resources/app/node_modules", relative);
+      await rm(missingPath);
+      assert.throws(() => verifyWindowsPackage(root), (error) => error.message.includes(missingPath));
+      await writeFixtureFile(root, `resources/app/node_modules/${relative}`);
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects missing or wrong-architecture Windows canvas addons", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pi-web-win-package-"));
+  const addon = "resources/app/node_modules/@napi-rs/canvas-win32-x64-msvc/skia.node";
+  try {
+    await createValidPackage(root);
+    await rm(join(root, addon));
+    assert.throws(() => verifyWindowsPackage(root), /canvas-win32-x64-msvc.*no native addon/);
+    await writeFixtureFile(root, addon, createPe(0x014c));
+    assert.throws(() => verifyWindowsPackage(root), /Expected an x64 native addon.*found 0x14c/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("rejects a non-x64 application executable", async () => {
   const root = await mkdtemp(join(tmpdir(), "pi-web-win-package-"));
   try {
@@ -69,6 +157,23 @@ test("rejects a non-x64 application executable", async () => {
       () => verifyWindowsPackage(root),
       /Expected an x64 Windows executable.*found 0x14c/,
     );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("accepts a complete Windows ia32 package without the unavailable native clipboard addon", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pi-web-win-package-"));
+  try {
+    await createValidPackage(root, 0x014c);
+    await rm(join(
+      root,
+      "resources/app/node_modules/@earendil-works/pi-coding-agent/node_modules/@mariozechner",
+    ), { recursive: true, force: true });
+
+    const result = verifyWindowsPackage(root, "ia32");
+    assert.equal(result.executable, PRODUCT_EXECUTABLE);
+    assert.equal(result.machine, "ia32");
   } finally {
     await rm(root, { recursive: true, force: true });
   }

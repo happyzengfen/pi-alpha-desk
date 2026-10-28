@@ -53,6 +53,7 @@
     "electron:portable": "npm run icons && npm run build && electron-builder --win portable",
     "electron:win:x64": "node scripts/build-release.mjs --target=dir,nsis,portable --arch=x64 --no-zip",
     "electron:win:x64:dir": "node scripts/build-release.mjs --target=dir --arch=x64 --no-zip",
+    "electron:win:ia32": "node scripts/build-release.mjs --target=dir,nsis,portable --arch=ia32 --output=release-ia32 --no-prune --no-zip",
     "release:green": "node scripts/build-release.mjs",
     "release": "npm version patch --no-git-tag-version && npm run build && npm publish --access public"
   },
