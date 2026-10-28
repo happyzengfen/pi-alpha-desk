@@ -31,7 +31,7 @@ This repository is not an upstream mirror. It prioritizes its own desktop experi
 | Next.js | `16.3.0` |
 | React | `19.2.x` |
 | Electron | `43.x` |
-| pi SDK registry fallback | `0.87.1` |
+| pi SDK registry fallback | `0.99.1` |
 
 The 2026-09-23 update upgrades the Pi SDK from `0.85.1` to `0.87.1`, adapts tool-free prompts and session history, and updates source snapshot builds. The macOS arm64 package was rebuilt and checked in a running Electron window. See the [changelog](./docs/CHANGELOG.md#pi-0871-升级与-macos-arm64-重新构建2026-09-23) and [release guide (Chinese)](./docs/release.md).
 
@@ -203,7 +203,7 @@ Avoid `next build` / `npm run build` while a development server is active. It wr
 
 ### Local pi snapshots
 
-The four direct pi SDK dependencies are pinned to registry version `0.87.1`; `npm ci` installs the supported SDK and its locked dependencies. For source development, the snapshot script uses upstream's complete `build:offline` workspace order, then packs the six supported runtime packages: chord, pi-tui, pi-telemetry, pi-ai, pi-agent-core, and pi-coding-agent. This workflow is validated against Pi `v0.87.1` and does not change `package.json` or `package-lock.json`.
+The four direct pi SDK dependencies are pinned to registry version `0.99.1`; `npm ci` installs the supported SDK and its locked dependencies, including built-in GPT-6.1 Sol (`gpt-6.1-sol`) support. For source development, the snapshot script uses upstream's complete `build:offline` workspace order, then packs the six supported runtime packages: chord, pi-tui, pi-telemetry, pi-ai, pi-agent-core, and pi-coding-agent. This workflow is validated against Pi `v0.87.1` and does not change `package.json` or `package-lock.json`.
 
 ```bash
 # Uses the default sibling directory ../pi (must be a compatible clean checkout)

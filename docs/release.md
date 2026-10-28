@@ -1,6 +1,6 @@
 # 构建、安装与发布说明
 
-当前应用版本为 **1.0.0**，四个核心 Pi SDK 固定为 **0.87.1**。版本来源为 `package.json` 和 `package-lock.json`；应用版本与 SDK 版本分别管理。
+当前应用版本为 **1.0.0**，四个核心 Pi SDK 固定为 **0.99.1**，内置支持 GPT-6.1 Sol。版本来源为 `package.json` 和 `package-lock.json`；应用版本与 SDK 版本分别管理。
 
 ## 构建前准备
 

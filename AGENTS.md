@@ -52,10 +52,10 @@ Keep upstream-comparison notes outside the public repository; `ref-repos/` is in
 | **Fonts** | IA Writer Quattro, Lilex (mono) | |
 | **Desktop** | Electron + electron-builder | ^43.2.0 / ^26.15.3 |
 | **Linting** | ESLint (eslint-config-next) | ^9 |
-| **SDK** | @earendil-works/pi-coding-agent | 0.87.1 |
-| **SDK** | @earendil-works/pi-ai | 0.87.1 |
-| **SDK** | @earendil-works/pi-tui | 0.87.1 |
-| **SDK** | @earendil-works/pi-agent-core | 0.87.1 |
+| **SDK** | @earendil-works/pi-coding-agent | 0.99.1 |
+| **SDK** | @earendil-works/pi-ai | 0.99.1 |
+| **SDK** | @earendil-works/pi-tui | 0.99.1 |
+| **SDK** | @earendil-works/pi-agent-core | 0.99.1 |
 | **Package Manager** | npm (package-lock.json present) | |
 
 ---

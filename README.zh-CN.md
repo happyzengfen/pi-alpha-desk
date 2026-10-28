@@ -31,7 +31,7 @@
 | Next.js | `16.3.0` |
 | React | `19.2.x` |
 | Electron | `43.x` |
-| Pi SDK registry fallback | `0.87.1` |
+| Pi SDK registry fallback | `0.99.1` |
 
 ## 2026-09-23 更新重点
 
@@ -234,7 +234,7 @@ npm CLI 还支持 `--port` / `-p`、`--hostname` / `-H` 和 `--no-open`。
 
 ### 本地 pi 快照
 
-四个直接 Pi SDK 依赖固定为 registry `0.87.1`；`npm ci` 按锁文件安装当前支持的 SDK 和依赖。本地源码快照脚本采用上游完整的 `build:offline` workspace 构建顺序，再打包六个运行时包：chord、pi-tui、pi-telemetry、pi-ai、pi-agent-core、pi-coding-agent。该流程已在 Pi `v0.87.1` 上验证，不修改 `package.json` 或 `package-lock.json`。
+四个直接 Pi SDK 依赖固定为 registry `0.99.1`；`npm ci` 按锁文件安装当前支持的 SDK 和依赖，内置支持 GPT-6.1 Sol（`gpt-6.1-sol`）。本地源码快照脚本采用上游完整的 `build:offline` workspace 构建顺序，再打包六个运行时包：chord、pi-tui、pi-telemetry、pi-ai、pi-agent-core、pi-coding-agent。该流程已在 Pi `v0.87.1` 上验证，不修改 `package.json` 或 `package-lock.json`。
 
 ```bash
 # 使用默认相邻目录 ../pi（需为兼容版本且工作树干净）
@@ -321,6 +321,7 @@ public/               图标、字体相关资源和文件图标主题
 ## 相关文档
 
 - [构建、安装与发布说明](./docs/release.md)
+- [本地开发与使用手册](./docs/local-development.zh-CN.md)
 - [2026-08-09 更新记录](./docs/2026-08-09-183710.md)
 - [桌面助手优化报告](./docs/desktop-assistant-optimization.zh-CN.md)
 - [桌面性能基线](./docs/desktop-performance-baseline-2026-08-09.md)
