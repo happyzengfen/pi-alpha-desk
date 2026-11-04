@@ -100,7 +100,7 @@ async function main() {
     if (stopping) return;
     stopping = true;
     await hub.close();
-    if (process.connected) process.disconnect();
+    if (process.connected) process.disconnect?.();
   };
   process.once("SIGTERM", () => { void stop(); });
   process.once("SIGINT", () => { void stop(); });
