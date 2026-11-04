@@ -9,7 +9,8 @@ import { startHub } from "../host/main.ts";
 
 const jiti = createJiti(import.meta.url, { tsconfigPaths: true, alias: { "@": fileURLToPath(new URL("../../", import.meta.url)) } });
 const { GET, POST } = await jiti.import("../../app/api/automations/route.ts");
-const { initializeAutomationRuntime } = await jiti.import("@/lib/automation/runtime");
+const { initializeAutomationRuntime, validateAutomationCwd } = await jiti.import("@/lib/automation/runtime");
+const { AutomationInputError } = await jiti.import("@/lib/automation/config");
 const { allowFileRoot } = await jiti.import("@/lib/file-access");
 const { trustProject } = await jiti.import("@/lib/project-trust");
 const base = "http://127.0.0.1:30141/api/automations";
@@ -89,8 +90,23 @@ test("API rejects cross-origin, untrusted Host, non-JSON and oversized or malfor
   const oversized = await POST(request("x".repeat(1024 * 1024 + 1), { raw: true, headers: { "content-length": "1" } }));
   assert.equal(oversized.status, 413);
   for (const query of ["?why=0", "?why=-1", "?before=not-an-id", "?why=9007199254740992"]) {
-    assert.equal((await GET(request(undefined, { method: "GET", query }))).status, 400);
+    const response = await GET(request(undefined, { method: "GET", query }));
+    assert.equal(response.status, 400, JSON.stringify({ query, response: await response.text() }));
   }
+});
+
+test("API classifies schema errors and dynamically validated cwd errors as input failures", { timeout: 10000 }, async (t) => {
+  const f = await fixture(t);
+  const invalidConfig = makeConfig(f.cwd, { timeoutMinutes: 0 });
+  const response = await POST(request({ action: "save_config", config: invalidConfig }));
+  assert.equal(response.status, 400, JSON.stringify({ case: "invalid-config", response: await response.text() }));
+  const outside = path.join(f.root, "unselected");
+  await mkdir(outside);
+  await assert.rejects(validateAutomationCwd(outside), (error) => {
+    assert.ok(error instanceof AutomationInputError, JSON.stringify({ case: "dynamic-cwd-error-type", cwd: outside,
+      constructor: error?.constructor?.name, name: error?.name, message: error?.message, stack: error?.stack }));
+    return true;
+  });
 });
 
 test("internal suspend/resume requires the captured capability and does not leak it to snapshots", { timeout: 10000 }, async (t) => {
@@ -127,12 +143,13 @@ test("config saves validate real workspace boundaries and trust, preserve prior 
   assert.equal(initial.config.rules[0].cwd, await realpath(f.cwd));
   for (const cwd of [outside, linked, path.join(f.cwd, "missing")]) {
     const response = await save(makeConfig(cwd));
-    assert.equal(response.status, 400);
+    assert.equal(response.status, 400, JSON.stringify({ case: "invalid-cwd", cwd, response: await response.text() }));
     assert.equal((await f.snapshot()).config.rules[0].cwd, await realpath(f.cwd));
   }
   await mkdir(path.join(f.cwd, ".pi", "extensions"), { recursive: true });
   await writeFile(path.join(f.cwd, ".pi", "extensions", "untrusted.ts"), "export default function () {}\n");
-  assert.equal((await save(makeConfig(f.cwd))).status, 400);
+  const untrusted = await save(makeConfig(f.cwd));
+  assert.equal(untrusted.status, 400, JSON.stringify({ case: "untrusted-cwd", cwd: f.cwd, response: await untrusted.text() }));
   assert.equal(trustProject(f.cwd, f.agentDir).trusted, true);
   assert.equal((await save(makeConfig(f.cwd, { name: "Trusted saved rule" }))).status, 200);
   const triggered = await POST(request({ action: "trigger", ruleId: "rule-route" }));
