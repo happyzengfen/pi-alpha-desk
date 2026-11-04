@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
-import { credential, digest, whose } from "../upstream/kernel/credentials.ts";
+import { credential, digest, whose, type Environment } from "../upstream/kernel/credentials.ts";
 import { NotFound } from "../upstream/kernel/errors.ts";
 import { rows, statement, type Fact, type Row, type Table } from "../upstream/kernel/evolve.ts";
 import * as query from "../upstream/kernel/query.ts";
@@ -10,7 +10,7 @@ import { SCHEDULE } from "../upstream/kernel/rules.ts";
 import { stateOf } from "../upstream/kernel/state.ts";
 import { commitLatest, openView } from "../upstream/kernel/store.ts";
 import { parseRules } from "../upstream/protocol/rules.ts";
-import { desktopDecision, desktopStatus } from "./desktop-decisions.ts";
+import { desktopClaimEligible, desktopDecision, desktopStatus } from "./desktop-decisions.ts";
 
 export const UPSTREAM_COMMIT = "8f8e2eef3cfaa8f7a418818adc442450fe6bd884";
 // Bump when a local projection/schema change needs a log rebuild. This survives compilation.
@@ -44,7 +44,7 @@ export function createRuntime({ dataDir, now = Date.now }: { dataDir: string; no
   const secret = readFileSync(masterFile, "utf8").trim();
   if (!/^[A-Za-z0-9_-]{43}$/.test(secret)) throw new Error("Automation master.key is invalid; restore the original key from backup");
   chmodSync(masterFile, 0o600);
-  const environment = { secret, publicUrl: "" };
+  const environment: Environment = { secret, publicUrl: "", canClaim: desktopClaimEligible };
   const dbFile = join(dataDir, "hub.db");
   const db = new DatabaseSync(dbFile);
   try {

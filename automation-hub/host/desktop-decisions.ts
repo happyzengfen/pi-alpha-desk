@@ -1,17 +1,26 @@
 import { decide } from "../upstream/kernel/decide.ts";
 import { deadlines } from "../upstream/kernel/due.ts";
-import { Conflict, InputError, NotFound } from "../upstream/kernel/errors.ts";
+import { AuthError, Conflict, InputError, NotFound } from "../upstream/kernel/errors.ts";
 import { iso, rows, type Change, type Fact, type Row, type View } from "../upstream/kernel/evolve.ts";
-import type { Environment } from "../upstream/kernel/credentials.ts";
+import { credential, digest, type Environment } from "../upstream/kernel/credentials.ts";
 import type { Rules } from "../upstream/kernel/rules.ts";
 import { dayStart } from "../upstream/kernel/cron.ts";
 import { configuration, eventsOf } from "../upstream/kernel/query.ts";
+import { addUsage, parseResult, type Result } from "../upstream/protocol/validate.ts";
 
 type DesktopRule = { id: string; enabled: boolean; trigger?: { kind: string; at?: string; cron?: string } };
 type DesktopConfig = { version: 1; rules: DesktopRule[]; [key: string]: unknown };
 const config = (view: View) => view.get("config", "desktop")?.value as DesktopConfig | undefined;
 const generations = (view: View): Record<string, number> => view.get("config", "desktop-generations")?.value ?? {};
 const countDay = (view: View, now: number) => iso(dayStart(now, config(view)?.timezone as string ?? configuration(view).timezone));
+const authenticationWait = (card: Row) => card.kind === "ask" && typeof card.key === "string"
+  && card.key.startsWith(`thread:${card.rule}:${card.lane}:desktop-auth:`)
+  && card.key.length > `thread:${card.rule}:${card.lane}:desktop-auth:`.length;
+
+export function desktopClaimEligible(view: View, run: Row) {
+  return !rows(view, "cards", { rule: run.rule, lane: run.lane, state: "open", kind: "ask" }).some(authenticationWait);
+}
+
 export function desktopStatus(view: View, now = Date.now()) {
   const counts = view.get("config", "desktop-counts");
   return { config: config(view) ?? null, owner: view.get("config", "desktop-owner") ?? null, dailyCounts: counts?.day === countDay(view, now) ? counts.value as Record<string, number> : {} };
@@ -154,17 +163,65 @@ export function desktopDecision(view: View, type: string, args: unknown[], now: 
     cancelRule(ruleId);
     value = { ok: true };
   } else if (type === "desktopReconcile") {
-    const [runId, confirmedStopped] = args;
+    const [runId, confirmedStopped, completed] = args;
     if (!Number.isSafeInteger(runId) || Number(runId) < 1) throw new InputError("Invalid run");
-    if (confirmedStopped === true && draft.get("runs", Number(runId))?.desktop_reconciled === true) return { facts: [], value: { ok: true, duplicate: true } };
+    let result: Result | undefined;
+    let token: string | undefined;
+    let resultHash: string | undefined;
+    if (completed !== undefined) {
+      if (!completed || typeof completed !== "object" || Array.isArray(completed)
+        || Object.keys(completed).some((key) => !["token", "result"].includes(key))) throw new InputError("Invalid completed business result");
+      const given = completed as { token?: unknown; result?: unknown };
+      if (typeof given.token !== "string" || given.token.length > 128) throw new InputError("Invalid completed execution token");
+      token = given.token;
+      const parsed = parseResult(given.result);
+      // Keep the business conclusion; follow-up actions and caller-provided notices cannot run here.
+      result = { outcome: parsed.outcome, ...(parsed.summary !== undefined && { summary: parsed.summary }),
+        ...(parsed.error !== undefined && { error: parsed.error }), ...(parsed.session !== undefined && { session: parsed.session }),
+        ...(parsed.usage !== undefined && { usage: parsed.usage }) };
+      resultHash = digest(JSON.stringify(given.result));
+    }
+    const prior = draft.get("runs", Number(runId));
+    if (confirmedStopped === true && prior?.desktop_reconciled === true) {
+      if (completed !== undefined) {
+        if (!prior.desktop_completed_result || prior.last_issued == null) throw new Conflict("This execution was reconciled without a completed result");
+        if (credential(environment, "run", runId, prior.last_issued) !== token) throw new AuthError("Invalid completed execution token");
+        if (prior.last_result !== resultHash) throw new Conflict("This execution already recorded a different completed result");
+      }
+      return { facts: [], value: { ok: true, duplicate: true } };
+    }
     const owner = draft.get("config", "desktop-owner");
     if (confirmedStopped !== true || !owner || owner.run !== runId) throw new Conflict("Confirm that the current resource owner has stopped");
     const run = draft.get("runs", owner.run);
     if (!run) throw new NotFound("No resource-owning run");
-    cancelRule(run.rule);
-    put("runs", run.id, { state: "cancelled", finished_at: iso(now), summary: "Owner confirmed execution stopped", issued: null, last_issued: null, cancel_at: null, desktop_reconciled: true });
+    if (result) {
+      if (!["claimed", "unknown"].includes(run.state) || run.issued == null || owner.claim !== run.claim || owner.attempt !== run.attempts + 1
+        || credential(environment, "run", run.id, run.issued) !== token) throw new AuthError("Invalid completed execution token");
+      if (run.session && result.session && run.session !== result.session) throw new Conflict("Completed business session does not match this execution");
+      const session = result.session ?? run.session;
+      const usage = result.usage ? JSON.stringify(addUsage(run.usage ? JSON.parse(run.usage) : undefined, result.usage)) : run.usage;
+      // A failed business round is terminal here: never enter the core's retryLater path.
+      put("runs", run.id, { state: result.outcome === "failed" ? "cancelled" : result.outcome, finished_at: iso(now), summary: result.summary ?? "", error: result.error ?? null,
+        session, usage, last_issued: run.issued, last_result: resultHash, last_answer: "[]", issued: null, cancel_at: null,
+        desktop_reconciled: true, desktop_completed_result: result });
+      for (const card of rows(draft, "cards", { state: "open" })) if ([`run:${run.id}:unknown`, `run:${run.id}:failing`].includes(card.key))
+        put("cards", card.id, { state: "closed", result: "Business outcome confirmed after receipt review", closed_at: iso(now), version: card.version + 1 });
+      core("createCard", [{ key: `desktop-receipt-review:${run.id}:${run.issued}`, kind: "notice", once: true, rule: run.rule, grp: run.grp, lane: run.lane, run: run.id, session,
+        title: "Automation receipt needs review", text: `The business round ended with outcome ${result.outcome}. Receipt repair was stopped after review; follow-up instructions were not applied. Review the original session before continuing. This execution will not be retried.` }]);
+    } else {
+      cancelRule(run.rule);
+      put("runs", run.id, { state: "cancelled", finished_at: iso(now), summary: "Owner confirmed execution stopped", issued: null, last_issued: null, cancel_at: null, desktop_reconciled: true });
+    }
     set("config", "desktop-owner", null);
     value = { ok: true };
+  } else if (type === "answer" && (args[1] as { choice?: unknown })?.choice === 1
+    && draft.get("cards", Number(args[0]))?.state === "open" && authenticationWait(draft.get("cards", Number(args[0]))!)) {
+    const card = draft.get("cards", Number(args[0]))!;
+    value = core(type, args);
+    disableRule(card.rule);
+    const answered = draft.get("cards", card.id)!;
+    put("cards", card.id, { state: "closed", result: "Task paused while model authentication needs review", closed_at: iso(now), version: answered.version + 1 });
+    value = { changed: true, state: "closed" };
   } else if (type === "claimNext") {
     const owner = draft.get("config", "desktop-owner");
     if (owner && (owner.worker !== args[0] || owner.claim !== args[1] || draft.get("runs", owner.run)?.state !== "claimed")) return { facts: [], value: null };

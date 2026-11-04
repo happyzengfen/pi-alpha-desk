@@ -7,7 +7,7 @@ import { validateAgentImages } from "./image-attachments";
 import { invalidateModelsCache } from "./models-cache";
 import { resolveVisibleModels, selectInitialModelScope } from "./model-scope";
 import { getProjectTrustStatus, projectTrustReloadOptions } from "./project-trust";
-import { cacheSessionPath, invalidateSessionListCache } from "./session-reader";
+import { cacheSessionPath, invalidateSessionListCache, readSessionHeader } from "./session-reader";
 import { persistExplicitStartupPreferences } from "./startup-preferences";
 import type { SlashCommandInfo } from "@earendil-works/pi-coding-agent";
 import type { AgentSessionLike, ExtensionUiContextLike, ToolInfo } from "./pi-types";
@@ -18,6 +18,8 @@ import { createPdfReadTool } from "./pdf-read-tool";
 import { createSpreadsheetReadTool, createWordReadTool } from "./office-read-tool";
 import { createToolFreePromptPolicy } from "./tool-free-prompt";
 import { beginChatCwdUse, canonicalResourceCwd } from "./automation/resource-guard";
+import { AutomationSessionChangedError, findAutomationBinding, inspectAutomationSession, isAutomationManagedSession } from "./automation/session-binding";
+import { dirname } from "node:path";
 
 // ============================================================================
 // Types
@@ -69,6 +71,7 @@ export interface RpcSessionStartOptions {
   initialModel?: { provider: string; modelId: string };
   thinkingLevel?: ThinkingLevel;
   executionMode?: "chat" | "automation";
+  automationRepair?: boolean;
 }
 
 export const AUTOMATION_TOOL_NAMES = ["read", "grep", "find", "ls"] as const;
@@ -175,6 +178,7 @@ export class AgentSessionWrapper {
     public readonly cwd: string,
     private readonly toolFreePrompt = { enabled: false },
     public readonly executionMode: "chat" | "automation" = "chat",
+    public readonly automationRepair = false,
   ) {}
 
   get sessionId(): string {
@@ -419,7 +423,7 @@ export class AgentSessionWrapper {
     beforePrompt?: () => void | Promise<void>;
   } = {}): Promise<void> {
     if (this.executionMode !== "automation") throw new Error("Session is not managed by automation");
-    if (!this._alive) throw new Error("Automation session is closed");
+    if (!this._alive || this.shutdownPromise) throw new Error("Automation session is closed");
     if (this.isRunning() || this.inner.pendingMessageCount > 0) throw new Error("Automation session is busy");
     if (options.signal?.aborted) throw automationAbortError();
 
@@ -1245,6 +1249,16 @@ export async function startRpcSession(
   const registry = getRegistry();
   const locks = getLocks();
 
+  const inflight = locks.get(sessionId);
+  if (inflight) {
+    const result = await inflight;
+    // Re-read the registry and lock: an earlier waiter may have started a
+    // controlled mode replacement before this continuation resumed. A new
+    // session's provisional request id is replaced by the SDK's durable id.
+    return startRpcSession(result.realSessionId, sessionFile || result.session.sessionFile, cwd, options);
+  }
+  const requestedRepair = options.automationRepair ?? (options.executionMode === "automation" ? false : undefined);
+
   const existing = registry.get(sessionId);
   if (existing?.isAlive()) {
     if (options.executionMode && existing.executionMode !== options.executionMode) {
@@ -1254,48 +1268,78 @@ export async function startRpcSession(
     if (options.executionMode === "automation" && sessionFile && normalizeRpcCwd(existing.sessionFile) !== normalizeRpcCwd(sessionFile)) {
       throw new Error("Session file does not match");
     }
-    return { session: existing, realSessionId: sessionId };
+    if (requestedRepair === undefined || existing.automationRepair === requestedRepair) return { session: existing, realSessionId: sessionId };
+    if (existing.executionMode !== "automation") throw new Error("Repair mode requires an automation session");
+    if (existing.isRunning() || existing.inner.pendingMessageCount > 0) {
+      throw new Error("Automation session is busy; its execution mode cannot be changed");
+    }
   }
 
-  const inflight = locks.get(sessionId);
-  if (inflight) {
-    const result = await inflight;
-    if (options.executionMode && result.session.executionMode !== options.executionMode) {
-      throw new Error("Session execution mode does not match");
-    }
-    if (cwd && normalizeRpcCwd(result.session.cwd) !== normalizeRpcCwd(cwd)) throw new Error("Session cwd does not match");
-    if (options.executionMode === "automation" && sessionFile && normalizeRpcCwd(result.session.sessionFile) !== normalizeRpcCwd(sessionFile)) {
-      throw new Error("Session file does not match");
-    }
-    return result;
-  }
-
-  let sessionManager: SessionManager;
+  let header: ReturnType<typeof readSessionHeader> = null;
   if (sessionFile) {
-    sessionManager = SessionManager.open(sessionFile, undefined);
-  } else {
-    if (!cwd) throw new Error("cwd is required for a new session");
-    sessionManager = SessionManager.create(cwd, undefined);
+    try { header = readSessionHeader(sessionFile); } catch { /* Refuse SDK repair of missing files. */ }
+    if (!header || typeof header.id !== "string" || !header.id || ![1, 2, 3].includes(header.version ?? 1)) {
+      if (options.executionMode === "automation") throw new AutomationSessionChangedError();
+      throw new Error("Session header is missing or invalid; the file was left unchanged");
+    }
   }
-  const sessionCwd = sessionManager.getCwd();
-  if (sessionFile && options.executionMode === "automation" && sessionId !== sessionManager.getSessionId()) {
-    throw new Error("Automation session ID does not match");
-  }
-  if (cwd && normalizeRpcCwd(sessionCwd) !== normalizeRpcCwd(cwd)) throw new Error("Session cwd does not match");
-  const managedSession = sessionManager.getEntries().some(
-    (entry) => entry.type === "custom" && entry.customType === AUTOMATION_SESSION_ENTRY,
-  );
-  if (sessionFile && options.executionMode === "automation" && !managedSession) {
-    throw new Error("Cannot adopt a chat session as an automation session");
-  }
-  const executionMode = managedSession ? "automation" : options.executionMode ?? "chat";
-  const automation = executionMode === "automation";
-  if (automation && !managedSession) sessionManager.appendCustomEntry(AUTOMATION_SESSION_ENTRY, { version: 1 });
-  const startupUse = automation ? undefined : beginChatCwdUse(sessionCwd);
+  const startupCwd = cwd ?? header?.cwd ?? existing?.cwd;
+  if (!startupCwd) throw new Error("cwd is required for a new session");
+  if (cwd && header?.cwd && normalizeRpcCwd(header.cwd) !== normalizeRpcCwd(cwd)) throw new Error("Session cwd does not match");
+  // This is synchronous, before either metadata lookup can yield. Automation's
+  // cwd acquisition sees ordinary startups even before their SDK is opened.
+  const finishStartingSession = trackStartingSession(startupCwd);
+  let startupUse: ReturnType<typeof beginChatCwdUse> | undefined;
   let startupTransferred = false;
-  const finishStartingSession = trackStartingSession(sessionCwd);
-  const starting = (async () => {
-    await startupUse?.check();
+  let startupInner: AgentSessionLike | undefined;
+  let startupWrapper: AgentSessionWrapper | undefined;
+  const starting = Promise.resolve().then(async () => {
+    let sessionManager: SessionManager;
+    if (sessionFile) {
+      const descriptor = globalThis.__piAutomationRuntime?.descriptorPath ?? process.env.PI_AUTOMATION_DESCRIPTOR;
+      const bound = descriptor ? await findAutomationBinding(dirname(descriptor), sessionId) : undefined;
+      const managed = options.executionMode === "automation" || Boolean(bound) || await isAutomationManagedSession(sessionFile);
+      if (managed) {
+        inspectAutomationSession(sessionFile, { sessionId, ...(cwd && { cwd }), ...(options.executionMode === "automation" && bound?.digest && { digest: bound.digest }) });
+      } else {
+        startupUse = beginChatCwdUse(startupCwd);
+        await startupUse.check();
+      }
+      const currentHeader = readSessionHeader(sessionFile);
+      if (!currentHeader || currentHeader.id !== header!.id || ![1, 2, 3].includes(currentHeader.version ?? 1)
+        || (currentHeader.cwd && normalizeRpcCwd(currentHeader.cwd) !== normalizeRpcCwd(startupCwd))) throw new Error("Session changed before startup; the file was left unchanged");
+      if (existing?.isAlive()) {
+        if (existing.isRunning() || existing.inner.pendingMessageCount > 0) throw new Error("Automation session is busy; its execution mode cannot be changed");
+        await existing.shutdown();
+      }
+      sessionManager = SessionManager.open(sessionFile, undefined);
+    } else {
+      if (options.executionMode !== "automation") {
+        startupUse = beginChatCwdUse(startupCwd);
+        await startupUse.check();
+      }
+      if (existing?.isAlive()) {
+        if (existing.isRunning() || existing.inner.pendingMessageCount > 0) throw new Error("Automation session is busy; its execution mode cannot be changed");
+        await existing.shutdown();
+      }
+      sessionManager = SessionManager.create(startupCwd, undefined);
+    }
+    const sessionCwd = sessionManager.getCwd();
+    if (sessionFile && options.executionMode === "automation" && sessionId !== sessionManager.getSessionId()) {
+      throw new Error("Automation session ID does not match");
+    }
+    if (cwd && normalizeRpcCwd(sessionCwd) !== normalizeRpcCwd(cwd)) throw new Error("Session cwd does not match");
+    const managedSession = sessionManager.getEntries().some(
+      (entry) => entry.type === "custom" && entry.customType === AUTOMATION_SESSION_ENTRY,
+    );
+    if (sessionFile && options.executionMode === "automation" && !managedSession) {
+      throw new Error("Cannot adopt a chat session as an automation session");
+    }
+    const executionMode = managedSession ? "automation" : options.executionMode ?? "chat";
+    const automation = executionMode === "automation";
+    if (options.executionMode && executionMode !== options.executionMode) throw new Error("Session execution mode does not match");
+    if (!automation && requestedRepair === true) throw new Error("Repair mode requires an automation session");
+    if (automation && !managedSession) sessionManager.appendCustomEntry(AUTOMATION_SESSION_ENTRY, { version: 1 });
     // Some extensions access the SDK's global theme even outside the terminal UI.
     initTheme();
     const agentDir = getAgentDir();
@@ -1304,7 +1348,7 @@ export async function startRpcSession(
     // Since v0.68.0, session creation expects string[] tool names instead of Tool[] instances.
     let toolsOption: string[] | undefined;
     if (automation) {
-      toolsOption = [...AUTOMATION_TOOL_NAMES];
+      toolsOption = options.automationRepair ? [] : [...AUTOMATION_TOOL_NAMES];
     } else if (toolNames !== undefined) {
       // toolNames === [] -> "all off" (an empty allow-list disables every tool).
       // Otherwise DO NOT pass a builtin-only allow-list: passing CODING_TOOL_NAMES
@@ -1361,8 +1405,16 @@ export async function startRpcSession(
     const defaultProvider = services.settingsManager.getDefaultProvider();
     const defaultModelId = services.settingsManager.getDefaultModel();
     const hasExistingMessages = sessionManager.getBranch().some((entry) => entry.type === "message");
-    const initial = hasExistingMessages && !automation
-      ? { scopedModels: [...scope.scopedModels] }
+    const resumeExisting = automation ? managedSession && !initialModel : hasExistingMessages;
+    const branch = resumeExisting && automation ? sessionManager.getBranch() : [];
+    const savedModel = branch.findLast((entry) => entry.type === "model_change");
+    const restoredModel = savedModel?.type === "model_change" ? services.modelRuntime.getModel(savedModel.provider, savedModel.modelId) : undefined;
+    if (savedModel && !restoredModel) throw new Error("The managed session model is no longer available. Restore its model configuration before continuing.");
+    const savedThinking = branch.findLast((entry) => entry.type === "thinking_level_change");
+    const restoredThinking = thinkingLevel ?? (savedThinking?.type === "thinking_level_change" ? savedThinking.thinkingLevel as ThinkingLevel : undefined);
+    const initial = resumeExisting
+      ? { scopedModels: [...scope.scopedModels], ...(restoredModel && { model: restoredModel }),
+        ...(automation && restoredThinking && { thinkingLevel: restoredThinking }) }
       : selectInitialModelScope(scope, {
         ...(initialModel ? { requestedModel: initialModel } : {}),
         ...(defaultProvider && defaultModelId
@@ -1370,7 +1422,21 @@ export async function startRpcSession(
           : {}),
         ...(thinkingLevel ? { thinkingLevel } : {}),
       });
-    const { session: inner } = await createAgentSessionFromServices({
+    const appendModelChange = sessionManager.appendModelChange;
+    const appendThinkingChange = sessionManager.appendThinkingLevelChange;
+    const hadOwnModelChange = Object.hasOwn(sessionManager, "appendModelChange");
+    const hadOwnThinkingChange = Object.hasOwn(sessionManager, "appendThinkingLevelChange");
+    const preservePreparedMetadata = automation && resumeExisting && !hasExistingMessages && thinkingLevel === undefined;
+    if (preservePreparedMetadata) {
+      // The SDK treats a prepared transcript as new and repeats its settings.
+      // A viewer must not change the durable digest merely by opening it.
+      sessionManager.appendModelChange = (provider, modelId) => savedModel?.type === "model_change" && savedModel.provider === provider && savedModel.modelId === modelId
+        ? savedModel.id : appendModelChange.call(sessionManager, provider, modelId);
+      sessionManager.appendThinkingLevelChange = (level) => savedThinking?.type === "thinking_level_change" && savedThinking.thinkingLevel === level
+        ? savedThinking.id : appendThinkingChange.call(sessionManager, level);
+    }
+    let created: Awaited<ReturnType<typeof createAgentSessionFromServices>>;
+    try { created = await createAgentSessionFromServices({
       services,
       sessionManager,
       customTools: automation ? [] : [
@@ -1382,7 +1448,16 @@ export async function startRpcSession(
       ...(initial.thinkingLevel ? { thinkingLevel: initial.thinkingLevel } : {}),
       ...(initial.scopedModels.length > 0 ? { scopedModels: initial.scopedModels } : {}),
       ...(toolsOption !== undefined ? { tools: toolsOption } : {}),
-    });
+    }); } finally {
+      if (preservePreparedMetadata) {
+        if (hadOwnModelChange) sessionManager.appendModelChange = appendModelChange;
+        else Reflect.deleteProperty(sessionManager, "appendModelChange");
+        if (hadOwnThinkingChange) sessionManager.appendThinkingLevelChange = appendThinkingChange;
+        else Reflect.deleteProperty(sessionManager, "appendThinkingLevelChange");
+      }
+    }
+    const { session: inner } = created;
+    startupInner = inner;
 
     const persistedPreferences = automation ? { modelDefaultChanged: false } : await persistExplicitStartupPreferences(
       services.settingsManager,
@@ -1405,16 +1480,12 @@ export async function startRpcSession(
       inner.setActiveToolsByName(withExtensionTools(inner, toolNames));
     }
 
-    const wrapper = new AgentSessionWrapper(inner, sessionCwd, toolFreePrompt.policy, executionMode);
+    const wrapper = new AgentSessionWrapper(inner, sessionCwd, toolFreePrompt.policy, executionMode, automation && options.automationRepair === true);
+    startupWrapper = wrapper;
     wrapperForTools = wrapper;
-    if (startupUse) { wrapper.holdChatResourceUse(startupUse.release); startupTransferred = true; }
+    if (startupUse) wrapper.holdChatResourceUse(startupUse.release);
     if (automation) {
-      try {
-        wrapper.persistAutomationSession();
-      } catch (error) {
-        inner.dispose();
-        throw error;
-      }
+      wrapper.persistAutomationSession();
     }
     wrapper.start();
 
@@ -1422,13 +1493,20 @@ export async function startRpcSession(
     const realSessionFile = inner.sessionFile as string | undefined;
     if (realSessionFile) cacheSessionPath(realSessionId, realSessionFile);
 
-    wrapper.onDestroy(() => registry.delete(realSessionId));
+    wrapper.onDestroy(() => { if (registry.get(realSessionId) === wrapper) registry.delete(realSessionId); });
     registry.set(realSessionId, wrapper);
     wrapper.beginExtensionBinding();
+    startupTransferred = Boolean(startupUse);
 
     return { session: wrapper, realSessionId };
-  })().finally(() => {
-    locks.delete(sessionId);
+  }).catch((error) => {
+    try {
+      if (startupWrapper) startupWrapper.destroy();
+      else startupInner?.dispose();
+    } catch { /* Preserve the startup error; resource tickets are released below. */ }
+    throw error;
+  }).finally(() => {
+    if (locks.get(sessionId) === starting) locks.delete(sessionId);
     if (!startupTransferred) startupUse?.release();
     finishStartingSession();
   });

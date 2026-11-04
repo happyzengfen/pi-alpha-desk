@@ -10,6 +10,7 @@ export interface AutomationCheckpoint {
   stage: "claimed" | "running" | "result";
   sessionId?: string;
   sessionFile?: string;
+  fallbackUsed?: boolean;
   result?: AutomationResult;
 }
 

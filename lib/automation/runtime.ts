@@ -1,4 +1,6 @@
 import { timingSafeEqual } from "crypto";
+import { realpathSync } from "fs";
+import { dirname } from "path";
 import { AutomationInputError, compileAutomationRules, emptyAutomationConfig, parseAutomationConfig } from "./config";
 import { AutomationHubError, automationHubClient, readAutomationConnection, type AutomationHubClient } from "./hub-client";
 import { AutomationWorker } from "./worker";
@@ -116,6 +118,89 @@ function serializeWrite<T>(work: () => Promise<T>): Promise<T> {
   return next;
 }
 
+export class AutomationSessionChangeError extends Error {}
+
+/** Pause durable continuations and drain their execution before touching JSONL. */
+export async function withAutomationSessionPaused<T>(sessionId: string, sessionFile: string, change: () => T | Promise<T>): Promise<T> {
+  const { isAutomationManagedSession, inspectAutomationSession, findAutomationBinding, saveAutomationBinding } = await import("./session-binding");
+  const descriptorPath = runtime().descriptorPath ?? process.env.PI_AUTOMATION_DESCRIPTOR;
+  const root = descriptorPath ? dirname(descriptorPath) : undefined;
+  let binding;
+  try { binding = root ? await findAutomationBinding(root, sessionId) : undefined; }
+  catch { throw new AutomationSessionChangeError("The automation session binding cannot be read. Restore its private binding before changing this session."); }
+  let managed: boolean;
+  try { managed = Boolean(binding) || await isAutomationManagedSession(sessionFile); }
+  catch { throw new AutomationSessionChangeError("The session cannot be read safely. Review its file before renaming or deleting it."); }
+  if (!managed && !binding) return change();
+  let inspected: ReturnType<typeof inspectAutomationSession>;
+  try { inspected = inspectAutomationSession(sessionFile); }
+  catch { throw new AutomationSessionChangeError("The managed session cannot be read safely. Review its file before renaming or deleting it."); }
+  const blocked = "This managed session cannot be changed until its automation tasks are paused and execution has stopped. Enable Automation in the desktop app, then retry; reconcile any execution marked for review.";
+  if (inspected.sessionId !== sessionId || !root) throw new AutomationSessionChangeError(blocked);
+  if (binding) {
+    const canonical = (file: string) => {
+      const path = realpathSync.native(file);
+      return process.platform === "win32" ? path.toLowerCase() : path;
+    };
+    try {
+      if (binding.sessionId !== sessionId || canonical(binding.sessionFile) !== canonical(sessionFile)) throw new Error("Session binding mismatch");
+    } catch { throw new AutomationSessionChangeError("The automation session binding changed. Restore the original session binding before renaming or deleting it."); }
+  }
+  return serializeWrite(async () => {
+    try {
+      const hub = await connectedHub();
+      const metadata = await hub.call<{ config: unknown; owner: { run: number; session?: string | null } | null }>("/v1/desktop/status");
+      const config = parseAutomationConfig(metadata.config);
+      const state = await hub.call<AutomationState>("/v1/state");
+      const hasRuleBindings = Array.isArray(binding?.ruleIds) && binding.ruleIds.length > 0 && binding.ruleIds.every((id) => typeof id === "string" && id.length > 0);
+      const ruleIds = new Set<string>(hasRuleBindings ? binding!.ruleIds : []);
+      for (const run of state.runs) if (run.session === sessionId) ruleIds.add(run.rule);
+      // Legacy bindings do not prove the complete rule set. Only an already
+      // fully paused configuration permits their file to be changed safely.
+      if (!hasRuleBindings && config.rules.some((rule) => rule.enabled)) throw new AutomationSessionChangeError("This legacy managed session has no complete task binding. Pause all automation rules in the desktop app, reconcile any running execution, then retry.");
+      const pausedReason = "The linked session was renamed or deleted. Its original tasks remain paused. Review completed work, then create a new rule to continue in a dedicated session.";
+      const pauseBinding = async () => {
+        const latest = await findAutomationBinding(root, sessionId);
+        if (!latest) return;
+        if (latest.ruleIds !== undefined && (!Array.isArray(latest.ruleIds) || latest.ruleIds.some((id) => typeof id !== "string" || !id))) throw new AutomationSessionChangeError(blocked);
+        for (const id of latest.ruleIds ?? []) ruleIds.add(id);
+        await saveAutomationBinding(root, { ...latest, ruleIds: [...ruleIds], pausedReason });
+      };
+      await pauseBinding();
+      const disabled = new Set<string>();
+      const disable = async () => {
+        for (const id of ruleIds) {
+          if (!disabled.has(id) && config.rules.some((rule) => rule.id === id)) {
+            await hub.call("/v1/desktop/disable", { method: "POST", body: { ruleId: id } });
+            disabled.add(id);
+          }
+        }
+      };
+      await disable();
+      const worker = runtime().worker;
+      if (worker && !await worker.stopSession(sessionId, 8000, [...ruleIds])) throw new AutomationSessionChangeError(blocked);
+      // A round already completing may have saved its binding while we paused.
+      const pausedCount = ruleIds.size;
+      await pauseBinding();
+      await disable();
+      if (ruleIds.size > pausedCount && worker && !await worker.stopSession(sessionId, 8000, [...ruleIds])) throw new AutomationSessionChangeError(blocked);
+      const final = await hub.call<{ owner: { run: number; session?: string | null } | null }>("/v1/desktop/status");
+      if (final.owner) {
+        const finalState = await hub.call<AutomationState>("/v1/state");
+        const owner = finalState.runs.find((run) => run.id === final.owner!.run);
+        if (final.owner.session === sessionId || owner?.session === sessionId || (owner && ruleIds.has(owner.rule))) throw new AutomationSessionChangeError(blocked);
+      }
+      // A prior queued mutation or an external deletion during drain must not
+      // let SessionManager.open recreate a file that is no longer this session.
+      inspectAutomationSession(sessionFile, { sessionId, cwd: inspected.cwd });
+    } catch (error) {
+      if (error instanceof AutomationSessionChangeError) throw error;
+      throw new AutomationSessionChangeError(blocked);
+    }
+    return change();
+  });
+}
+
 export async function saveAutomationConfig(given: unknown) {
   return serializeWrite(async () => {
     const config = parseAutomationConfig(given);
@@ -167,7 +252,7 @@ export async function automationCommand(body: Record<string, unknown>, internal 
   } else if (body.action === "reconcile") {
     const id = positiveId(body.runId);
     if (body.confirmedStopped !== true) throw new AutomationInputError("Confirm that the previous execution has stopped");
-    await runtime().worker?.reconcile(id);
+    await runtime().worker?.reconcile(id, { confirmedSessionReviewed: body.confirmedSessionReviewed === true });
   } else throw new AutomationInputError("Unknown automation action");
   await runtime().worker?.tick();
   return automationSnapshot();

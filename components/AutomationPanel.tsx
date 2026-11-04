@@ -307,7 +307,10 @@ export function AutomationPanel({ view, cwd, focus, onOpenSession }: {
           <p style={{ ...muted, margin: 0 }}>{t("automation.inboxDescription")}</p>
           {cards.length === 0 && <p style={muted}>{t("automation.noCards")}</p>}
           {cards.map((card) => <DecisionCard key={card.id} card={card} disabled={disabled} focused={focus?.cardId === card.id} onAction={mutate} />)}
-          {!!snapshot?.state?.recentCards.length && <details style={muted}><summary>{t("automation.resolvedCards")}</summary>{snapshot.state.recentCards.map((card) => <p key={card.id}>#{card.id} · {card.title} · {t("automation.resolved")}</p>)}</details>}
+          {!!snapshot?.state?.recentCards.length && <details style={muted}><summary>{t("automation.resolvedCards")}</summary>{snapshot.state.recentCards.map((card) => <div key={card.id}>
+            <p>#{card.id} · {card.title} · {t("automation.resolved")}</p>
+            {card.kind === "notice" && card.text && <p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{card.text}</p>}
+          </div>)}</details>}
         </>}
 
         {tab === "history" && <>
@@ -325,7 +328,7 @@ export function AutomationPanel({ view, cwd, focus, onOpenSession }: {
               {run.session && onOpenSession && <button className="automation-control" style={button} onClick={() => onOpenSession(run.session!)}>{t("automation.openSession")}</button>}
               <button className="automation-control" style={button} disabled={disabled} onClick={() => void perform(async () => { const data = await jsonRequest<{ facts: unknown[] }>(`/api/automations?why=${run.id}`); setWhy({ runId: run.id, facts: data.facts }); })}><ClockClockwise size={13} aria-hidden="true" />{t("automation.why")}</button>
               {["claimed", "queued", "unknown"].includes(run.state) && <button className="automation-control" style={button} disabled={disabled || run.stopping} onClick={() => void mutate({ action: "cancel_rule", ruleId: run.rule })}>{t("automation.cancelTask")}</button>}
-              {needsReview(run) && <button className="automation-control" style={button} disabled={disabled} onClick={() => void mutate({ action: "reconcile", runId: run.id, confirmedStopped: true })}>{t("automation.confirmStopped")}</button>}
+              {needsReview(run) && <button className="automation-control" style={button} disabled={disabled} onClick={() => void mutate({ action: "reconcile", runId: run.id, confirmedStopped: true, confirmedSessionReviewed: true })}>{t("automation.confirmStopped")}</button>}
             </div>
             {needsReview(run) && <p style={{ ...muted, marginBottom: 0 }}>{snapshot?.worker.recoveryRun === run.id ? t("automation.recoveryDescription") : t("automation.unknownDescription")}</p>}
           </article>)}

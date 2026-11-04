@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { mkdtemp, mkdir, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
+import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { startHub } from "../host/main.ts";
 
 const jiti = createJiti(import.meta.url, { tsconfigPaths: true, alias: { "@": fileURLToPath(new URL("../../", import.meta.url)) } });
@@ -12,6 +14,8 @@ const { GET, POST } = await jiti.import("../../app/api/automations/route.ts");
 const { initializeAutomationRuntime, validateAutomationCwd, AutomationInputError, AutomationHubError } = await jiti.import("@/lib/automation/runtime");
 const { allowFileRoot } = await jiti.import("@/lib/file-access");
 const { trustProject } = await jiti.import("@/lib/project-trust");
+const { AutomationCheckpoints } = await jiti.import("@/lib/automation/checkpoint");
+const { inspectAutomationSession, saveAutomationBinding, findAutomationBinding } = await jiti.import("@/lib/automation/session-binding");
 const base = "http://127.0.0.1:30141/api/automations";
 const controlKey = "fixture-internal-control-key-".repeat(3);
 const makeConfig = (cwd, overrides = {}) => ({ version: 1, timezone: "UTC", rules: [{
@@ -204,4 +208,79 @@ test("config saves validate real workspace boundaries and trust, preserve prior 
   assert.deepEqual(JSON.parse(await readFile(path.join(f.dataDir, "rules.json"), "utf8")).rules, []);
   assert.equal((await save(makeConfig(f.cwd, { name: "Enabled again" }))).status, 200);
   assert.equal((await f.snapshot()).config.rules[0].enabled, true);
+});
+
+test("reconcile requires explicit review of legitimate SDK appends before adopting a running session and preserves stop-only compatibility", { timeout: 10000 }, async (t) => {
+  const f = await fixture(t);
+  assert.equal((await POST(request({ action: "save_config", config: makeConfig(f.cwd) }))).status, 200);
+  const hub = globalThis.__piAutomationRuntime.hub;
+  await hub.call("/v1/desktop/trigger", { method: "POST", body: { ruleId: "rule-route", eventId: "reviewed-append" } });
+  const { job } = await hub.call("/v1/work?claim=api-session-review&wait=0&running=&capacity=1", { role: "worker" });
+  const sessionId = randomUUID();
+  const sessionFile = path.join(f.root, `${sessionId}.jsonl`);
+  const timestamp = new Date().toISOString();
+  await writeFile(sessionFile, [
+    { type: "session", version: 3, id: sessionId, cwd: job.rule.cwd, timestamp },
+    { type: "custom", id: "managed1", parentId: null, timestamp, customType: "desktop-automation-session", data: { version: 1 } },
+  ].map(JSON.stringify).join("\n") + "\n");
+  const original = inspectAutomationSession(sessionFile);
+  await mkdir(path.join(f.dataDir, "sessions"));
+  await saveAutomationBinding(f.dataDir, { version: 1, sessionId, sessionFile, cwd: job.rule.cwd, ruleIds: ["rule-route"], digest: original.digest, started: true });
+  await hub.call(`/v1/runs/${job.run}/started`, { method: "POST", token: job.token, body: { session: sessionId } });
+  const checkpoints = new AutomationCheckpoints(path.join(f.dataDir, "worker"));
+  await checkpoints.save({ version: 1, claim: "api-session-review", job, stage: "running", sessionId, sessionFile });
+  const sm = SessionManager.open(sessionFile);
+  sm.appendMessage({ role: "assistant", content: [{ type: "text", text: "A completed step was persisted before the process stopped." }],
+    api: "openai-completions", provider: "fixture", model: "fixture", stopReason: "stop", timestamp: Date.now(),
+    usage: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+  });
+  const appended = await readFile(sessionFile, "utf8");
+  const current = inspectAutomationSession(sessionFile);
+  assert.notEqual(current.digest, original.digest);
+  const missingStop = await POST(request({ action: "reconcile", runId: job.run, confirmedSessionReviewed: true }));
+  assert.equal(missingStop.status, 400, await missingStop.text());
+  assert.equal((await hub.call("/v1/desktop/status")).owner.run, job.run);
+  for (const confirmedSessionReviewed of [undefined, false, "true"]) {
+    const response = await POST(request({ action: "reconcile", runId: job.run, confirmedStopped: true,
+      ...(confirmedSessionReviewed !== undefined && { confirmedSessionReviewed }),
+    }));
+    assert.equal(response.status, 400, await response.text());
+    assert.equal((await hub.call("/v1/desktop/status")).owner.run, job.run);
+    assert.equal((await findAutomationBinding(f.dataDir, sessionId)).digest, original.digest);
+    assert.equal((await checkpoints.list())[0].stage, "running");
+    assert.equal(await readFile(sessionFile, "utf8"), appended);
+  }
+  const reviewed = await POST(request({ action: "reconcile", runId: job.run, confirmedStopped: true, confirmedSessionReviewed: true }));
+  assert.equal(reviewed.status, 200, await reviewed.text());
+  const binding = await findAutomationBinding(f.dataDir, sessionId);
+  assert.equal(binding.digest, current.digest);
+  assert.equal(binding.reviewedRun, job.run);
+  assert.ok(binding.reviewedAt);
+  assert.equal((await hub.call("/v1/desktop/status")).owner, null);
+  assert.equal((await checkpoints.list()).length, 0);
+  assert.equal(await readFile(sessionFile, "utf8"), appended);
+  await hub.call("/v1/desktop/trigger", { method: "POST", body: { ruleId: "rule-route", eventId: "unchanged-stop-only" } });
+  const { job: unchanged } = await hub.call("/v1/work?claim=api-stop-only&wait=0&running=&capacity=1", { role: "worker" });
+  await hub.call(`/v1/runs/${unchanged.run}/started`, { method: "POST", token: unchanged.token, body: { session: sessionId } });
+  await checkpoints.save({ version: 1, claim: "api-stop-only", job: unchanged, stage: "running", sessionId, sessionFile });
+  const stopOnly = await POST(request({ action: "reconcile", runId: unchanged.run, confirmedStopped: true }));
+  assert.equal(stopOnly.status, 200, await stopOnly.text());
+  assert.equal((await hub.call("/v1/desktop/status")).owner, null);
+  assert.equal((await findAutomationBinding(f.dataDir, sessionId)).digest, current.digest);
+  await hub.call("/v1/desktop/trigger", { method: "POST", body: { ruleId: "rule-route", eventId: "manual-pause-tombstone" } });
+  const { job: paused } = await hub.call("/v1/work?claim=api-paused-session&wait=0&running=&capacity=1", { role: "worker" });
+  await hub.call(`/v1/runs/${paused.run}/started`, { method: "POST", token: paused.token, body: { session: sessionId } });
+  await checkpoints.save({ version: 1, claim: "api-paused-session", job: paused, stage: "running", sessionId, sessionFile });
+  const pausedReason = "The linked session was manually renamed; its original task remains paused.";
+  await saveAutomationBinding(f.dataDir, { ...(await findAutomationBinding(f.dataDir, sessionId)), pausedReason });
+  SessionManager.open(sessionFile).appendSessionInfo("Manually renamed after crash");
+  const renamed = await readFile(sessionFile, "utf8");
+  const pausedReview = await POST(request({ action: "reconcile", runId: paused.run, confirmedStopped: true, confirmedSessionReviewed: true }));
+  assert.equal(pausedReview.status, 200, await pausedReview.text());
+  const retained = await findAutomationBinding(f.dataDir, sessionId);
+  assert.equal(retained.pausedReason, pausedReason);
+  assert.equal(retained.digest, current.digest, "explicit review cannot adopt a manually paused transcript");
+  assert.equal((await hub.call("/v1/desktop/config")).config.rules[0].enabled, false);
+  assert.equal(await readFile(sessionFile, "utf8"), renamed);
+  assert.equal(globalThis.__piAutomationRuntime.worker.status().suspended, true, "no model can be invoked by the recovery API");
 });

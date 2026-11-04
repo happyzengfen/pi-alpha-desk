@@ -1,9 +1,9 @@
 // Run tokens and card links derive from the master key, so they're never stored. Access keys are kept only as hashes.
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
-import { rows, type View } from "./evolve.ts";
+import { rows, type Row, type View } from "./evolve.ts";
 import type { Result } from "../protocol/validate.ts";
 
-export type Environment = { secret: string; publicUrl: string; transformResult?: (run: Record<string, any>, result: Result) => Result };
+export type Environment = { secret: string; publicUrl: string; transformResult?: (run: Record<string, any>, result: Result) => Result; canClaim?: (view: View, run: Row) => boolean };
 
 export const digest = (text: string) => createHash("sha256").update(text).digest("hex");
 

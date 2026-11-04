@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
 import { createHandler } from "../upstream/kernel/http.ts";
-import { Conflict, InputError, NotFound } from "../upstream/kernel/errors.ts";
+import { AuthError, Conflict, InputError, NotFound } from "../upstream/kernel/errors.ts";
 import { RulesError } from "../upstream/protocol/rules.ts";
 import { createRuntime, UPSTREAM_COMMIT, type Runtime } from "./runtime.ts";
 
@@ -115,7 +115,7 @@ function createRouter(runtime: Runtime, instanceId: string) {
             data = runtime.execute("desktopTrigger", [given.ruleId, { id: given.eventId ?? randomUUID(), type: `desktop.run.${given.ruleId}`, subject: given.ruleId }]);
           } else if (path === "/v1/desktop/disable" && request.method === "POST") data = runtime.execute("desktopDisable", [given.ruleId]);
           else if (path === "/v1/desktop/cancel" && request.method === "POST") data = runtime.execute("desktopCancel", [given.ruleId]);
-          else if (path === "/v1/desktop/reconcile" && request.method === "POST") data = runtime.execute("desktopReconcile", [given.run, given.confirmedStopped]);
+          else if (path === "/v1/desktop/reconcile" && request.method === "POST") data = runtime.execute("desktopReconcile", [given.run, given.confirmedStopped, given.completed]);
           else if (path === "/v1/rules" && request.method === "PUT") {
             if (runtime.desktopStatus().config) throw new Conflict("Desktop configuration owns these rules");
             data = { rules: runtime.setRules(given) };
@@ -123,6 +123,7 @@ function createRouter(runtime: Runtime, instanceId: string) {
           return Response.json(data, { headers: { "cache-control": "no-store" } });
         } catch (error) {
           if (error instanceof SyntaxError || error instanceof RulesError || error instanceof InputError) return Response.json({ error: error.message }, { status: 400 });
+          if (error instanceof AuthError) return Response.json({ error: error.message }, { status: 401 });
           if (error instanceof Conflict || error instanceof NotFound) return Response.json({ error: error.message }, { status: error instanceof Conflict ? 409 : 404 });
           throw error;
         }

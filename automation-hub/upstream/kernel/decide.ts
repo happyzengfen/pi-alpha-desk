@@ -263,6 +263,7 @@ function claimNext(draft: Draft, worker: string, claim: string) {
     agents.includes(ruleNamed(draft, run.rule)?.to ?? "") &&
     Date.parse(run.not_before) <= draft.now &&
     ruleNamed(draft, run.rule) &&
+    (draft.env.canClaim?.(draft.view, run) ?? true) &&
     !claimed.some((other) => other.grp === run.grp && other.lane === run.lane) &&
     claimed.filter((other) => other.grp === run.grp).length < groupLimit(run.grp);
   // The same claim again means the answer got lost: it gets back the run it already has.
