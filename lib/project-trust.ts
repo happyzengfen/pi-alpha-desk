@@ -1,7 +1,14 @@
 import { hasTrustRequiringProjectResources, ProjectTrustStore } from "@earendil-works/pi-coding-agent";
+import { realpathSync } from "node:fs";
 import type { ProjectTrustStatus } from "@/lib/api-types";
 
+function canonicalTrustCwd(cwd: string): string {
+  try { return realpathSync.native(cwd); }
+  catch { return cwd; }
+}
+
 export function getProjectTrustStatus(cwd: string, agentDir: string): ProjectTrustStatus {
+  cwd = canonicalTrustCwd(cwd);
   const requiresTrust = Boolean(cwd) && hasTrustRequiringProjectResources(cwd);
   if (!requiresTrust) return { requiresTrust: false, trusted: true };
 
@@ -12,6 +19,7 @@ export function getProjectTrustStatus(cwd: string, agentDir: string): ProjectTru
 }
 
 export function trustProject(cwd: string, agentDir: string): ProjectTrustStatus {
+  cwd = canonicalTrustCwd(cwd);
   const status = getProjectTrustStatus(cwd, agentDir);
   if (!status.requiresTrust) return status;
 
@@ -28,6 +36,7 @@ export function projectTrustReloadOptions(
   cwd: string,
   agentDir: string,
 ): { resolveProjectTrust: () => Promise<boolean> } | undefined {
+  cwd = canonicalTrustCwd(cwd);
   const status = getProjectTrustStatus(cwd, agentDir);
   if (!status.requiresTrust) return undefined;
 

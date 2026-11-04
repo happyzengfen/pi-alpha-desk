@@ -11,7 +11,7 @@ export class AutomationResourceBusyError extends Error {}
 export function canonicalResourceCwd(cwd: string): string {
   const windows = process.platform === "win32" || /^[a-zA-Z]:[\\/]/.test(cwd) || cwd.startsWith("\\\\");
   let canonical = (windows ? path.win32 : path).resolve(cwd);
-  try { canonical = realpathSync(canonical); } catch { /* Keep a stable key while a directory is unavailable. */ }
+  try { canonical = realpathSync.native(canonical); } catch { /* Keep a stable key while a directory is unavailable. */ }
   return windows ? canonical.replaceAll("/", "\\").toLowerCase() : canonical;
 }
 

@@ -58,8 +58,8 @@ jobs:
       - name: Probe installed Electron SQLite and built sidecar on this platform and architecture
         run: node scripts/verify-automation-package.mjs --dir . --probe --electron
 
-  windows-ia32-degradation:
-    name: Windows ia32 optional-feature degradation
+  windows-ia32-runtime:
+    name: Windows ia32 runtime and workspace
     runs-on: windows-2025
     timeout-minutes: 60
     env:
@@ -81,15 +81,15 @@ jobs:
       - name: Compile sidecar assets
         run: npm run automation:build
 
-      - name: Assert matching ia32 Electron degrades when SQLite runtime capability is absent
+      - name: Verify matching ia32 Electron SQLite capability and sidecar startup
         run: >-
           node scripts/verify-automation-package.mjs --dir . --probe --electron
-          --platform win32 --arch ia32 --expect-unsupported
+          --platform win32 --arch ia32
 
       - name: Build Windows ia32 unpacked application without publishing installers
         run: node scripts/build-release.mjs --target=dir --arch=ia32 --output=release-ia32 --no-prune --no-zip
 
-      - name: Verify ia32 package resources and packaged feature degradation
+      - name: Verify ia32 package resources and packaged runtime capability
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -100,10 +100,10 @@ jobs:
             Where-Object { $_.Name -ne "elevate.exe" } |
             Select-Object -First 1
           if (-not $exe) { throw "Packaged ia32 executable not found" }
-          node scripts/verify-automation-package.mjs --dir (Join-Path $unpacked "resources/app") --probe --runtime $exe.FullName --embedded --platform win32 --arch ia32 --expect-unsupported
-          if ($LASTEXITCODE -ne 0) { throw "Packaged ia32 degradation probe failed" }
+          node scripts/verify-automation-package.mjs --dir (Join-Path $unpacked "resources/app") --probe --runtime $exe.FullName --embedded --platform win32 --arch ia32
+          if ($LASTEXITCODE -ne 0) { throw "Packaged ia32 runtime capability probe failed" }
 
-      - name: Smoke test actual ia32 workspace renderer with optional automation unavailable
+      - name: Smoke test actual ia32 workspace renderer with capability-checked automation
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
