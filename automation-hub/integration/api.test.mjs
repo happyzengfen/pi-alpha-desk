@@ -9,8 +9,7 @@ import { startHub } from "../host/main.ts";
 
 const jiti = createJiti(import.meta.url, { tsconfigPaths: true, alias: { "@": fileURLToPath(new URL("../../", import.meta.url)) } });
 const { GET, POST } = await jiti.import("../../app/api/automations/route.ts");
-const { initializeAutomationRuntime, validateAutomationCwd } = await jiti.import("@/lib/automation/runtime");
-const { AutomationInputError } = await jiti.import("@/lib/automation/config");
+const { initializeAutomationRuntime, validateAutomationCwd, AutomationInputError, AutomationHubError } = await jiti.import("@/lib/automation/runtime");
 const { allowFileRoot } = await jiti.import("@/lib/file-access");
 const { trustProject } = await jiti.import("@/lib/project-trust");
 const base = "http://127.0.0.1:30141/api/automations";
@@ -107,6 +106,39 @@ test("API classifies schema errors and dynamically validated cwd errors as input
       constructor: error?.constructor?.name, name: error?.name, message: error?.message, stack: error?.stack }));
     return true;
   });
+});
+
+test("API preserves real hub conflict status and rejects stale answer/resolve versions without consuming the card", { timeout: 10000 }, async (t) => {
+  const f = await fixture(t);
+  assert.equal((await POST(request({ action: "save_config", config: makeConfig(f.cwd) }))).status, 200);
+  assert.equal((await POST(request({ action: "trigger", ruleId: "rule-route" }))).status, 200);
+  const hub = globalThis.__piAutomationRuntime.hub;
+  const { job } = await hub.call("/v1/work?claim=api-conflict&wait=0&running=&capacity=1", { role: "worker" });
+  await hub.call(`/v1/runs/${job.run}/result`, { method: "POST", token: job.token, body: {
+    outcome: "done", summary: "Decision pending", ask: [{ key: "color", title: "Choose", text: "Choose a color", options: ["Blue", "Green"] }],
+  } });
+  const card = (await f.snapshot()).state.cards[0];
+  await assert.rejects(hub.call(`/v1/cards/${card.id}/answer`, { method: "POST", body: { choice: 0, expectedVersion: card.version + 1 } }), (error) => {
+    assert.ok(error instanceof AutomationHubError);
+    assert.equal(error.status, 409);
+    return true;
+  });
+  for (const command of [
+    { action: "answer", choice: 0 },
+    { action: "resolve", reason: "Fixture confirms the outcome" },
+  ]) {
+    const response = await POST(request({ ...command, cardId: card.id, expectedVersion: card.version + 1 }));
+    assert.equal(response.status, 409, JSON.stringify({ command, response: await response.text() }));
+    const unchanged = (await f.snapshot()).state.cards[0];
+    assert.equal(unchanged.state, "open");
+    assert.equal(unchanged.version, card.version);
+  }
+  const answer = await POST(request({ action: "answer", cardId: card.id, choice: 0, expectedVersion: card.version }));
+  assert.equal(answer.status, 200, await answer.text());
+  const snapshot = await f.snapshot();
+  assert.equal(snapshot.worker.suspended, true);
+  assert.equal(snapshot.state.cards.length, 0);
+  assert.ok(snapshot.state.runs.some((run) => run.state === "queued"));
 });
 
 test("internal suspend/resume requires the captured capability and does not leak it to snapshots", { timeout: 10000 }, async (t) => {

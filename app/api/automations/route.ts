@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { isApiRequestAllowed, hasJsonContentType } from "@/lib/request-security";
-import { automationCommand, automationSnapshot, automationWhy, isAutomationControlAuthorized } from "@/lib/automation/runtime";
-import { AutomationInputError } from "@/lib/automation/config";
-import { AutomationHubError } from "@/lib/automation/hub-client";
+import { AutomationInputError, AutomationHubError, automationCommand, automationSnapshot, automationWhy, isAutomationControlAuthorized } from "@/lib/automation/runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

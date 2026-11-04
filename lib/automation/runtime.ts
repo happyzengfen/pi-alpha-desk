@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "crypto";
 import { AutomationInputError, compileAutomationRules, emptyAutomationConfig, parseAutomationConfig } from "./config";
-import { automationHubClient, readAutomationConnection, type AutomationHubClient } from "./hub-client";
+import { AutomationHubError, automationHubClient, readAutomationConnection, type AutomationHubClient } from "./hub-client";
 import { AutomationWorker } from "./worker";
 import type { AutomationConfig, AutomationSnapshot, AutomationState } from "./types";
 
@@ -189,3 +189,6 @@ export async function automationEventStream(request: Request): Promise<Response>
 }
 
 export type { AutomationConfig };
+// Consumers classify the same constructors used by this service, including
+// when a host loader gives alias and relative module paths different identities.
+export { AutomationInputError, AutomationHubError };
