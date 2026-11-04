@@ -2,12 +2,12 @@
 
 目标：完成 [集成计划](../docs/agent-autoloop-integration-plan.zh-CN.md) 的首版 P0–P5；P6 是计划明确列出的后续扩展。用户已授权实施。普通聊天和现有桌面资产必须保持可用。
 
-- [ ] P0：本机与目标平台的 Node/SQLite、编译资源和 Pi 无页面执行已验证；新增恢复修复仍待最终源码的 runner 回归。
-- [ ] P1：hub、原生 Pi、事件、outbox 与目录互斥主链路已验证；异步启动锁、并发 viewer/repair 模式切换与关闭中拒绝新执行已修复并通过独立复审，待最终提交的生产与平台回归。
-- [ ] P2：持久卡片、同会话回答和回执修复已验证；会话变化暂停、认证等待、已开始异常分流及已完成业务的人工记账已实现，本地最终套件通过，待最终提交的生产与平台回归。
-- [ ] P3：周期/预约、取消、互斥、退避上限和真实超时已补证；待上述恢复策略修复后的最终联动回归。
-- [ ] P4：桌面宿主与 UI 已实现，浏览器真实闭环、恢复入口及生产服务生命周期通过；原生 Electron 的托盘、通知点击与退出仍待实机验证。
-- [ ] P5：故障/备份/重放、跨平台 hub 探针和服务端性能比较已通过；待最终源码的生产故障/性能复测与 runner，原生 Electron 和 Renderer 指标仍待实机验证。
+- [ ] P0：本机与目标平台的 Node/SQLite、编译资源和 Pi 无页面执行已验证；最终源码的 macOS 自动化 CI 尚待外部 runner。
+- [x] P1：hub、原生 Pi、事件、outbox 与目录互斥主链路通过；异步启动锁、并发 viewer/repair 模式切换与关闭中拒绝新执行已修复并通过独立复审及最终回归。
+- [x] P2：持久卡片、同会话回答、会话变化暂停、认证等待、已开始异常分流与原业务结果核实通过最终真实 SDK/Hub 和浏览器闭环。
+- [x] P3：周期/预约、取消排序、持久互斥、十次退避上限、真实一分钟超时、预算与无进展保护通过最终回归。
+- [ ] P4：桌面宿主与 UI 已实现，最终浏览器两条闭环和生产服务生命周期通过；原生桥接、托盘、通知点击、退出/重开及桌面交互仍待 Mac 解锁实机验证。
+- [ ] P5：最终源码生产构建、五个强杀窗口、12轮服务端性能、备份/重放与 ia32 完整包通过；macOS 自动化 CI 等待 runner，原生 Main/Renderer 指标仍待实机验证。
 
 ## 已取得的证据
 
@@ -64,3 +64,7 @@
 - 恢复策略修复的联合定点测试已通过，但独立复审进一步定位三处待封口边界：异步 pre-open 必须完整纳入已登记的单 start Promise，且修复模式不能复用并发 viewer 的读工具许可；executor 验证后的摘要须跨 shutdown/返回边界严格传给 worker，不能盲采随后改动；repair 的失败/未确认停止不能丢失已完成业务结果、误报 SDK 追加为外部改写或提前释放 owner。上述源码正在定点修补，首版保持未验收完成。
 - 三处边界现已修复并通过有界独立复审。额外真实 SDK 竞态回归确认：metadata 等待期间旧实例转忙时拒绝模式替换；关闭等待期间拒绝新 round。成功、认证失败和普通失败均携带验证摘要跨 shutdown 交接，外部追加不会被盲采。修复未确认停止保留原业务结果与 owner，人工核实只记账原结论、用量和固定通知，失败不进入普通重试，旧代次与新 owner 隔离。
 - 冻结实现的本地最终门禁：Node 24.15 与官方 SHA256 校验的 Node 22.22 普通套件各 **485/485**；fresh sidecar 编译后的 Node24 自动化套件 **103/103**，含真实一分钟超时。应用与 Hub TypeScript 均通过；Lint 无错误，仅 3 条原有 `PdfViewer.tsx` 警告；`git diff --check` 通过。两个过时源码断言按实际启动逻辑更新，真实 SDK 并发/资源回归保留。19 模块的编译包经本机 Node24.15 与 Electron 内置 Node24.18 实际启动 Hub 通过，源码摘要一致。最终提交的生产与平台验证尚待执行，不能将这些门禁记作原生验收完成。
+- 最终代码提交 `4f6995f` 的隔离生产构建、五个真实 SIGKILL 窗口及 12 轮新性能采样全部通过，36 个自有 Next/Hub 与两个 harness PID 均退出。自动化关闭相对新采样基线就绪中位数增加 4ms、Next RSS 增加 7.0MiB，SSE p95 同为 36ms；这些均为服务端指标，见[最终验证报告](../docs/automation-validation.zh-CN.md)。
+- 主代理通过实际 IAB/CUA 操作最终生产包：问题卡片刷新保留、回答后同会话完成；业务完成但修复中断时先查看原会话，再点击明确的复核按钮，仅补交原结论/用量和固定通知。两条路径共 4 次本地模型请求，没有业务重跑或付费请求，四个自有进程与临时标签页已清理，见[浏览器收据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-final-browser-backend-EHGVYz/receipt.json)。
+- `4f6995f` 的 [Quality 三平台](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896640865)、[Ubuntu 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807808995)、[Windows 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807809597) 和 [ia32 完整包/实际 Renderer](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807809492) 实际步骤全部成功。最后一次快照中[macOS 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807809586) 仍未分配 runner，不能写作整个 run 全绿。代码验证归属 `4f6995f`，后续仅证据文档的提交不改变运行实现。
+- 最终范围复审未发现额外功能缺口；P6 外部来源/Goal 仍为后续。Mac 仍锁屏、手动解锁请求尚未收到回复，原生桥接、托盘持续执行、通知投递/点击、Quit/重开、标题栏与窗口控制回归及 Main/Renderer 性能保持未完成。不得以浏览器、服务端或 CI Renderer 启动证据替代这组验收。

@@ -1,7 +1,7 @@
 # 自动化集成：本地生产验证记录
 
 > 日期：2026-11-05  
-> 结果：隔离生产构建、服务端生命周期及 12 轮服务端性能采样通过；原生桌面验证受锁屏阻止。
+> 结果：最终源码的隔离生产构建、五个强杀窗口、12 轮服务端性能采样及两条浏览器闭环通过；原生桌面验证受锁屏阻止，macOS 自动化 CI 等待 runner。
 
 ## 版本与环境
 
@@ -77,11 +77,64 @@
 
 四项必测窗口和额外读取窗口均通过。包括首次 fixture 尝试在内的 20 个自有 Next/Hub PID 均已退出，付费模型调用为 0。此结论仅归属 `6c3195f`，不覆盖随后修改的 worker/session 恢复路径，也不重归属前述性能数据。
 
+## 4f6995f：冻结源码最终生产复核
+
+2026-11-05，从 [4f6995f3bba8a5494daddcc3cabcdf457513a933](https://github.com/happyzengfen/pi-alpha-desk/commit/4f6995f3bba8a5494daddcc3cabcdf457513a933) 的全新 `git archive` 制作隔离副本并完成 `npm run build`，Build ID 为 `x06Cvi8lO9QZHdBnrTP5L`，仅有原 session export 动态依赖警告。仍使用本机 Node 24.15.0、Next 16.3.0、真实 Pi SDK 和私有 loopback Provider，未替换执行器。工作区 `.next`、用户 30141 服务及真实 Agent 数据均未参与。
+
+五个 SIGKILL 窗口全部通过，屏障及 ack、owner、checkpoint、会话与 digest 证据保存在原始 receipt：
+
+| 窗口 | 最终源码上的恢复结果 |
+| --- | --- |
+| `queued` 尚未领取时杀 Next/Hub | 重启仅调用 Provider 一次，原 run 完成，checkpoint 清空 |
+| 真实 Pi 请求已开始后杀 Next | 重启保持 owner 与待核实状态；三个心跳内请求数保持 1，核实后显式触发新代次才增加至 2 |
+| 回答 API 已 ack、接续 run 尚未领取时杀 Next/Hub | 只接续一次，同一 Pi session 完成两轮，Provider 共 2 次，问题卡片清空 |
+| Hub 已 commit 结果、代理扣住响应，且 drain 为 `suspended=true` / `activeRun=1` 时硬杀 | 重启仅补交原 outbox；body hash 一致，Hub 返回 `duplicate:true`，卡片 id/version 不变，Provider 保持 1 次 |
+| 真实 `read` 在无 writer 的私有 FIFO 上阻塞时杀 Next | 旧 PID 退出且 FIFO 返回 `ENXIO`；重启保留待核实，三个心跳无新增请求，核实后显式新代次才增加至 2 |
+
+两项待核实实验都先实际读取原 JSONL，核对 session header/id/cwd、managed 标记和已完成消息/工具步骤，检查 binding 无暂停墓碑并确认旧 PID 已死，再提交 `confirmedStopped:true` 与 `confirmedSessionReviewed:true`。ack 前后 JSONL hash 不变，binding 只采纳此次已复核的 SDK 追加字节；随后 generation 2 的显式新任务成功。这里的第二次请求属于人工新任务，不属于自动重跑。待核实 run 在这些窗口仍为 `claimed`，本轮也未等待五分钟 `unknown` 转换。
+
+在停止其他本地构建和测试后，另完成 **12 次新采样**：基线、关闭、空闲和执行各 3 次。基线复用 `d588f0e` 的不可变生产包（Build ID `iVpcT1mb2Bjz6c38CF7Lt`），重新启动私有进程采样；当前实现均来自上述 `4f6995f` 构建。硬件、分片节奏、就绪/HTML/RSS/SSE 定义与前述方法相同，三次执行场景均有真实 Provider 时间记录确认与不同 cwd 的普通聊天重叠。
+
+| 场景 | 服务就绪 ms | HTML 完成 ms | Next RSS MiB | Hub RSS MiB | SSE 首文本 ms | SSE 分片间隔 p95 ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 本轮基线 `d588f0e` | 274 | 281 | 236.9 | — | 41 | 36 |
+| `4f6995f`，自动化关闭 | 278 | 286 | 243.9 | — | 42 | 36 |
+| `4f6995f`，自动化空闲 | 276 | 283 | 268.4 | 77.0 | 40 | 36 |
+| `4f6995f`，自动化执行 | 276 | 283 | 274.1 | 77.9 | 8 | 35 |
+
+表中为各组三次的中位数；各组最大 SSE 分片间隔为 47–52ms。关闭场景相对本轮基线的服务就绪中位数增加 4ms，Next RSS 增加 7.0 MiB。执行场景 8ms 首文本仍包含预热影响，不能视为加速结论。样本量、缓存与 RSS 共享映射限制仍适用；服务端结果不能替代 Renderer 或原生 Electron 验证。
+
+五个故障实验和 12 轮性能采样的 **36 个自有 Next/Hub PID**，以及两个 harness PID，均再次检查已退出，`remainingOwned=[]`，付费模型调用为 0。该服务端实验阶段 IAB 检查返回不可用，未进行原生/UI 操作；后续主代理浏览器复验单独记录如下。以上结果只归属 `4f6995f`，早期版本与性能表保持原归属。
+
+## 4f6995f：最终浏览器操作与恢复复验
+
+主代理随后成功创建隔离 IAB 页面，使用同一 `4f6995f` 生产包及 Build ID，新建私有 Agent/Hub/项目与动态 loopback 端口。子代理只准备后端 fixture 和只读核验；下列点击、刷新和查看会话均由主代理通过 CUA 执行，没有以 API 调用代替界面动作。
+
+1. 打开自动化待决定卡片 #1，刷新页面后重新打开仍为同一卡片；点击“蓝色 推荐”，待决定归零。执行记录显示两轮完成；后端核验两轮使用同一 Pi session，恰好两次本地 Provider 请求，owner 与 checkpoint 均清空。
+2. 真实业务完成后，损坏回执触发无工具修复；第二次 HTTP 请求已到达 Provider、`running` checkpoint 已保存原业务结果时，硬杀 Next。确认旧 PID 已退出后重启，界面呈现待核实。点击“查看会话”，实际核对原业务结论、损坏回执与仅修复格式的后续消息，再点击“已核实停止并复核会话”。原 run 记为 `done`，原 summary/session 与输入 100、输出 30 的用量保留，待核实、执行中和排队数均为零；只生成固定回执复核通知，不执行损坏回执的后续工作。
+
+第二条路径的绑定摘要在崩溃前后确有变化；此次界面复核持久记录 `reviewedRun=3` 并采纳已检查的 SDK 追加摘要。`desktopReconcile` 事实保留原结果及用量，owner/checkpoint 清空。该路径仅有原业务与修复两次请求，核实未新增模型调用；两条路径合计 4 次本地请求，付费调用为 0。
+
+三张 CUA 原始截图及 SHA256、实际 API/事实、旧 PID 的 SIGKILL/ESRCH 和摘要证据收录在[最终浏览器收据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-final-browser-backend-EHGVYz/receipt.json)。自有 harness、Hub、旧/新 Next 四个 PID 均已退出，`remainingOwned=[]`，Provider 已关闭，主代理临时标签页已关闭。此结果不替代原生 BrowserWindow、托盘、通知或 Quit 验收。
+
+## 4f6995f：远端最终代码检查
+
+以下结论只归属代码提交 `4f6995f`。随后仅记录证据的文档提交不改变该代码版本。
+
+- [Quality](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896640865) 三平台实际步骤全部成功。各平台 Node22.22 共 485 项，484 通过、1 项预期跳过；TypeScript、Lint 与差异检查通过，Lint 仅有 3 条原有 PDF 警告。
+- [Ubuntu 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807808995) 实际 166/166 通过；[Windows 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807809597) 共 166 项，165 通过、1 项 POSIX 专用检查按设计跳过。严格 400/409、显式会话复核与新增 RPC 竞态均通过，Node24 与 Electron 内置运行时实际 SQLite/Hub 启动通过。
+- [Windows ia32](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807809492) 完整 unpacked 构建、包结构、包内 Electron24.18 SQLite/Hub 与实际 Renderer 加载、证据上传全部成功，`renderer-interactive` 为 7793.24ms；该启动指标不替代原生交互或性能对比。
+- [macOS 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807809586) 在最后一次快照（2026-11-04 19:38:56 UTC）仍为 `queued`、runner 未分配、steps 为空。没有失败证据，也没有已执行证据，**不能将整个 Automation run 记为全绿**。本地最终源码的 macOS Node24/Electron Hub、真实 SDK、生产构建和故障/性能检查均已单独取得证据。
+
+各 job 直链、测试计数、运行时探针与实际完成步骤保存在[最终 CI 收据](/tmp/pi-alpha-final-ci-4f6995f3.json)。未重跑、取消、合并或发布。
+
 ## 原生桌面验证限制
 
 已准备临时 Electron.app、打包资源布局和独立 userData，并尝试加载真实主页。CUA 返回“Mac is locked and automatic unlock could not unlock it”；该尝试未产生主进程校验日志或 BrowserWindow 加载记录，真实 HTTP 文档等待超时后已清理测试进程。
 
-因此，本次仍未验证：原生桥接的默认关闭与启用、托盘隐藏后执行、Electron Quit 清理、系统通知投递及点击聚焦，以及主进程/Renderer RSS、帧间隔和界面流式响应性。需在 Mac 解锁后补做；本记录也不提供 Windows、ia32 或 Linux 的实际平台结论。
+因此，本次仍未验证：原生桥接的默认关闭与启用、托盘隐藏后执行、Electron Quit 清理、系统通知投递及点击聚焦，以及主进程/Renderer RSS、帧间隔和界面流式响应性。需在 Mac 解锁后补做；这次本机原生尝试不提供 Windows、ia32 或 Linux 的原生交互结论。
+
+最终服务端性能验证后，主代理再次调用原生应用库存，仍返回 `apps=[]` 和 Mac 锁屏错误，见[最新原生阻塞收据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-final-production-dnbnpyya/native-blocker-latest.json)。后续浏览器复验仅证明 IAB 界面闭环；上述原生交互、标题栏/窗口控制回归与 Main/Renderer 性能仍保持未验收。前文远端平台段落提供独立的包级结论，不改变本段原生范围。
 
 ## 原始本地证据
 
@@ -97,3 +150,6 @@
 - [6c3195f 硬杀矩阵汇总及全部 PID 退出证据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-crash-production-vwzfzhuz/production-crash-summary.json)、[生产构建日志](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-crash-production-vwzfzhuz/production-build.log)
 - [四项必测结果及首次 FIFO 尝试的原始记录](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-crash-production-vwzfzhuz/crash-matrix-receipt.json)、[独立真实 read 阻塞硬杀记录](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-crash-production-vwzfzhuz/read-tool-receipt.json)
 - [临时硬杀校验脚本](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-crash-production-vwzfzhuz/crash-proof.mjs)、[独立 read 校验脚本](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-crash-production-vwzfzhuz/read-tool-proof.mjs)；每个场景子目录保留 Next/Hub、代理和 Provider 日志。
+- [4f6995f 最终版本、硬件、性能及全部 PID 汇总](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-final-production-dnbnpyya/production-verification-summary.json)、[对应隔离生产构建日志](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-final-production-dnbnpyya/production-build.log)
+- [4f6995f 五个真实硬杀窗口、JSONL 复核与双确认 ack](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-final-production-dnbnpyya/crash-matrix-receipt.json)、[12 轮原始性能及 Provider 重叠记录](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-final-production-dnbnpyya/server-matrix-results.json)
+- [最终硬杀 harness](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-final-production-dnbnpyya/crash-proof.mjs)、[最终服务端性能 harness](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-final-production-dnbnpyya/server-proof.mjs)、[IAB/原生阻塞状态](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-final-production-dnbnpyya/browser-blocker.json)；各场景目录保留独立进程、代理与 Provider 日志。
