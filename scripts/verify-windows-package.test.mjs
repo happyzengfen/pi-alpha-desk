@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { verifyWindowsPackage } from "./verify-windows-package.mjs";
+import { AUTOMATION_REQUIRED_FILES, AUTOMATION_SUPERVISOR_FILES } from "./verify-automation-package.mjs";
 
 const PRODUCT_EXECUTABLE = "运维数字化Ai助手.exe";
 
@@ -27,6 +28,14 @@ async function createValidPackage(root, machine = 0x8664) {
   await writeFixtureFile(root, PRODUCT_EXECUTABLE, createPe(machine));
   await writeFixtureFile(root, "resources/app/electron/main.js");
   await writeFixtureFile(root, "resources/app/electron/preload.js");
+  for (const file of AUTOMATION_SUPERVISOR_FILES) await writeFixtureFile(root, `resources/app/${file}`, "module.exports = {};\n");
+  for (const file of AUTOMATION_REQUIRED_FILES) {
+    const content = file === "build.json" ? JSON.stringify({ version: 1, sourceHash: "a".repeat(64) })
+      : file === "package.json" ? JSON.stringify({ type: "module" })
+        : file === "upstream/LICENSE" ? "MIT License\nCopyright (c) fixture\n"
+          : file === "upstream/SOURCE.md" ? `Commit: \`${"b".repeat(40)}\`\n` : "export {};\n";
+    await writeFixtureFile(root, `resources/app/dist/automation-hub/${file}`, content);
+  }
   await writeFixtureFile(root, "resources/app/node_modules/next/dist/bin/next");
   await writeFixtureFile(root, "resources/app/node_modules/@earendil-works/pi-coding-agent/package.json", "{}");
   await writeFixtureFile(root, "resources/app/node_modules/pi-subagents/package.json", "{}");
@@ -95,6 +104,28 @@ test("accepts a complete Windows x64 package", async () => {
     const result = verifyWindowsPackage(root);
     assert.equal(result.executable, PRODUCT_EXECUTABLE);
     assert.equal(result.machine, "x64");
+    assert.equal(result.automation.assets, "complete");
+    assert.equal(result.automation.runtime, "not-probed");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("reports missing automation supervisor, compiled host, SQL, contract and provenance assets", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pi-web-win-automation-package-"));
+  try {
+    await createValidPackage(root);
+    const required = [
+      ...AUTOMATION_SUPERVISOR_FILES,
+      ...AUTOMATION_REQUIRED_FILES.map((file) => `dist/automation-hub/${file}`),
+    ];
+    for (const relative of required) {
+      const filename = join(root, "resources", "app", relative);
+      const original = await readFile(filename);
+      await rm(filename);
+      assert.throws(() => verifyWindowsPackage(root), (error) => error.message.includes(filename));
+      await writeFixtureFile(root, `resources/app/${relative}`, original);
+    }
   } finally {
     await rm(root, { recursive: true, force: true });
   }

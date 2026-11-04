@@ -3,6 +3,7 @@
 import { closeSync, existsSync, openSync, readSync, readdirSync, statSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { AUTOMATION_REQUIRED_FILES, AUTOMATION_SUPERVISOR_FILES, verifyAutomationPackage } from "./verify-automation-package.mjs";
 
 const SCRIPT_DIR = fileURLToPath(new URL(".", import.meta.url));
 const PROJECT_ROOT = resolve(SCRIPT_DIR, "..");
@@ -72,6 +73,8 @@ export function verifyMacPackage(releaseDirectory, expectedArchitecture = "arm64
   const requiredPaths = [
     join(appRoot, "electron", "main.js"),
     join(appRoot, "electron", "preload.js"),
+    ...AUTOMATION_SUPERVISOR_FILES.map((file) => join(appRoot, file)),
+    ...AUTOMATION_REQUIRED_FILES.map((file) => join(appRoot, "dist", "automation-hub", file)),
     join(appRoot, "node_modules", "next", "dist", "bin", "next"),
     join(appRoot, "node_modules", "@earendil-works", "pi-coding-agent", "package.json"),
     ...BUNDLED_PI_PACKAGES.map((segments) => join(appRoot, "node_modules", ...segments, "package.json")),
@@ -105,10 +108,12 @@ export function verifyMacPackage(releaseDirectory, expectedArchitecture = "arm64
   if (missing.length > 0) {
     throw new Error(`macOS package is incomplete:\n${missing.map((candidate) => `- ${candidate}`).join("\n")}`);
   }
+  const automation = verifyAutomationPackage(appRoot);
   return {
     application: basename(applicationPath),
     executable: basename(executablePath),
     machine: expectedArchitecture,
+    automation: { assets: "complete", modules: automation.modules, runtime: "not-probed" },
   };
 }
 

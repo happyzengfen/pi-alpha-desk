@@ -3,6 +3,7 @@
 import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, statSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { AUTOMATION_REQUIRED_FILES, AUTOMATION_SUPERVISOR_FILES, verifyAutomationPackage } from "./verify-automation-package.mjs";
 
 const SCRIPT_DIR = fileURLToPath(new URL(".", import.meta.url));
 const PROJECT_ROOT = resolve(SCRIPT_DIR, "..");
@@ -79,6 +80,8 @@ export function verifyLinuxPackage(unpackedDirectory, expectedArchitecture = "x6
   const requiredPaths = [
     join(appRoot, "electron", "main.js"),
     join(appRoot, "electron", "preload.js"),
+    ...AUTOMATION_SUPERVISOR_FILES.map((file) => join(appRoot, file)),
+    ...AUTOMATION_REQUIRED_FILES.map((file) => join(appRoot, "dist", "automation-hub", file)),
     join(appRoot, "node_modules", "next", "dist", "bin", "next"),
     join(appRoot, "node_modules", "@earendil-works", "pi-coding-agent", "package.json"),
     ...BUNDLED_PI_PACKAGES.map((segments) => join(appRoot, "node_modules", ...segments, "package.json")),
@@ -113,7 +116,9 @@ export function verifyLinuxPackage(unpackedDirectory, expectedArchitecture = "x6
     throw new Error(`Linux package is incomplete:\n${missing.map((candidate) => `- ${candidate}`).join("\n")}`);
   }
 
-  return { executable: basename(executablePath), machine: expectedArchitecture, root };
+  const automation = verifyAutomationPackage(appRoot);
+  return { executable: basename(executablePath), machine: expectedArchitecture, root,
+    automation: { assets: "complete", modules: automation.modules, runtime: "not-probed" } };
 }
 
 function parseArgument(argv, name, fallback) {

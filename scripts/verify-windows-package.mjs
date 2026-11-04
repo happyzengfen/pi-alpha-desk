@@ -3,6 +3,7 @@
 import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { AUTOMATION_REQUIRED_FILES, AUTOMATION_SUPERVISOR_FILES, verifyAutomationPackage } from "./verify-automation-package.mjs";
 
 const SCRIPT_DIR = fileURLToPath(new URL(".", import.meta.url));
 const PROJECT_ROOT = resolve(SCRIPT_DIR, "..");
@@ -121,6 +122,8 @@ export function verifyWindowsPackage(unpackedDirectory, expectedArchitecture = "
   const requiredPaths = [
     join(root, "resources", "app", "electron", "main.js"),
     join(root, "resources", "app", "electron", "preload.js"),
+    ...AUTOMATION_SUPERVISOR_FILES.map((file) => join(root, "resources", "app", file)),
+    ...AUTOMATION_REQUIRED_FILES.map((file) => join(root, "resources", "app", "dist", "automation-hub", file)),
     join(appNodeModules, "next", "dist", "bin", "next"),
     join(appNodeModules, "@earendil-works", "pi-coding-agent", "package.json"),
     ...BUNDLED_PI_PACKAGES.map((segments) => join(appNodeModules, ...segments, "package.json")),
@@ -214,11 +217,13 @@ export function verifyWindowsPackage(unpackedDirectory, expectedArchitecture = "
   if (missing.length > 0) {
     throw new Error(`Windows package is incomplete:\n${missing.map((path) => `- ${path}`).join("\n")}`);
   }
+  const automation = verifyAutomationPackage(join(root, "resources", "app"));
 
   return {
     executable: basename(executablePath),
     machine: expectedArchitecture,
     root,
+    automation: { assets: "complete", modules: automation.modules, runtime: "not-probed" },
   };
 }
 

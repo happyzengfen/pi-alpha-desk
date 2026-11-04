@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { verifyLinuxPackage } from "./verify-linux-package.mjs";
+import { AUTOMATION_REQUIRED_FILES, AUTOMATION_SUPERVISOR_FILES } from "./verify-automation-package.mjs";
 
 function makeFixture(t, { architecture = "x64", executableName = "运维数字化Ai助手", omit = null } = {}) {
   const release = fs.mkdtempSync(path.join(os.tmpdir(), "pi-web-linux-package-"));
@@ -37,6 +38,14 @@ function makeFixture(t, { architecture = "x64", executableName = "运维数字�
     ["bundled-plugins/manifest.json", "{}"],
     ["public/icon.png", "icon"],
   ];
+  required.push(...AUTOMATION_SUPERVISOR_FILES.map((file) => [file, "module.exports = {};\n"]));
+  for (const file of AUTOMATION_REQUIRED_FILES) {
+    const content = file === "build.json" ? JSON.stringify({ version: 1, sourceHash: "a".repeat(64) })
+      : file === "package.json" ? JSON.stringify({ type: "module" })
+        : file === "upstream/LICENSE" ? "MIT License\nCopyright (c) fixture\n"
+          : file === "upstream/SOURCE.md" ? `Commit: \`${"b".repeat(40)}\`\n` : "export {};\n";
+    required.push([`dist/automation-hub/${file}`, content]);
+  }
 
   const header = Buffer.alloc(20);
   Buffer.from([0x7f, 0x45, 0x4c, 0x46]).copy(header);
@@ -59,8 +68,23 @@ function makeFixture(t, { architecture = "x64", executableName = "运维数字�
 }
 
 test("accepts complete Linux x64 and arm64 packages", (t) => {
-  assert.equal(verifyLinuxPackage(makeFixture(t), "x64").machine, "x64");
+  const result = verifyLinuxPackage(makeFixture(t), "x64");
+  assert.equal(result.machine, "x64");
+  assert.equal(result.automation.assets, "complete");
+  assert.equal(result.automation.runtime, "not-probed");
   assert.equal(verifyLinuxPackage(makeFixture(t, { architecture: "arm64" }), "arm64").machine, "arm64");
+});
+
+test("rejects missing Linux automation supervisor, compiled host, SQL, contract and provenance", (t) => {
+  for (const file of [...AUTOMATION_SUPERVISOR_FILES, ...AUTOMATION_REQUIRED_FILES.map((file) => `dist/automation-hub/${file}`)]) {
+    assert.throws(() => verifyLinuxPackage(makeFixture(t, { omit: file })), (error) => error.message.includes(file.split("/").join(path.sep)));
+  }
+});
+
+test("checks the compiled Linux automation import closure", (t) => {
+  const release = makeFixture(t);
+  fs.writeFileSync(path.join(release, "resources", "app", "dist", "automation-hub", "host", "main.mjs"), 'import "./missing.mjs";\n');
+  assert.throws(() => verifyLinuxPackage(release), /Automation module is missing/);
 });
 
 test("accepts Electron Builder's package-name Linux executable", (t) => {
