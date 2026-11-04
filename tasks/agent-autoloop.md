@@ -4,8 +4,8 @@
 
 - [ ] P0：本机 Node/SQLite、Pi 无页面执行与扩展隔离已验证；其他目标平台待 runner 验证。
 - [x] P1：hub、原生 Pi worker、事件、结果、outbox 与跨会话目录互斥已实现并验证。
-- [x] P2：持久卡片、同会话回答接续、至多两次无工具回执修复已验证。
-- [x] P3：周期/预约、later、取消代次、全局/目录互斥、有限重试、每日预算与限定无进展停机已验证。
+- [ ] P2：持久卡片、同会话回答和回执修复已验证；补审发现会话变化暂停、认证等待和已开始异常分流仍需实现并完成最终回归。
+- [ ] P3：周期/预约、取消、互斥、退避上限和真实超时已补证；待上述恢复策略修复后的最终联动回归。
 - [ ] P4：桌面宿主与 UI 已实现，浏览器真实闭环、恢复入口及生产服务生命周期通过；原生 Electron 的托盘、通知点击与退出仍待实机验证。
 - [ ] P5：故障/备份/重放、本机编译后 hub 探针和服务端性能比较已通过；生产 Electron、Renderer 指标和其他平台仍待验证。
 
@@ -39,7 +39,7 @@
 
 ## 远端打包结果
 
-以下运行使用 `e3e744b`，不等同于本机原生交互验收。
+除另有注明外，以下打包运行使用 `e3e744b`；ia32 的最终复测使用 `6c3195f`。它们不等同于本机原生交互验收，也不覆盖后续恢复策略修复。
 
 | 平台 | 结果 | 证据 |
 | --- | --- | --- |
@@ -48,8 +48,16 @@
 | macOS arm64 | 包资源、内置 SQLite/Hub、实际 Renderer 加载与 DMG 校验/上传通过 | [job 126731262467](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41874361357/job/126731262467) |
 | macOS x64 | 包资源、内置 SQLite/Hub、实际 Renderer、DMG 校验与上传步骤均成功；顶层状态接口暂滞后 | [job 126731262470](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41874361357/job/126731262470) |
 | Windows x64 | 所有实际步骤成功：构建、包检查、内置 SQLite/Hub、启动、动态端口、真实 Renderer 和产物上传；顶层状态接口暂滞后 | [job 126729605739](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41874351247/job/126729605739) |
-| Windows ia32 | 同运行代码的 `0bf6d11` 通过实际 ia32 SQLite/Hub、包结构与包内探针；真实 Renderer 发现 Next WASM 配置加载的 `__dirname` 问题，`3fde111` 已修复并通过本地真实三种 loader，待包级复测 | [job 126733938536](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41875578690/job/126733938536) |
+| Windows ia32 | `6c3195f` 的实际 ia32 构建、包结构、包内 SQLite/Hub、真实 Renderer 和产物上传全部步骤成功；此前 Next WASM `__dirname` 问题已通过包级复测 | [job 126746189627](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41878977020/job/126746189627) |
 
 ## 待完成验证
 
 真实业务闭环、故障/重启恢复、Windows x64/ia32 与 Linux 的运行结论、打包与全部回归均不得仅以源码或模拟测试代替。未取得证据前保持未完成。
+
+## 逐项补审与后续闭环
+
+- `6c3195f` 的 Windows Node24 自动化严格 400/409、Node/Electron SQLite/Hub 及 ia32 包结构、包内 Hub、真实 Renderer 和产物上传步骤已通过：[Windows 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41878977020/job/126746189991)、[ia32 工作区](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41878977020/job/126746189627)。Ubuntu Quality/Automation、Windows Quality 和 macOS Automation 也已有成功步骤证据；这不替代之后恢复修复的验证。
+- `990ebef` 新增 8 项真实 Hub/HTTP/SQLite 回归：同 key 预约改期/取消、取消与已到期/已回答入队的四种顺序、重启与新代次隔离、十次退避上限，以及全部物理投影表/SQL 视图/事实与 HTTP 状态重建等价。新增真实一分钟超时回归已观测 SDK 流式请求被中止、等待 settled、释放会话与目录资源且无第二次调用。
+- `6c3195f` 的生产 Next/Hub 真实强杀矩阵补齐：领取前、Pi 开始后、回答已确认未领取、排空等待结果响应时崩溃；额外验证真实 SDK `read` 阻塞期间硬杀。重启不盲跑、待核实保留 owner、同会话回答一次接续及 outbox 原样幂等补交均通过；20 个自有进程全部退出，见 [验证报告](../docs/automation-validation.zh-CN.md)。
+- 计划 6.3/6.4 补审发现并正在修复的实现缺口：人工修改/删除会话未先暂停关联规则；会话文件损坏可能先被 SDK 重写；已开始后的未分类异常被当作普通 failed 重试；认证前置失败缺持久等待。修复必须保留非破坏校验、受限 fallback、原 owner 与 checkpoint，以及明确的人工恢复路径。
+- SDK 真实 reload 会恢复 repair 的 active tools，单纯临时置空不足以证明无工具修复。正在改为 SDK 不可变空 allow-list，并验证真实 reload；普通聊天和普通自动化工具策略分别回归。

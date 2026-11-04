@@ -61,6 +61,22 @@
 
 另一个验证代理提供的 [Next 配置加载矩阵记录](/tmp/pi-next-config-wasm.76xD3K/receipt.json) 使用 Next 16.3.0 与同版本 Wasm，在不同 cwd 下调用真实生产 `loadConfig`：原配置的 Wasm 路径因 `__dirname` 不存在而失败；修复后的 native SWC、Wasm 和原生 TypeScript 路径均通过，返回的 headers、externals、env 与 webpack 行为均与原 native 配置深相等。此记录证明配置加载兼容性，不代表 Windows 或其他平台上的生产运行验证。
 
+## 6c3195f：真实 Pi SDK 硬杀故障矩阵
+
+2026-11-05，从 [6c3195f1ff7f18af4286aff4de003b0d1a3d8991](https://github.com/happyzengfen/pi-alpha-desk/commit/6c3195f1ff7f18af4286aff4de003b0d1a3d8991) 的全新 `git archive` 在工作区外构建生产包，Build ID 为 `jkyrLBFL8WMdOr7aNGGkM`；仅链接现有依赖安装，未改源码或工作区 `.next`。实验运行真实 Pi SDK、生产 Next 和编译后 Hub，Provider 全部为本机 HTTP fixture。通过持久状态、API ack、实际请求或响应屏障确定窗口，再发送 **SIGKILL**；未用定时等待推测崩溃时机，也未替换 SDK 执行器。
+
+| 硬杀窗口 | 重启后的实际结果 | Provider 请求总数 |
+| --- | --- | ---: |
+| worker 已暂停，触发事件已持久为 `queued`，尚未领取；杀 Next 与 Hub | 原事件仅执行一次，结果为 `done`，checkpoint 清空 | 1 |
+| Pi 请求已到达 Provider，`running` checkpoint 已保存；杀 Next | worker 显示 `execution-needs-review`，保留 owner，连续三个心跳不再请求模型；确认旧 PID 已死后才人工 reconcile | 1 |
+| 卡片回答 API 已返回 200，接续轮次已 `queued`，worker 仍暂停；杀 Next 与 Hub | 回答仅接续一次，两轮使用同一 Pi session，问题卡片清空 | 2（提问、接续各一次） |
+| Hub 已接受结果，但代理扣住 200 响应；确认 `suspended=true` 且 `activeRun=1` 后杀 Next 与 Hub | 重启只补交持久 outbox；原结果 body hash 相同，Hub 返回 `duplicate:true`，问题卡片 id/version 不变 | 1 |
+| 真实 `read` 工具已发出执行开始事件，在无 writer 的私有 FIFO 上阻塞，三个心跳后仍未结束；杀 Next | 旧 PID 已退出，FIFO 非阻塞 writer 打开返回 `ENXIO`；重启保持待核实，核实后 reconcile，未重做读取或请求模型 | 1 |
+
+待核实实验中，Hub 的 run 仍为 `claimed`，待核实标志来自 worker 的持久 `running` checkpoint；未等待五分钟租约转换，不能写成已实测 Hub 的 `unknown` 超时。读取实验使用内建工具，没有子进程，只证明硬杀时的进程与 FIFO 清理，不证明协作取消或任意工具的子进程清理。首次带 writer 的 FIFO 尝试因 SDK MIME sniff 返回 `ESPIPE`，未命中阻塞窗口，原始失败记录保留；上表读取结果来自后续独立的无 writer 实验。
+
+四项必测窗口和额外读取窗口均通过。包括首次 fixture 尝试在内的 20 个自有 Next/Hub PID 均已退出，付费模型调用为 0。此结论仅归属 `6c3195f`，不覆盖随后修改的 worker/session 恢复路径，也不重归属前述性能数据。
+
 ## 原生桌面验证限制
 
 已准备临时 Electron.app、打包资源布局和独立 userData，并尝试加载真实主页。CUA 返回“Mac is locked and automatic unlock could not unlock it”；该尝试未产生主进程校验日志或 BrowserWindow 加载记录，真实 HTTP 文档等待超时后已清理测试进程。
@@ -78,3 +94,6 @@
 - [本次临时服务端校验脚本](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-automation-release-oi9ut2ug/desktop-proof-hny5hysf/server-proof.mjs)
 - [5764e1f 定点生产 API 复测记录](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-automation-release-oi9ut2ug/desktop-proof-hny5hysf/api-5764e1f-receipt.json)、[对应生产构建日志](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-automation-release-oi9ut2ug/desktop-proof-hny5hysf/api-5764e1f-build.log)
 - [3fde111 定点生产 API 复测记录](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-automation-release-oi9ut2ug/desktop-proof-hny5hysf/api-3fde111-receipt.json)、[对应生产构建日志](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-automation-release-oi9ut2ug/desktop-proof-hny5hysf/api-3fde111-build.log)
+- [6c3195f 硬杀矩阵汇总及全部 PID 退出证据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-crash-production-vwzfzhuz/production-crash-summary.json)、[生产构建日志](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-crash-production-vwzfzhuz/production-build.log)
+- [四项必测结果及首次 FIFO 尝试的原始记录](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-crash-production-vwzfzhuz/crash-matrix-receipt.json)、[独立真实 read 阻塞硬杀记录](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-crash-production-vwzfzhuz/read-tool-receipt.json)
+- [临时硬杀校验脚本](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-crash-production-vwzfzhuz/crash-proof.mjs)、[独立 read 校验脚本](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-crash-production-vwzfzhuz/read-tool-proof.mjs)；每个场景子目录保留 Next/Hub、代理和 Provider 日志。
