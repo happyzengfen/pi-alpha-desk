@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   Check,
   Copy,
+  ClockClockwise,
   Gear,
   List,
   Minus,
@@ -38,6 +39,8 @@ interface AppTitleBarProps {
   rightPanelOpen: boolean;
   onToggleFilePanel: () => void;
   onOpenSettings: () => void;
+  onOpenAutomations: () => void;
+  automationAttention: number;
   sessionTitle: string | null;
   onWorkspaceControlsHostChange?: (node: HTMLDivElement | null) => void;
 }
@@ -109,6 +112,8 @@ export function AppTitleBar({
   rightPanelOpen,
   onToggleFilePanel,
   onOpenSettings,
+  onOpenAutomations,
+  automationAttention,
   sessionTitle,
   onWorkspaceControlsHostChange,
 }: AppTitleBarProps) {
@@ -234,6 +239,18 @@ export function AppTitleBar({
         {/* Theme toggle — defer render until client mount to avoid
             SSR hydration mismatch on icon and attributes. */}
         <ThemeToggleButton isDark={isDark} toggleTheme={toggleTheme} translate={translate} />
+
+        <button
+          className="app-no-drag"
+          type="button"
+          onClick={onOpenAutomations}
+          title={translate("automation.open", { count: automationAttention })}
+          aria-label={translate("automation.open", { count: automationAttention })}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, height: 36, minWidth: 36, padding: "0 7px", background: "none", border: "none", color: automationAttention ? "var(--accent-orange)" : "var(--text-muted)", cursor: "pointer", flexShrink: 0 }}
+        >
+          <ClockClockwise size={16} aria-hidden="true" />
+          {automationAttention > 0 && <span style={{ fontSize: 10, fontWeight: 700 }}>{automationAttention > 99 ? "99+" : automationAttention}</span>}
+        </button>
 
         {/* Settings */}
         <button

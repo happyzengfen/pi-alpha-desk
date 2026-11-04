@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { ChatCenteredText, Cpu, Monitor, Plug, Stack, X } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+import { ChatCenteredText, ClockClockwise, Cpu, Monitor, Plug, Stack, X } from "@phosphor-icons/react";
 import { ChatConfig } from "./ChatConfig";
 import { DisplayConfig } from "./DisplayConfig";
 import { ModelsConfig } from "./ModelsConfig";
 import { PluginsConfig } from "./PluginsConfig";
 import { SkillsConfig } from "./SkillsConfig";
+import { AutomationPanel, type AutomationFocus, type AutomationView } from "./AutomationPanel";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useI18n } from "@/hooks/useI18n";
 
-export type SettingsTab = "display" | "chat" | "models" | "skills" | "plugins";
+export type SettingsTab = "display" | "chat" | "models" | "skills" | "plugins" | "automations";
 
 interface SettingsModalProps {
   initialTab?: SettingsTab;
@@ -19,6 +20,9 @@ interface SettingsModalProps {
   onCloseAction: () => void;
   onModelsSavedAction: () => void;
   onSessionReloadedAction: () => void;
+  automations: AutomationView;
+  automationFocus?: AutomationFocus | null;
+  onOpenAutomationSession?: (session: string) => void;
 }
 
 const tabs: { id: SettingsTab; labelKey: string; Icon: typeof Cpu }[] = [
@@ -27,6 +31,7 @@ const tabs: { id: SettingsTab; labelKey: string; Icon: typeof Cpu }[] = [
   { id: "models", labelKey: "desktop.models", Icon: Cpu },
   { id: "skills", labelKey: "desktop.skills", Icon: Stack },
   { id: "plugins", labelKey: "desktop.plugins", Icon: Plug },
+  { id: "automations", labelKey: "automation.title", Icon: ClockClockwise },
 ];
 
 export function SettingsModal({
@@ -36,12 +41,18 @@ export function SettingsModal({
   onCloseAction,
   onModelsSavedAction,
   onSessionReloadedAction,
+  automations,
+  automationFocus,
+  onOpenAutomationSession,
 }: SettingsModalProps) {
   const isMobile = useIsMobile();
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<SettingsTab>(
     initialTab === "skills" || initialTab === "plugins" ? (cwd ? initialTab : "display") : initialTab,
   );
+  useEffect(() => {
+    if (initialTab === "automations") setActiveTab("automations");
+  }, [initialTab, automationFocus]);
 
   return (
     <div
@@ -92,7 +103,7 @@ export function SettingsModal({
               <code style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
                 ~/.pi/agent/models.json
               </code>
-            ) : cwd && (
+            ) : cwd && activeTab !== "automations" && (
               <code style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {cwd}
               </code>
@@ -122,6 +133,7 @@ export function SettingsModal({
               background: "var(--bg-panel)",
               borderRight: isMobile ? "none" : "1px solid var(--border)",
               borderBottom: isMobile ? "1px solid var(--border)" : "none",
+              overflowX: "auto",
             }}
           >
             {tabs.map(({ id, labelKey, Icon }) => {
@@ -191,6 +203,9 @@ export function SettingsModal({
               <PluginsConfig cwd={cwd} sessionId={sessionId} embedded onReloadedAction={onSessionReloadedAction} />
             </div>
           )}
+          <div style={{ display: activeTab === "automations" ? "flex" : "none", flex: 1, minWidth: 0, minHeight: 0 }}>
+            <AutomationPanel view={automations} cwd={cwd} focus={automationFocus} onOpenSession={onOpenAutomationSession} />
+          </div>
         </div>
       </section>
     </div>
