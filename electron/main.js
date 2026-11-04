@@ -1,7 +1,8 @@
 "use strict";
 
-const { app, BrowserWindow, dialog, ipcMain, Menu, Tray, nativeImage, shell } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, Menu, Tray, nativeImage, shell, Notification } = require("electron");
 const { fork } = require("child_process");
+const { randomBytes } = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const http = require("http");
@@ -10,6 +11,7 @@ const { installBundledSkills, resolveBundledSkillsTargetRoot } = require("./bund
 const { createMacEditMenuTemplate, handleMacEditShortcut } = require("./mac-edit-shortcuts");
 const { prependExecutableDirectory, resolveServerNodeExecutable } = require("./node-runtime");
 const { encodeFilePathForApi, isSafeExternalUrl, isTrustedRendererUrl } = require("./security");
+const { createAutomationSupervisor } = require("./automation-host");
 
 const startupStartedAt = performance.now();
 let port = Number(process.env.PORT || 30141);
@@ -37,6 +39,10 @@ let serverLogPath = null;
 let serverLogTail = "";
 let tray = null;
 let serverNodeExecutable = null;
+let automationSupervisor = null;
+let automationDescriptorPath = null;
+let automationShutdown = false;
+const automationControlKey = randomBytes(32).toString("hex");
 
 function emitStartupMetric(stage, details = {}) {
   if (process.env.PI_WEB_BENCHMARK !== "1") return;
@@ -167,6 +173,8 @@ function startServer() {
   const baseEnv = IS_DEV
     ? { ...environment, ELECTRON_RUNNING: "1", PI_WEB_HOSTNAME: HOSTNAME }
     : { ...environment, NODE_ENV: "production", ELECTRON_RUNNING: "1", PI_WEB_HOSTNAME: HOSTNAME };
+  baseEnv.PI_AUTOMATION_DESCRIPTOR = automationDescriptorPath;
+  baseEnv.PI_AUTOMATION_CONTROL_KEY = automationControlKey;
   const env = prependExecutableDirectory(baseEnv, serverNodeExecutable);
 
   serverProcess = fork(nextBin, args, {
@@ -287,7 +295,11 @@ function createWindow() {
   });
   mainWindow.webContents.on("will-attach-webview", (event) => event.preventDefault());
 
-  mainWindow.webContents.once("did-finish-load", async () => {
+  let measuredRenderer = false;
+  mainWindow.webContents.on("did-finish-load", async () => {
+    // The loading data URL finishes first; only the actual workspace proves readiness.
+    if (measuredRenderer || !isTrustedRendererUrl(mainWindow.webContents.getURL(), serverUrl)) return;
+    measuredRenderer = true;
     emitStartupMetric("renderer-load");
     if (process.env.PI_WEB_BENCHMARK !== "1") return;
     try {
@@ -437,6 +449,61 @@ ipcMain.handle("window:is-maximized", (event) => {
   return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false;
 });
 
+ipcMain.handle("automation:status", (event) => {
+  if (!isTrustedIpcSender(event)) return { enabled: false, state: "unavailable", reason: "untrusted-renderer" };
+  return automationSupervisor?.getStatus() ?? { enabled: false, state: "disabled" };
+});
+
+ipcMain.handle("automation:set-enabled", (event, enabled) => {
+  if (!isTrustedIpcSender(event) || typeof enabled !== "boolean" || app.isQuitting) {
+    return { enabled: false, state: "unavailable", reason: "invalid-request" };
+  }
+  return automationSupervisor?.setEnabled(enabled) ?? { enabled: false, state: "unavailable", reason: "not-ready" };
+});
+
+async function controlAutomationWorker(action) {
+  if (!serverProcess) return { stopped: true };
+  const response = await fetch(`${serverUrl}/api/automations`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-pi-automation-control": automationControlKey },
+    body: JSON.stringify({ action }), signal: AbortSignal.timeout(4_000), redirect: "error",
+  });
+  if (!response.ok) throw new Error("automation-worker-control-failed");
+  return response.json();
+}
+
+function openAutomationTask(detail) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+    mainWindow.webContents.once("did-finish-load", () => mainWindow?.webContents.send("automation:open", detail));
+    mainWindow.loadURL(serverUrl);
+  } else {
+    mainWindow.webContents.send("automation:open", detail);
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+function showAutomationNotification(notification) {
+  if (app.isQuitting || !Notification.isSupported()) return;
+  const chinese = app.getLocale().toLowerCase().startsWith("zh");
+  const messages = chinese
+    ? { decision: "自动化任务需要你决定", complete: "自动化任务已完成", failure: "自动化任务需要检查" }
+    : { decision: "An automation needs your decision", complete: "An automation has completed", failure: "An automation needs attention" };
+  const detail = {};
+  if (Number.isSafeInteger(notification.cardId) && notification.cardId > 0) detail.cardId = notification.cardId;
+  if (Number.isSafeInteger(notification.runId) && notification.runId > 0) detail.runId = notification.runId;
+  if (!detail.cardId && !detail.runId) return;
+  try {
+    const notice = new Notification({ title: "Pi Alpha Desk", body: messages[notification.kind] ?? messages.failure });
+    notice.on("click", () => openAutomationTask(detail));
+    notice.show();
+  } catch {
+    // The persistent inbox remains available when OS notifications are disabled.
+  }
+}
+
 // Open the native OS folder-picker dialog. Used by the workspace selector's
 // "Select folder" action so users browse instead of typing a path.
 // Remember the last folder the user picked so the dialog reopens there next
@@ -512,6 +579,16 @@ async function bootstrap() {
     homeDirectory: app.getPath("home"),
     agentDir,
   });
+  const automationDirectory = path.join(app.getPath("userData"), "automation");
+  automationDescriptorPath = path.join(automationDirectory, "connection.json");
+  automationSupervisor = createAutomationSupervisor({
+    appRoot: path.join(__dirname, ".."), dataDirectory: automationDirectory, descriptorPath: automationDescriptorPath,
+    homeDirectory: app.getPath("home"), embeddedExecutable: process.execPath,
+    canStart: () => Boolean(serverProcess),
+    drainWorker: () => controlAutomationWorker("suspend_worker"),
+    resumeWorker: () => controlAutomationWorker("resume_worker"),
+    onNotification: showAutomationNotification,
+  });
 
   if (IS_DEV) {
     try {
@@ -562,6 +639,7 @@ async function bootstrap() {
     createWindow();
   }
   emitStartupMetric("window-created");
+  void automationSupervisor.restore();
 }
 
 // ── Single-instance lock ──────────────────────────────────────
@@ -614,8 +692,14 @@ app.on("activate", () => {
   }
 });
 
-app.on("before-quit", () => {
+app.on("before-quit", (event) => {
   app.isQuitting = true;
+  if (automationSupervisor && !automationShutdown) {
+    event.preventDefault();
+    automationShutdown = true;
+    void automationSupervisor.stop({ timeoutMs: 2_500, force: true }).finally(() => app.quit());
+    return;
+  }
   if (tray) {
     tray.destroy();
     tray = null;

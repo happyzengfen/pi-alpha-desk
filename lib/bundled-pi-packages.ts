@@ -11,6 +11,17 @@ type PackageSettingsReader = {
 
 export const BUNDLED_PI_PACKAGE_NAMES = bundledPluginManifest.plugins.map((plugin) => plugin.name);
 
+/** Managed rounds must not inherit autonomous, interactive, or user-installed code. */
+export function getAutomationResourceLoaderOptions() {
+  return {
+    noExtensions: true,
+    noSkills: true,
+    noPromptTemplates: true,
+    noThemes: true,
+    noContextFiles: true,
+  };
+}
+
 function getPackageSource(setting: PackageSetting): string | undefined {
   const source = typeof setting === "string" ? setting : setting.source;
   return typeof source === "string" ? source.trim() : undefined;

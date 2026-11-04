@@ -23,5 +23,14 @@ interface Window {
     openThemeDocs: () => Promise<void>;
     showItemInFolder: (fullPath: string) => Promise<boolean>;
     getPathForFile: (file: File) => string;
+    getAutomationStatus: () => Promise<AutomationHostStatus>;
+    setAutomationEnabled: (enabled: boolean) => Promise<AutomationHostStatus>;
+    onAutomationOpen: (callback: (detail: { cardId?: number; runId?: number }) => void) => () => void;
   };
+}
+
+interface AutomationHostStatus {
+  enabled: boolean;
+  state: "disabled" | "starting" | "ready" | "unavailable" | "stopping";
+  reason?: string;
 }

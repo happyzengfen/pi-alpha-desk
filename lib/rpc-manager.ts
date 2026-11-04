@@ -2,8 +2,7 @@ import { createAgentSessionFromServices, createAgentSessionServices, getAgentDir
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { KeybindingsManager as TuiKeybindingsManager, TUI_KEYBINDINGS } from "@earendil-works/pi-tui";
 import { randomUUID } from "crypto";
-import { existsSync, realpathSync, writeFileSync } from "fs";
-import { resolve } from "path";
+import { existsSync, writeFileSync } from "fs";
 import { validateAgentImages } from "./image-attachments";
 import { invalidateModelsCache } from "./models-cache";
 import { resolveVisibleModels, selectInitialModelScope } from "./model-scope";
@@ -14,10 +13,11 @@ import type { SlashCommandInfo } from "@earendil-works/pi-coding-agent";
 import type { AgentSessionLike, ExtensionUiContextLike, ToolInfo } from "./pi-types";
 import type { ExtensionUiRequest, ExtensionUiResponse, ExtensionWidgetItem } from "./types";
 import { createHeadlessCustomUiTui, DEFAULT_CUSTOM_UI_COLUMNS } from "./custom-ui-terminal";
-import { getBundledPiPackageResourceLoaderOptions } from "./bundled-pi-packages";
+import { getAutomationResourceLoaderOptions, getBundledPiPackageResourceLoaderOptions } from "./bundled-pi-packages";
 import { createPdfReadTool } from "./pdf-read-tool";
 import { createSpreadsheetReadTool, createWordReadTool } from "./office-read-tool";
 import { createToolFreePromptPolicy } from "./tool-free-prompt";
+import { beginChatCwdUse, canonicalResourceCwd } from "./automation/resource-guard";
 
 // ============================================================================
 // Types
@@ -68,6 +68,18 @@ export interface RpcSessionStartOptions {
   toolNames?: string[];
   initialModel?: { provider: string; modelId: string };
   thinkingLevel?: ThinkingLevel;
+  executionMode?: "chat" | "automation";
+}
+
+export const AUTOMATION_TOOL_NAMES = ["read", "grep", "find", "ls"] as const;
+const AUTOMATION_SESSION_ENTRY = "desktop-automation-session";
+const READ_ONLY_COMMANDS = new Set(["get_state", "get_session_stats", "get_last_assistant_text", "get_tools", "get_commands"]);
+const STOP_COMMANDS = new Set(["abort", "abort_bash", "abort_compaction"]);
+
+function automationAbortError(): Error {
+  const error = new Error("Automation round cancelled");
+  error.name = "AbortError";
+  return error;
 }
 
 const CODING_TOOL_NAMES = ["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"];
@@ -155,11 +167,14 @@ export class AgentSessionWrapper {
   private onDestroyCallback: (() => void) | null = null;
   private shutdownPromise: Promise<void> | null = null;
   private _alive = true;
+  private chatResourceUses = new Set<() => void>();
+  private chatDispatches = 0;
 
   constructor(
     public readonly inner: AgentSessionLike,
     public readonly cwd: string,
     private readonly toolFreePrompt = { enabled: false },
+    public readonly executionMode: "chat" | "automation" = "chat",
   ) {}
 
   get sessionId(): string {
@@ -192,6 +207,7 @@ export class AgentSessionWrapper {
       }
       this.emit(event);
       if (this.isTerminalPromptError(event)) this.finishFailedPrompt();
+      if (event.type === "agent_settled" || event.type === "compaction_end" || event.type === "auto_compaction_end") this.releaseIdleChatResources();
     });
     this.resetIdleTimer();
   }
@@ -246,6 +262,7 @@ export class AgentSessionWrapper {
         this.inner.extensionRunner.setUIContext?.(uiContext, "rpc");
       }
       this.extensionsBound = true;
+      this.releaseIdleChatResources();
       console.log(`[pi-web] session_start dispatched to extensions for session ${this.inner.sessionId}`);
     })().catch((err) => {
       this.extensionBindingError = err;
@@ -288,6 +305,7 @@ export class AgentSessionWrapper {
     this.promptStreamingBehavior = undefined;
     this.resetIdleTimer();
     if (!streamingBehavior) this.emit({ type: "prompt_done" });
+    this.releaseIdleChatResources();
   }
 
   private finishFailedPrompt(): void {
@@ -379,9 +397,93 @@ export class AgentSessionWrapper {
     this.onDestroyCallback = cb;
   }
 
+  holdChatResourceUse(release: () => void): () => void {
+    const done = () => { this.chatResourceUses.delete(done); release(); };
+    this.chatResourceUses.add(done);
+    return done;
+  }
+
+  private releaseIdleChatResources(): void {
+    if (this.chatDispatches || this.promptRunning || this.inner.isStreaming || this.inner.isCompacting || this.inner.isBashRunning || this.inner.pendingMessageCount > 0 || (this.extensionBindingPromise && !this.extensionsBound)) return;
+    for (const release of this.chatResourceUses) release();
+  }
+
+  persistAutomationSession(): void {
+    if (this.executionMode !== "automation") throw new Error("Session is not managed by automation");
+    this.persistPromptSession();
+  }
+
+  async runAutomationPrompt(message: string, options: {
+    signal?: AbortSignal;
+    repair?: boolean;
+    beforePrompt?: () => void | Promise<void>;
+  } = {}): Promise<void> {
+    if (this.executionMode !== "automation") throw new Error("Session is not managed by automation");
+    if (!this._alive) throw new Error("Automation session is closed");
+    if (this.isRunning() || this.inner.pendingMessageCount > 0) throw new Error("Automation session is busy");
+    if (options.signal?.aborted) throw automationAbortError();
+
+    // Claim the wrapper before any await so two callers cannot share a round.
+    this.promptRunning = true;
+    let cancellation: Promise<void> | undefined;
+    const cancel = () => {
+      this.inner.clearQueue();
+      this.inner.abortBash();
+      this.inner.abortCompaction();
+      cancellation ??= this.inner.abort();
+      // The awaited copy below still reports failure; avoid an unhandled rejection
+      // while the provider is finishing its cancellation path.
+      void cancellation.catch(() => {});
+    };
+    options.signal?.addEventListener("abort", cancel, { once: true });
+    try {
+      await this.waitForExtensionsBound();
+      if (options.signal?.aborted) throw automationAbortError();
+      await options.beforePrompt?.();
+      if (options.signal?.aborted) throw automationAbortError();
+      this.inner.setActiveToolsByName(options.repair ? [] : [...AUTOMATION_TOOL_NAMES]);
+      const prompt = this.inner.prompt(message, { source: "rpc" });
+      this.persistPromptSession();
+      await prompt;
+      const idleSession = this.inner as AgentSessionLike & { waitForIdle(): Promise<void> };
+      await idleSession.waitForIdle();
+      if (cancellation) await cancellation;
+      if (options.signal?.aborted) throw automationAbortError();
+      if (this.inner.pendingMessageCount > 0 || this.inner.isStreaming || this.inner.isCompacting || this.inner.isBashRunning) {
+        throw new Error("Automation round did not settle");
+      }
+    } catch (error) {
+      cancel();
+      if (options.signal?.aborted) throw automationAbortError();
+      throw error;
+    } finally {
+      options.signal?.removeEventListener("abort", cancel);
+      if (cancellation) await cancellation.catch(() => {});
+      this.inner.setActiveToolsByName([...AUTOMATION_TOOL_NAMES]);
+      this.finishPrompt();
+    }
+  }
+
   async send(command: Record<string, unknown>): Promise<unknown> {
+    const type = command.type as string;
+    const chatUse = this.executionMode === "chat" && !READ_ONLY_COMMANDS.has(type) && !STOP_COMMANDS.has(type) ? beginChatCwdUse(this.cwd) : undefined;
+    if (chatUse) { this.holdChatResourceUse(chatUse.release); this.chatDispatches++; }
+    try {
+      if (chatUse) await chatUse.check();
+      return await this.dispatchCommand(command);
+    } finally {
+      if (chatUse) { this.chatDispatches--; this.releaseIdleChatResources(); }
+    }
+  }
+
+  private async dispatchCommand(command: Record<string, unknown>): Promise<unknown> {
     this.resetIdleTimer();
     const type = command.type as string;
+    if (this.executionMode === "automation" && !new Set([
+      "get_state", "get_session_stats", "get_last_assistant_text", "get_tools", "get_commands", "abort",
+    ]).has(type)) {
+      throw new Error("Managed automation sessions accept input through the automation service");
+    }
     if (type === "prompt" || type === "steer" || type === "follow_up") {
       const imageError = validateAgentImages(command.images);
       if (imageError) throw new Error(imageError);
@@ -660,6 +762,7 @@ export class AgentSessionWrapper {
 
   destroy(): void {
     if (!this._alive) return;
+    const unsettled = this.isRunning() || this.inner.pendingMessageCount > 0;
     this._alive = false;
     if (this.idleTimer) clearTimeout(this.idleTimer);
     if (this.inner.isBashRunning) this.inner.abortBash();
@@ -671,6 +774,9 @@ export class AgentSessionWrapper {
     try {
       this.inner.dispose();
     } finally {
+      // The synchronous exit fallback cannot prove that a tool has stopped.
+      // Normal shutdown drains first; keep uncertain chat tickets fenced.
+      if (!unsettled) for (const release of this.chatResourceUses) release();
       this.onDestroyCallback?.();
     }
   }
@@ -681,6 +787,14 @@ export class AgentSessionWrapper {
 
     this.shutdownPromise = (async () => {
       try {
+        if (this.isRunning()) {
+          this.inner.clearQueue();
+          for (const pending of this.pendingUiResponses.values()) pending.cancel();
+          for (const id of Array.from(this.activeCustomUis.keys())) this.closeCustomUi(id, undefined);
+          this.inner.abortBash();
+          this.inner.abortCompaction();
+          await this.inner.abort();
+        }
         try {
           await this.waitForExtensionsBound();
         } catch (error) {
@@ -1067,12 +1181,7 @@ function getLocks(): Map<string, Promise<{ session: AgentSessionWrapper; realSes
 }
 
 function normalizeRpcCwd(cwd: string): string {
-  const resolvedCwd = resolve(cwd);
-  try {
-    return realpathSync(resolvedCwd);
-  } catch {
-    return resolvedCwd;
-  }
+  return canonicalResourceCwd(cwd);
 }
 
 function getStartingSessionCwds(): Map<string, number> {
@@ -1137,10 +1246,29 @@ export async function startRpcSession(
   const locks = getLocks();
 
   const existing = registry.get(sessionId);
-  if (existing?.isAlive()) return { session: existing, realSessionId: sessionId };
+  if (existing?.isAlive()) {
+    if (options.executionMode && existing.executionMode !== options.executionMode) {
+      throw new Error("Session execution mode does not match");
+    }
+    if (cwd && normalizeRpcCwd(existing.cwd) !== normalizeRpcCwd(cwd)) throw new Error("Session cwd does not match");
+    if (options.executionMode === "automation" && sessionFile && normalizeRpcCwd(existing.sessionFile) !== normalizeRpcCwd(sessionFile)) {
+      throw new Error("Session file does not match");
+    }
+    return { session: existing, realSessionId: sessionId };
+  }
 
   const inflight = locks.get(sessionId);
-  if (inflight) return inflight;
+  if (inflight) {
+    const result = await inflight;
+    if (options.executionMode && result.session.executionMode !== options.executionMode) {
+      throw new Error("Session execution mode does not match");
+    }
+    if (cwd && normalizeRpcCwd(result.session.cwd) !== normalizeRpcCwd(cwd)) throw new Error("Session cwd does not match");
+    if (options.executionMode === "automation" && sessionFile && normalizeRpcCwd(result.session.sessionFile) !== normalizeRpcCwd(sessionFile)) {
+      throw new Error("Session file does not match");
+    }
+    return result;
+  }
 
   let sessionManager: SessionManager;
   if (sessionFile) {
@@ -1150,8 +1278,24 @@ export async function startRpcSession(
     sessionManager = SessionManager.create(cwd, undefined);
   }
   const sessionCwd = sessionManager.getCwd();
+  if (sessionFile && options.executionMode === "automation" && sessionId !== sessionManager.getSessionId()) {
+    throw new Error("Automation session ID does not match");
+  }
+  if (cwd && normalizeRpcCwd(sessionCwd) !== normalizeRpcCwd(cwd)) throw new Error("Session cwd does not match");
+  const managedSession = sessionManager.getEntries().some(
+    (entry) => entry.type === "custom" && entry.customType === AUTOMATION_SESSION_ENTRY,
+  );
+  if (sessionFile && options.executionMode === "automation" && !managedSession) {
+    throw new Error("Cannot adopt a chat session as an automation session");
+  }
+  const executionMode = managedSession ? "automation" : options.executionMode ?? "chat";
+  const automation = executionMode === "automation";
+  if (automation && !managedSession) sessionManager.appendCustomEntry(AUTOMATION_SESSION_ENTRY, { version: 1 });
+  const startupUse = automation ? undefined : beginChatCwdUse(sessionCwd);
+  let startupTransferred = false;
   const finishStartingSession = trackStartingSession(sessionCwd);
   const starting = (async () => {
+    await startupUse?.check();
     // Some extensions access the SDK's global theme even outside the terminal UI.
     initTheme();
     const agentDir = getAgentDir();
@@ -1159,7 +1303,9 @@ export async function startRpcSession(
     // Determine which tools to pass based on requested toolNames.
     // Since v0.68.0, session creation expects string[] tool names instead of Tool[] instances.
     let toolsOption: string[] | undefined;
-    if (toolNames !== undefined) {
+    if (automation) {
+      toolsOption = [...AUTOMATION_TOOL_NAMES];
+    } else if (toolNames !== undefined) {
       // toolNames === [] -> "all off" (an empty allow-list disables every tool).
       // Otherwise DO NOT pass a builtin-only allow-list: passing CODING_TOOL_NAMES
       // set allowedToolNames to coding builtins only, which filtered every
@@ -1179,14 +1325,32 @@ export async function startRpcSession(
     const settingsManager = SettingsManager.create(sessionCwd, agentDir, {
       projectTrusted: projectTrust.trusted,
     });
-    const toolFreePrompt = createToolFreePromptPolicy(toolNames?.length === 0);
+    const toolFreePrompt = createToolFreePromptPolicy(!automation && toolNames?.length === 0);
+    let wrapperForTools: AgentSessionWrapper | undefined = undefined;
     const services = await createAgentSessionServices({
       cwd: sessionCwd,
       agentDir,
       settingsManager,
       resourceLoaderOptions: {
-        ...getBundledPiPackageResourceLoaderOptions(settingsManager),
-        extensionFactories: [toolFreePrompt.extension],
+        ...(automation
+          ? getAutomationResourceLoaderOptions()
+          : { ...getBundledPiPackageResourceLoaderOptions(settingsManager), extensionFactories: [toolFreePrompt.extension, {
+            name: "desktop-chat-resource-guard", hidden: true,
+            factory(pi) {
+              pi.on("tool_call", async () => {
+                let release: (() => void) | undefined;
+                try {
+                  const use = beginChatCwdUse(sessionCwd);
+                  release = wrapperForTools ? wrapperForTools.holdChatResourceUse(use.release) : use.release;
+                  await use.check();
+                  if (!wrapperForTools) throw new Error("Session is not ready");
+                } catch (error) {
+                  release?.();
+                  return { block: true, reason: error instanceof Error ? error.message : "Working directory is reserved" };
+                }
+              });
+            },
+          }] }),
       },
       ...(trustReloadOptions ? { resourceLoaderReloadOptions: trustReloadOptions } : {}),
     });
@@ -1197,7 +1361,7 @@ export async function startRpcSession(
     const defaultProvider = services.settingsManager.getDefaultProvider();
     const defaultModelId = services.settingsManager.getDefaultModel();
     const hasExistingMessages = sessionManager.getBranch().some((entry) => entry.type === "message");
-    const initial = hasExistingMessages
+    const initial = hasExistingMessages && !automation
       ? { scopedModels: [...scope.scopedModels] }
       : selectInitialModelScope(scope, {
         ...(initialModel ? { requestedModel: initialModel } : {}),
@@ -1209,7 +1373,7 @@ export async function startRpcSession(
     const { session: inner } = await createAgentSessionFromServices({
       services,
       sessionManager,
-      customTools: [
+      customTools: automation ? [] : [
         createPdfReadTool(sessionCwd),
         createWordReadTool(sessionCwd),
         createSpreadsheetReadTool(sessionCwd),
@@ -1220,7 +1384,7 @@ export async function startRpcSession(
       ...(toolsOption !== undefined ? { tools: toolsOption } : {}),
     });
 
-    const persistedPreferences = await persistExplicitStartupPreferences(
+    const persistedPreferences = automation ? { modelDefaultChanged: false } : await persistExplicitStartupPreferences(
       services.settingsManager,
       {
         ...(initialModel ? { model: initialModel } : {}),
@@ -1237,11 +1401,21 @@ export async function startRpcSession(
     // If specific tool names were requested (non-empty), set the active tools to the
     // requested builtin coding tools PLUS all extension/package tools, so installed
     // extensions stay usable in pi-web just like in the `pi` CLI.
-    if (toolNames && toolNames.length > 0) {
+    if (!automation && toolNames && toolNames.length > 0) {
       inner.setActiveToolsByName(withExtensionTools(inner, toolNames));
     }
 
-    const wrapper = new AgentSessionWrapper(inner, sessionCwd, toolFreePrompt.policy);
+    const wrapper = new AgentSessionWrapper(inner, sessionCwd, toolFreePrompt.policy, executionMode);
+    wrapperForTools = wrapper;
+    if (startupUse) { wrapper.holdChatResourceUse(startupUse.release); startupTransferred = true; }
+    if (automation) {
+      try {
+        wrapper.persistAutomationSession();
+      } catch (error) {
+        inner.dispose();
+        throw error;
+      }
+    }
     wrapper.start();
 
     const realSessionId = inner.sessionId as string;
@@ -1255,6 +1429,7 @@ export async function startRpcSession(
     return { session: wrapper, realSessionId };
   })().finally(() => {
     locks.delete(sessionId);
+    if (!startupTransferred) startupUse?.release();
     finishStartingSession();
   });
 
