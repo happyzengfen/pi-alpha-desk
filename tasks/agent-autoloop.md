@@ -2,12 +2,12 @@
 
 目标：完成 [集成计划](../docs/agent-autoloop-integration-plan.zh-CN.md) 的首版 P0–P5；P6 是计划明确列出的后续扩展。用户已授权实施。普通聊天和现有桌面资产必须保持可用。
 
-- [ ] P0：本机与目标平台的 Node/SQLite、编译资源和 Pi 无页面执行已验证；最终源码的 macOS 自动化 CI 尚待外部 runner。
+- [x] P0：本机与目标平台的 Node/SQLite、编译资源、Pi 无页面执行及恢复通过；`57deb42` 的真实 macOS 自动化 CI 已补齐同一运行代码的最终平台验证。
 - [x] P1：hub、原生 Pi、事件、outbox 与目录互斥主链路通过；异步启动锁、并发 viewer/repair 模式切换与关闭中拒绝新执行已修复并通过独立复审及最终回归。
 - [x] P2：持久卡片、同会话回答、会话变化暂停、认证等待、已开始异常分流与原业务结果核实通过最终真实 SDK/Hub 和浏览器闭环。
 - [x] P3：周期/预约、取消排序、持久互斥、十次退避上限、真实一分钟超时、预算与无进展保护通过最终回归。
-- [ ] P4：桌面宿主与 UI 已实现，最终浏览器两条闭环和生产服务生命周期通过；原生桥接、托盘、通知点击、退出/重开及桌面交互仍待 Mac 解锁实机验证。
-- [ ] P5：最终源码生产构建、五个强杀窗口、12轮服务端性能、备份/重放与 ia32 完整包通过；macOS 自动化 CI 等待 runner，原生 Main/Renderer 指标仍待实机验证。
+- [ ] P4：桌面宿主与 UI 已实现，最终浏览器两条闭环和生产服务生命周期通过；原生桥接、托盘、通知点击、退出/重开及桌面交互按用户要求后置。
+- [ ] P5：非原生部分已验收：最终生产构建、五个强杀窗口、12轮服务端性能、备份/重放、三平台 CI 与 ia32 完整包均通过；原生 Main/Renderer 指标按用户要求后置。
 
 ## 已取得的证据
 
@@ -67,4 +67,6 @@
 - 最终代码提交 `4f6995f` 的隔离生产构建、五个真实 SIGKILL 窗口及 12 轮新性能采样全部通过，36 个自有 Next/Hub 与两个 harness PID 均退出。自动化关闭相对新采样基线就绪中位数增加 4ms、Next RSS 增加 7.0MiB，SSE p95 同为 36ms；这些均为服务端指标，见[最终验证报告](../docs/automation-validation.zh-CN.md)。
 - 主代理通过实际 IAB/CUA 操作最终生产包：问题卡片刷新保留、回答后同会话完成；业务完成但修复中断时先查看原会话，再点击明确的复核按钮，仅补交原结论/用量和固定通知。两条路径共 4 次本地模型请求，没有业务重跑或付费请求，四个自有进程与临时标签页已清理，见[浏览器收据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-final-browser-backend-EHGVYz/receipt.json)。
 - `4f6995f` 的 [Quality 三平台](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896640865)、[Ubuntu 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807808995)、[Windows 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807809597) 和 [ia32 完整包/实际 Renderer](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807809492) 实际步骤全部成功。最后一次快照中[macOS 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807809586) 仍未分配 runner，不能写作整个 run 全绿。代码验证归属 `4f6995f`，后续仅证据文档的提交不改变运行实现。
-- 最终范围复审未发现额外功能缺口；P6 外部来源/Goal 仍为后续。Mac 仍锁屏、手动解锁请求尚未收到回复，原生桥接、托盘持续执行、通知投递/点击、Quit/重开、标题栏与窗口控制回归及 Main/Renderer 性能保持未完成。不得以浏览器、服务端或 CI Renderer 启动证据替代这组验收。
+- 最终范围复审未发现额外功能缺口；P6 外部来源/Goal 仍为后续。原生桥接、托盘持续执行、通知投递/点击、Quit/重开、标题栏与窗口控制回归及 Main/Renderer 性能保持未完成。不得以浏览器、服务端或 CI Renderer 启动证据替代这组验收。
+- 2026-11-05 用户明确“先完成其余验证”。增量复核证实 `4f` 旧 macOS job 最终取消且没有执行，不能记为通过；文档提交 `57deb42` 自动触发的 [Quality](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41899390861) 和 [Automation](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41899390849) 两个 run、七个 job 的实际步骤全部成功，macOS/Ubuntu 自动化各 166/166，Windows 165 通过加 1 项预期跳过，ia32 完整包、包内探针和真实 Renderer 通过。`4f..57` 仅两个 Markdown 文件变化，运行代码相同，已补齐此前 macOS gate。详见[收据](/tmp/pi-alpha-final-ci-57deb42f.json)及[验证报告](../docs/automation-validation.zh-CN.md)。
+- 增量范围复核未发现其他非原生验证缺项，非原生部分已验收；没有重跑已通过的本地/生产/浏览器实验，没有更改运行代码、合并或发布。本轮未尝试本机桌面，原生整组依用户要求后置，完整首版仍未标为全部完成。

@@ -1,7 +1,7 @@
 # 自动化集成：本地生产验证记录
 
 > 日期：2026-11-05  
-> 结果：最终源码的隔离生产构建、五个强杀窗口、12 轮服务端性能采样及两条浏览器闭环通过；原生桌面验证受锁屏阻止，macOS 自动化 CI 等待 runner。
+> 结果：非原生验收完成，包括三平台 CI、ia32 实际包、五个强杀窗口、12 轮服务端性能及两条浏览器闭环。原生桌面验收按用户要求后置。
 
 ## 版本与环境
 
@@ -124,9 +124,25 @@
 - [Quality](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896640865) 三平台实际步骤全部成功。各平台 Node22.22 共 485 项，484 通过、1 项预期跳过；TypeScript、Lint 与差异检查通过，Lint 仅有 3 条原有 PDF 警告。
 - [Ubuntu 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807808995) 实际 166/166 通过；[Windows 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807809597) 共 166 项，165 通过、1 项 POSIX 专用检查按设计跳过。严格 400/409、显式会话复核与新增 RPC 竞态均通过，Node24 与 Electron 内置运行时实际 SQLite/Hub 启动通过。
 - [Windows ia32](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807809492) 完整 unpacked 构建、包结构、包内 Electron24.18 SQLite/Hub 与实际 Renderer 加载、证据上传全部成功，`renderer-interactive` 为 7793.24ms；该启动指标不替代原生交互或性能对比。
-- [macOS 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807809586) 在最后一次快照（2026-11-04 19:38:56 UTC）仍为 `queued`、runner 未分配、steps 为空。没有失败证据，也没有已执行证据，**不能将整个 Automation run 记为全绿**。本地最终源码的 macOS Node24/Electron Hub、真实 SDK、生产构建和故障/性能检查均已单独取得证据。
+- [macOS 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41896641320/job/126807809586) 在原快照（2026-11-04 19:38:56 UTC）为 `queued`、runner 未分配、steps 为空；后续复核其最终为 `cancelled`，仍无执行步骤，日志返回 404。该旧 job 没有执行，不能记为通过或将整个旧 Automation run 记为全绿。下面 `57deb42` 的真实 macOS 运行补齐同一运行代码的验证；未手动重跑或取消旧 job。
 
 各 job 直链、测试计数、运行时探针与实际完成步骤保存在[最终 CI 收据](/tmp/pi-alpha-final-ci-4f6995f3.json)。未重跑、取消、合并或发布。
+
+## 57deb42：非原生验收收口
+
+2026-11-05，复核文档提交 `57deb42fc99c8f614b5853ad65d18daede95e75a` 自动触发的 [Quality](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41899390861) 与 [Automation](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41899390849)：两个 run、七个 job 的实际步骤均已完成并成功，包含完整日志与 `Complete job`。`git diff --name-only 4f6995f..57deb42` 仅为本报告和执行记录两个 Markdown 文件，运行代码未变；此前生产、浏览器与本地回归的证据继续有效。
+
+| 检查 | 实际结果 |
+| --- | --- |
+| Quality：Ubuntu、macOS、Windows | 各 Node22.22.0，485 项中 484 通过、1 项 Node24 专用检查预期跳过；TypeScript、Lint、差异检查通过，Lint 仅 3 条原有 PDF 警告 |
+| [Ubuntu 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41899390849/job/126817436324) | Node24.22.2，166/166 通过；严格 400/409、显式会话复核与 RPC 竞态通过；Node24 与 Electron24.18 的 linux x64 SQLite/Hub 实际启停通过 |
+| [macOS 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41899390849/job/126817436493) | Node24.22.1，166/166 通过；相同 API/恢复/竞态检查通过；Node24 与 Electron24.18 的 darwin arm64 SQLite/Hub 实际启停通过 |
+| [Windows 自动化](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41899390849/job/126817436340) | Node24.22.2，166 项中 165 通过、1 项 POSIX 检查预期跳过；相同 API/恢复/竞态检查及 win32 x64 运行时探针通过 |
+| [Windows ia32 完整包](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41899390849/job/126817436113) | unpacked 构建、包资源检查、两轮 Electron24.18 ia32 SQLite/Hub 探针及实际 Renderer 均通过；可交互时间 7627.91ms，启动证据 artifact `13357733069` 上传成功 |
+
+[完整收据](/tmp/pi-alpha-final-ci-57deb42f.json) 保留精确提交、各 job 直链、计数、跳过原因、探针 JSON 和 Renderer 指标。未通过版本推测平台能力，也没有将旧 `4f` 未执行的 macOS job 改写为成功。此后仅更新证据文档，不改变已验证的运行代码，无需重复生产故障、性能或浏览器实验。
+
+范围复核确认：P0–P5 中可独立进行的非原生验证均已完成，P6 仍属后续。用户已明确“先完成其余验证”，本轮没有尝试本机原生桌面，也未再次请求解锁；完整首版仍保留下面的原生验收项。
 
 ## 原生桌面验证限制
 
