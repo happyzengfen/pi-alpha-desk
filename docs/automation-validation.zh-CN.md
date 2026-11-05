@@ -1,7 +1,7 @@
 # 自动化集成：本地生产验证记录
 
 > 日期：2026-11-05  
-> 结果：非原生验收完成，包括三平台 CI、ia32 实际包、五个强杀窗口、12 轮服务端性能及两条浏览器闭环。原生桌面验收按用户要求后置。
+> 结果：非原生验收完成；原生实测已验证默认关闭、桥接启用和关窗后台执行，并发现及修复窗口激活缺陷。新源码 `0df5739` 的三平台 CI 已通过；剩余原生实机及性能验收因 Mac 再次锁屏未完成。
 
 ## 版本与环境
 
@@ -144,7 +144,26 @@
 
 范围复核确认：P0–P5 中可独立进行的非原生验证均已完成，P6 仍属后续。用户已明确“先完成其余验证”，本轮没有尝试本机原生桌面，也未再次请求解锁；完整首版仍保留下面的原生验收项。
 
-## 原生桌面验证限制
+## 0df5739：原生激活修复与增量门禁
+
+2026-11-05，Mac 解锁期间，主代理通过 CUA 启动独立 Electron43.2 测试应用，使用私有 Agent/userData、动态 loopback 端口与本地 Provider；没有操作用户正在运行的正式应用。该次运行的产品代码为 `4f6995f`，不是后续 `0df5739` 的实机复测。
+
+- 实际工作区显示自动化默认关闭；原生 IPC 返回 `enabled:false/state:disabled`，偏好和 descriptor 均不存在。
+- 点击“启用自动化”，真实桥接返回 ready、页面显示已连接；点击“立即运行”后 Provider 收到请求。
+- 点击原生关闭按钮，日志确认原窗口 `visible:false`、未销毁；随后释放 Provider 响应，隐藏期间 run 完成并持久保存 ask，owner/checkpoint 清空，共一次请求。证据见[首次原生尝试收据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-native-lifecycle-fYCTlR/unsigned-early-query-attempt-receipt.json)。
+- 从 Finder 打开同一应用后窗口未恢复。源码和先红后绿的实际 main.js VM 回归确认：`activate` 原来只处理窗口为 null，已有隐藏或最小化窗口没有恢复路径。`0df5739fd0bcffa2bcde2fc38a5d618bad9bcbaa` 只增加已有窗口的 restore/show/focus，不重建窗口、服务或调度者；三个新回归验证同窗口与原有 server/supervisor 引用保持、无新增启动，null 分支仍可创建并加载。
+
+修复后的本地 Node24.15 与 Node22.22 普通套件各 **488/488**，Electron 定点 **37/37**，局部 ESLint 与差异检查通过。[Quality](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41939682950) 和 [Automation](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41939682786) 两个 run、七个 job 的实际步骤全部成功：Quality 三平台各 488 项中 487 通过、1 项预期跳过；Ubuntu/macOS 自动化各 166/166，Windows 165 通过加 1 项 POSIX 预期跳过。三平台真实 Node24/Electron SQLite/Hub、严格 400/409、复核 API 与 RPC 竞态通过；ia32 实际包 Renderer 为 6612.64ms，artifact `13376426509` 已上传。见[完整增量 CI 收据](/tmp/pi-alpha-final-ci-0df5739f.json)。
+
+## 原生通知测试包准备与当前限制
+
+首次临时应用实际创建了两条 Notification，但 OS 均返回 `UNErrorDomain 1`，没有 show/click 事件，因此**不算通知投递或点击通过**。该旧 fixture 还有两个独立限制：复制的官方 Electron.app 未完成 bundle 资源签名；观测代码在启动时调用 `Notification.isSupported()`，而 Electron43.2 的该方法可能创建 presenter 并提前请求授权。不能由此次拒绝认定产品没有授权调用。Electron43.2 的[官方实现](https://github.com/electron/electron/blob/v43.2.0/shell/browser/notifications/mac/notification_presenter_mac.mm)已调用授权；其[文档](https://github.com/electron/electron/blob/v43.2.0/docs/api/notification.md)要求 macOS 通知来自签名应用，[Apple 错误定义](https://developer.apple.com/documentation/usernotifications/unerror/code/notificationsnotallowed)将错误 1 定义为不允许通知。
+
+随后准备全新独立 bundleId、Agent/userData 与 Provider 的测试包，移除启动时主动通知探测，完整复制 Git `0df5739` 的 Electron 文件并复用源码未变的 `4f6995f` Next 生产包（Build ID `x06Cvi8lO9QZHdBnrTP5L`）。外部资源只复制进自有 bundle，遵循正式包排除项；仅对私有 nested bundles 和 outer app 正常 ad-hoc 签名。严格验证 `codesign --verify --deep --strict --verbose=4` 实际退出 0，Info.plist 已绑定、资源已封装，外部工作区、依赖与旧 release 的关键哈希不变。见[最终签名及来源收据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-native-lifecycle-signed-K7xAyK/final-signing-receipt.json)。这不是 Developer ID、notarization 或正式 DMG 发布证明。
+
+签名包准备完成后，主代理调用 CUA 启动该应用时 Mac 再次锁屏，工具在启动前拒绝操作。只读状态确认 events 为空、偏好/descriptor 不存在、Provider 请求为 0，签名应用尚未启动。原生恢复、托盘操作、实际通知投递/点击、Quit/重开、桌面交互与 Main/Renderer 性能仍待实机验证；不能用签名校验、VM 回归或旧 fixture 的部分成功代替。原生性能的对称被动 observer 和基线/当前包已准备但尚未运行，未重复此前服务端实验。
+
+## 早期原生桌面验证限制
 
 已准备临时 Electron.app、打包资源布局和独立 userData，并尝试加载真实主页。CUA 返回“Mac is locked and automatic unlock could not unlock it”；该尝试未产生主进程校验日志或 BrowserWindow 加载记录，真实 HTTP 文档等待超时后已清理测试进程。
 

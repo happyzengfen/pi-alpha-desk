@@ -6,8 +6,8 @@
 - [x] P1：hub、原生 Pi、事件、outbox 与目录互斥主链路通过；异步启动锁、并发 viewer/repair 模式切换与关闭中拒绝新执行已修复并通过独立复审及最终回归。
 - [x] P2：持久卡片、同会话回答、会话变化暂停、认证等待、已开始异常分流与原业务结果核实通过最终真实 SDK/Hub 和浏览器闭环。
 - [x] P3：周期/预约、取消排序、持久互斥、十次退避上限、真实一分钟超时、预算与无进展保护通过最终回归。
-- [ ] P4：桌面宿主与 UI 已实现，最终浏览器两条闭环和生产服务生命周期通过；原生桥接、托盘、通知点击、退出/重开及桌面交互按用户要求后置。
-- [ ] P5：非原生部分已验收：最终生产构建、五个强杀窗口、12轮服务端性能、备份/重放、三平台 CI 与 ia32 完整包均通过；原生 Main/Renderer 指标按用户要求后置。
+- [ ] P4：原生实测已覆盖默认关闭、桥接启用、关窗后台执行与持久 ask；窗口激活缺陷已在 `0df5739` 修复并过增量门禁。签名测试包已就绪，Mac 再次锁屏，恢复复测、托盘、通知点击、退出/重开与桌面交互仍未完成。
+- [ ] P5：非原生部分已验收，`0df5739` 新增量的三平台 CI 与 ia32 实际包也通过；原生 Main/Renderer 性能包已准备但尚未实测，不能将阶段标为全部完成。
 
 ## 已取得的证据
 
@@ -70,3 +70,6 @@
 - 最终范围复审未发现额外功能缺口；P6 外部来源/Goal 仍为后续。原生桥接、托盘持续执行、通知投递/点击、Quit/重开、标题栏与窗口控制回归及 Main/Renderer 性能保持未完成。不得以浏览器、服务端或 CI Renderer 启动证据替代这组验收。
 - 2026-11-05 用户明确“先完成其余验证”。增量复核证实 `4f` 旧 macOS job 最终取消且没有执行，不能记为通过；文档提交 `57deb42` 自动触发的 [Quality](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41899390861) 和 [Automation](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41899390849) 两个 run、七个 job 的实际步骤全部成功，macOS/Ubuntu 自动化各 166/166，Windows 165 通过加 1 项预期跳过，ia32 完整包、包内探针和真实 Renderer 通过。`4f..57` 仅两个 Markdown 文件变化，运行代码相同，已补齐此前 macOS gate。详见[收据](/tmp/pi-alpha-final-ci-57deb42f.json)及[验证报告](../docs/automation-validation.zh-CN.md)。
 - 增量范围复核未发现其他非原生验证缺项，非原生部分已验收；没有重跑已通过的本地/生产/浏览器实验，没有更改运行代码、合并或发布。本轮未尝试本机桌面，原生整组依用户要求后置，完整首版仍未标为全部完成。
+- 完整目标恢复 active 后，原生库存一度可用，主代理实测 `4f` 隔离应用的默认关闭、真实桥接启用、关窗隐藏及后台持久 ask。激活已有隐藏窗口未恢复的问题被定位到 main 的 null-only 分支，独立范围复审确认属于 P4；`0df5739` 最小补齐 restore/show/focus，不启动新窗口/服务/owner。三个实际 VM 回归先红后绿，本地 Node22/24 各 488/488、Electron 37/37，[Quality](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41939682950) 与 [Automation](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41939682786) 全部七个 job 实际成功，见[收据](/tmp/pi-alpha-final-ci-0df5739f.json)。
+- 旧通知尝试 OS 返回 UNError1，没有 shown/click，且 fixture 存在 bundle 未完成签名和启动时主动 isSupported 的观测副作用；旧尝试保留而不算通知通过。新建私有资源全部物化、无早期主动探测的独立包，完整 Electron 来源为 `0df`、Next 复用未变 `4f` BuildID；仅私有副本正常签名后严格 deep/strict 验证实际通过，外部源哈希不变。不是正式 DMG/notarization 证明。
+- 新签名包启动前 Mac 再次锁屏，CUA 阻止启动，状态 events/prefs/descriptor 均空、Provider 0。已发送就绪后的解锁请求，继续等待；不借 VM/签名/旧 native 局部结果认定恢复、托盘/通知/退出或原生性能通过。详细方法、版本和限制见[验证报告](../docs/automation-validation.zh-CN.md)。
