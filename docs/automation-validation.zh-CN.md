@@ -1,7 +1,7 @@
 # 自动化集成：本地生产验证记录
 
 > 日期：2026-11-05  
-> 结果：P0–P3 与 P5 已验收，原生后台问答、退出恢复及性能采样完成。激活及 Quit 重入问题分别在 `0df5739`、`fd71599` 修复；新版 Cmd+Q 和增量 CI 七个实际作业全部通过。托盘恢复与标题栏拖拽经用户手动确认通过，P4 仅通知显示/点击定位待可用环境补验，完整首版保持未全部完成。
+> 结果：P0–P3 与 P5 已验收，原生后台问答、退出恢复及性能采样完成。激活及 Quit 重入问题分别在 `0df5739`、`fd71599` 修复；新版 Cmd+Q 和增量 CI 七个实际作业全部通过。托盘恢复与标题栏拖拽经用户手动确认通过；通知授权及提交已有系统成功记录，P4 仍待通知中心实际显示/点击定位及该尝试清理，完整首版保持未全部完成。
 
 ## 版本与环境
 
@@ -178,6 +178,20 @@
 工具当时未获得可操作的托盘控件；窗口隐藏时坐标操作被工具以 `noWindowsAvailable` 拒绝，未产生托盘输入。标题栏拖拽尝试也没有普通窗口 bounds 变化；这些工具尝试本身不计为通过。Finder 恢复不冒充托盘 Show 或 second-instance。另发现读取本应用 AX 会激活隐藏窗口，故后台隐藏与 Finder 恢复的证据在重新读取本应用 AX 前，使用自有测试包的被动日志核实。
 
 2026-11-05，用户对隔离 `Pi Perf current.app` 的明确验证链“拖动标题栏 → 关闭窗口 → 托盘 Show 恢复”回复“成功，跳过这个”。标题栏拖动与托盘恢复据此记为**用户确认的手动通过**，按用户要求跳过重复验证；代理此前的 CUA 尝试仍按原记录保留。用户同时确认暂时没有可用于通知补验的签名构建或另一环境，因此仅通知显示与点击定位继续待验。
+
+## 通知客户端识别与应用目录对照
+
+后续只读诊断精确限定 K7 自有 Main PID 与生命周期。两轮授权完成回调均为 `didGrant:0 / hasError:1`，前约 2ms 的 `usernoted` 日志均为该 Bundle ID 的客户端查找或验证失败；公开日志未给出具体 NSError 原因。LaunchServices 中原包只有一条正确登记，早于首次启动，路径、可执行文件和 CDHash 均匹配，标记含 `in-temp-dir`。这些证据排除了单纯没有登记的解释，但不能单独归因签名或位置。见[授权阶段](/tmp/pi-K7xAyK-notification-unified-log-receipt.json)、[通知服务阶段](/tmp/pi-K7xAyK-notification-service-log-receipt.json)与[原始登记记录](/tmp/pi-K7xAyK-launchservices-own-record-receipt.json)。
+
+为检验这一不同状态，进行一次受控的位置/登记对照：完整 APFS clone 到 `/Users/zengfen/Applications/Pi Automation Proof Signed-K7xAyK.app`，不修改或重签 bundle。副本严格 deep/strict 校验通过，Bundle ID、CDHash 与关键文件哈希不变；临时仅注销原包的精确登记，正常打开副本后确认唯一登记位于应用目录且不含 `in-temp-dir`。原包保留为封装 profile 指向的不可变 JS closure；新 Main 的 executable、resourcesPath、app.getAppPath 均来自应用目录副本。此结论针对规范 bundle 位置及登记状态，不宣称所有加载的 JS 都迁移了路径。见[副本来源与校验](/tmp/pi-notification-location-ab-K7xAyK/clone-prepare-receipt.json)及[触发前唯一登记](/tmp/pi-notification-location-ab-K7xAyK/clone-registration-before-trigger.json)。
+
+主代理点击原生“立即运行”，一个真实 Pi SDK 本地假模型请求完成并留下卡片 #2“通知位置对照：确认结果”，owner 释放。两条真实 Notification 均收到系统 `show`；公开日志记录客户端识别成功、两次 Added request `hasError:0`，随后投递至通知中心等目标。日志同时明确记录 `displayShared` 展示抑制。CUA 对预期权限提示执行“允许”后读取返回 `noWindowsAvailable`；即时窗口关闭本身不足以判定授权，但后续只查询该 Main PID 生命周期内的授权完成消息，确认 `didGrant:1 / hasError:0`。见[系统正向提交与展示限制](/tmp/pi-notification-location-ab-K7xAyK/clone-authorization-system-log.json)和[最终授权成功回调](/tmp/pi-notification-location-ab-K7xAyK/clone-final-authorization-callback.json)。系统 show 与授权成功仍不代替实际通知显示及点击定位。全局通知、隐私和专注模式设置均未调整。
+
+工具不支持 Fn-N；通过 Finder 正常打开系统通知中心后，界面读取与复核仍超时。专用 CoreServices Finder 窗口已关闭，用户原窗口保留，测试应用已回到普通工作区。已请求用户从通知中心点击“自动化任务需要你决定”，核对是否打开该 #2 卡片；打开即可，无需回答。当前 click 与 `automation:open` 证据均为零，P4 继续未完成。
+
+当前为明确的 `handoff_pending`：副本和私有 Provider/Next/Hub 保持就绪，规则均为手动、owner 为空，已用一次、最多两次本地请求，没有自动周期工作。该交接没有自动到期策略；主代理继续负责独立 Provider 及登记回滚，即使用户自行 Quit 应用也不等于所有测试资源已清理。交接结束或撤回后，须确认自有进程均退出，注销并归档副本、恢复原包的唯一精确登记。历史 Provider 日志和事件前缀均保留，不能把早期性能阶段的已清理状态套用于这个尚未结束的尝试。见[当前尝试状态](/tmp/pi-notification-location-ab-K7xAyK/current-attempt-state.json)。
+
+本次没有更改运行代码。通知创建、点击回调及跳转链在签名包 `0df5739` 与当前 `fd71599` 中字节相同，Next/Hub 继续复用未变的 `4f6995f` 构建；整份 main 仍有 Quit 调度差异，因此不将对照称作完整 `fd71599` 签名包验收。见[通知路径来源等价记录](/tmp/pi-notification-location-ab-K7xAyK/notification-source-equivalence.json)。
 
 ## 原生 Main / Renderer 性能
 
