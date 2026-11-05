@@ -1,7 +1,9 @@
 # 自动化集成：本地生产验证记录
 
 > 日期：2026-11-05  
-> 结果：P0–P3 与 P5 已验收，原生后台问答、退出恢复及性能采样完成。激活及 Quit 重入问题分别在 `0df5739`、`fd71599` 修复；新版 Cmd+Q 和增量 CI 七个实际作业全部通过。托盘恢复与标题栏拖拽经用户手动确认通过；通知授权及提交已有系统成功记录，P4 仍待通知中心实际显示/点击定位及该尝试清理，完整首版保持未全部完成。
+> 结果：首版 P0–P5 集成完成。原生后台问答、退出恢复及性能已验证，托盘恢复与标题栏拖拽经用户手动确认通过；通知授权及提交已有系统成功记录，通知中心实际显示/点击定位按用户明确“跳过”免于本次手动验收，未经验证，不记为通过。通知对照尝试的进程、端口、descriptor 及应用登记已清理恢复；P6 仍属后续。
+
+本报告保留各轮实验的版本和阶段状态；最终结论与用户跳过的范围见“用户跳过通知手动验收与清理”一节。
 
 ## 版本与环境
 
@@ -187,9 +189,9 @@
 
 主代理点击原生“立即运行”，一个真实 Pi SDK 本地假模型请求完成并留下卡片 #2“通知位置对照：确认结果”，owner 释放。两条真实 Notification 均收到系统 `show`；公开日志记录客户端识别成功、两次 Added request `hasError:0`，随后投递至通知中心等目标。日志同时明确记录 `displayShared` 展示抑制。CUA 对预期权限提示执行“允许”后读取返回 `noWindowsAvailable`；即时窗口关闭本身不足以判定授权，但后续只查询该 Main PID 生命周期内的授权完成消息，确认 `didGrant:1 / hasError:0`。见[系统正向提交与展示限制](/tmp/pi-notification-location-ab-K7xAyK/clone-authorization-system-log.json)和[最终授权成功回调](/tmp/pi-notification-location-ab-K7xAyK/clone-final-authorization-callback.json)。系统 show 与授权成功仍不代替实际通知显示及点击定位。全局通知、隐私和专注模式设置均未调整。
 
-工具不支持 Fn-N；通过 Finder 正常打开系统通知中心后，界面读取与复核仍超时。专用 CoreServices Finder 窗口已关闭，用户原窗口保留，测试应用已回到普通工作区。已请求用户从通知中心点击“自动化任务需要你决定”，核对是否打开该 #2 卡片；打开即可，无需回答。当前 click 与 `automation:open` 证据均为零，P4 继续未完成。
+工具不支持 Fn-N；通过 Finder 正常打开系统通知中心后，界面读取与复核仍超时。专用 CoreServices Finder 窗口已关闭，用户原窗口保留，测试应用回到普通工作区。当时请求用户从通知中心点击“自动化任务需要你决定”，核对是否打开该 #2 卡片。截至用户决定跳过，click 与 `automation:open` 证据仍均为零，不能记作通知实际显示/点击定位通过。
 
-当前为明确的 `handoff_pending`：副本和私有 Provider/Next/Hub 保持就绪，规则均为手动、owner 为空，已用一次、最多两次本地请求，没有自动周期工作。该交接没有自动到期策略；主代理继续负责独立 Provider 及登记回滚，即使用户自行 Quit 应用也不等于所有测试资源已清理。交接结束或撤回后，须确认自有进程均退出，注销并归档副本、恢复原包的唯一精确登记。历史 Provider 日志和事件前缀均保留，不能把早期性能阶段的已清理状态套用于这个尚未结束的尝试。见[当前尝试状态](/tmp/pi-notification-location-ab-K7xAyK/current-attempt-state.json)。
+补验期间曾保持 `handoff_pending`：副本和私有 Provider/Next/Hub 就绪，规则均为手动、owner 为空，使用一次本地请求，没有自动周期工作。该交接已按用户要求结束；本次单独完成了自有进程与 Provider 清理、注销并归档副本、恢复原包唯一精确登记，没有沿用早期性能阶段的清理结论。历史 Provider 日志和事件前缀保留，见[最终清理收据](/tmp/pi-notification-location-ab-K7xAyK/final-cleanup-receipt.json)。
 
 本次没有更改运行代码。通知创建、点击回调及跳转链在签名包 `0df5739` 与当前 `fd71599` 中字节相同，Next/Hub 继续复用未变的 `4f6995f` 构建；整份 main 仍有 Quit 调度差异，因此不将对照称作完整 `fd71599` 签名包验收。见[通知路径来源等价记录](/tmp/pi-notification-location-ab-K7xAyK/notification-source-equivalence.json)。
 
@@ -234,7 +236,17 @@
 - Node24 自动化 macOS/Linux 各 **166/166**；Windows **165/166**，仅跳过 POSIX SIGTERM 场景，IPC disconnect 与实际 Windows Node/Electron SQLite/Hub 探针通过。
 - [ia32 实际包](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41953447033/job/127002572204) 完成 unpacked 构建、资源校验、包内 Electron43.2 / Node24.18 / win32-ia32 的 SQLite 与 Hub 探针；真实 Renderer 加载为 **7653.84ms**，artifact **13382895006** 已上传。此指标不替代本机桌面交互。
 
-见[增量 CI 完整收据](/tmp/pi-alpha-final-ci-fd71599.json)。独立范围复审允许据此关闭 P5；结合后续用户手动确认，P4 仅保留通知正向验收，不因此合并、发布或宣布完整目标已完成。
+见[增量 CI 完整收据](/tmp/pi-alpha-final-ci-fd71599.json)。独立范围复审允许据此关闭 P5；当时 P4 仅保留通知正向验收，后续按用户要求跳过，最终状态如下。
+
+## 用户跳过通知手动验收与清理
+
+2026-11-05，用户明确回复“跳过”，本次不再要求通知中心实际显示/点击定位的手动验收。该决定只豁免这一验收项，不将系统 show 或授权成功提升为实际点击证据；其余 P0–P5 交付及验证由独立逐项补审确认覆盖，P6 保留为后续范围。
+
+主代理通过真实应用菜单 Quit 退出应用目录副本。六个自有 Main/Chromium/Next/Hub 进程均退出，Next 端口关闭、连接 descriptor 删除；随后 helper 正常关闭独立 Provider 并退出，63209/63210 均无监听。helper 确认原 profile、封装入口、历史 Provider 日志及历史事件前缀未变。
+
+原包及副本均重新通过 deep/strict 签名验证。仅注销应用目录副本的精确登记，将副本可逆归档到私有测试目录，恢复原包的唯一精确登记；Bundle ID 与 CDHash 均匹配。应用目录目标已不存在，未重置全局登记、通知或隐私设置。最终进程、端口、descriptor、历史文件与登记检查全部通过，见[最终清理收据](/tmp/pi-notification-location-ab-K7xAyK/final-cleanup-receipt.json)。此前的手动点击请求已结束，无需再操作测试卡片。
+
+文档提交 `6246ce4` 的 [Quality](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41964809612) 与 [Automation](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41964809637) 七个实际作业全部成功。本次收尾仅更新四份文档，运行代码仍为 `fd71599`；没有将旧版本的完整签名包或性能结果重新归属给新运行代码。首版集成按用户跳过的验收范围完成，保留草稿 PR，未合并或发布。
 
 ## 早期原生桌面验证限制（历史记录）
 
