@@ -1,7 +1,7 @@
 # 自动化集成：本地生产验证记录
 
 > 日期：2026-11-05  
-> 结果：P0–P3 与 P5 已验收，原生后台问答、退出恢复及性能采样完成。激活及 Quit 重入问题分别在 `0df5739`、`fd71599` 修复；新版 Cmd+Q 和增量 CI 七个实际作业全部通过。P4 的通知投递/点击、托盘恢复与标题栏拖拽仍未验收，完整首版保持未全部完成。
+> 结果：P0–P3 与 P5 已验收，原生后台问答、退出恢复及性能采样完成。激活及 Quit 重入问题分别在 `0df5739`、`fd71599` 修复；新版 Cmd+Q 和增量 CI 七个实际作业全部通过。托盘恢复与标题栏拖拽经用户手动确认通过，P4 仅通知显示/点击定位待可用环境补验，完整首版保持未全部完成。
 
 ## 版本与环境
 
@@ -161,7 +161,7 @@
 
 随后准备全新独立 bundleId、Agent/userData 与 Provider 的测试包，移除启动时主动通知探测，完整复制 Git `0df5739` 的 Electron 文件并复用源码未变的 `4f6995f` Next 生产包（Build ID `x06Cvi8lO9QZHdBnrTP5L`）。外部资源只复制进自有 bundle，遵循正式包排除项；仅对私有 nested bundles 和 outer app 正常 ad-hoc 签名。严格验证 `codesign --verify --deep --strict --verbose=4` 实际退出 0，Info.plist 已绑定、资源已封装，外部工作区、依赖与旧 release 的关键哈希不变。见[最终签名及来源收据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-native-lifecycle-signed-K7xAyK/final-signing-receipt.json)。这不是 Developer ID、notarization 或正式 DMG 发布证明。
 
-签名包准备完成时 Mac 再次锁屏，最初启动被工具拒绝，events、偏好和 descriptor 均空、Provider 为 0。随后用户确认解锁，主代理已完成下节记录的实际原生操作。历史阻塞不再适用于后台问答、Quit/重开与性能；通知、托盘和拖拽仍有独立的未验收原因。
+签名包准备完成时 Mac 再次锁屏，最初启动被工具拒绝，events、偏好和 descriptor 均空、Provider 为 0。随后用户确认解锁，主代理已完成下节记录的实际原生操作；托盘与拖拽另有后续用户手动确认。当前仅通知正向验收仍受可用环境限制。
 
 ## 解锁后的严格签名包原生实测
 
@@ -175,7 +175,9 @@
 
 此包实际创建三条 Notification，三次均收到 `Notifications are not allowed for this application`，show/click/任务定位事件均为 0。严格签名校验通过，但仍为 ad-hoc；`spctl` 拒绝也不能独立证明通知拒绝的唯一原因。[Apple 签名策略说明](https://developer.apple.com/library/archive/technotes/tn2206/_index.html)区分系统服务各自的信任策略，[Electron 签名说明](https://www.electronjs.org/docs/latest/tutorial/code-signing#macos-apis-that-require-code-signing)说明 ad-hoc 的 API 行为限制。因此仅确认本环境未获通知授权，不据此宣称产品源码缺陷或必须采用某种签名。无通知时的原生收件箱已真实完成问答，但正向投递及点击定位仍待允许通知的环境补验。
 
-工具未获得可操作的托盘控件；窗口隐藏时坐标操作被工具以 `noWindowsAvailable` 拒绝，未产生托盘输入。标题栏实际拖拽也没有普通窗口 bounds 变化；不能将尝试计为通过。Finder 恢复不冒充托盘 Show 或 second-instance。另发现读取本应用 AX 会激活隐藏窗口，故后台隐藏与 Finder 恢复的证据在重新读取本应用 AX 前，使用自有测试包的被动日志核实。
+工具当时未获得可操作的托盘控件；窗口隐藏时坐标操作被工具以 `noWindowsAvailable` 拒绝，未产生托盘输入。标题栏拖拽尝试也没有普通窗口 bounds 变化；这些工具尝试本身不计为通过。Finder 恢复不冒充托盘 Show 或 second-instance。另发现读取本应用 AX 会激活隐藏窗口，故后台隐藏与 Finder 恢复的证据在重新读取本应用 AX 前，使用自有测试包的被动日志核实。
+
+2026-11-05，用户对隔离 `Pi Perf current.app` 的明确验证链“拖动标题栏 → 关闭窗口 → 托盘 Show 恢复”回复“成功，跳过这个”。标题栏拖动与托盘恢复据此记为**用户确认的手动通过**，按用户要求跳过重复验证；代理此前的 CUA 尝试仍按原记录保留。用户同时确认暂时没有可用于通知补验的签名构建或另一环境，因此仅通知显示与点击定位继续待验。
 
 ## 原生 Main / Renderer 性能
 
@@ -202,7 +204,7 @@
 
 这组本地固定负载没有观察到明显流式帧节奏退化；小样本、观察器开销、不同采样时刻、单次交互及本地 Provider 限制仍适用，不覆盖远端模型、长会话或其他机器。EventTiming 的 16ms 阈值及多条同一次点击事件不能当作全面的输入延迟分布。完整区间、输入事件与各角色 RSS 见[原生性能汇总](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-native-perf-873lc9x8/native-performance-summary.json)。
 
-第二次并发的普通聊天结束后，后台请求仍在输出时，主代理实际点击原生菜单 Quit：约 **283ms** 退出；自动化请求在退出期间断开，没有完成事件。历史采样记录的 41 个自有 PID 均已退出，测试 Provider 正常关闭。该性能实验不替代仍缺失的通知/托盘/拖拽验收。
+第二次并发的普通聊天结束后，后台请求仍在输出时，主代理实际点击原生菜单 Quit：约 **283ms** 退出；自动化请求在退出期间断开，没有完成事件。历史采样记录的 41 个自有 PID 均已退出，测试 Provider 正常关闭。该性能实验不替代通知正向验收；托盘与拖拽另采用上述用户手动结果。
 
 ## fd71599：原生快捷键退出修复
 
@@ -218,7 +220,7 @@
 - Node24 自动化 macOS/Linux 各 **166/166**；Windows **165/166**，仅跳过 POSIX SIGTERM 场景，IPC disconnect 与实际 Windows Node/Electron SQLite/Hub 探针通过。
 - [ia32 实际包](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41953447033/job/127002572204) 完成 unpacked 构建、资源校验、包内 Electron43.2 / Node24.18 / win32-ia32 的 SQLite 与 Hub 探针；真实 Renderer 加载为 **7653.84ms**，artifact **13382895006** 已上传。此指标不替代本机桌面交互。
 
-见[增量 CI 完整收据](/tmp/pi-alpha-final-ci-fd71599.json)。独立范围复审允许据此关闭 P5，保留 P4 的三项未验收证据；不因此合并、发布或宣布完整目标已完成。
+见[增量 CI 完整收据](/tmp/pi-alpha-final-ci-fd71599.json)。独立范围复审允许据此关闭 P5；结合后续用户手动确认，P4 仅保留通知正向验收，不因此合并、发布或宣布完整目标已完成。
 
 ## 早期原生桌面验证限制（历史记录）
 
