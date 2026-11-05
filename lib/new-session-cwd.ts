@@ -7,13 +7,13 @@ import { isFilePathAllowed } from "./file-access";
  */
 export function resolveAllowedNewSessionCwd(cwd: string, allowedRoots: Set<string>): string | null {
   try {
-    const realCwd = realpathSync(cwd);
+    const realCwd = realpathSync.native(cwd);
     if (!statSync(realCwd).isDirectory()) return null;
 
     const realAllowedRoots = new Set<string>();
     for (const root of allowedRoots) {
       try {
-        const realRoot = realpathSync(root);
+        const realRoot = realpathSync.native(root);
         if (statSync(realRoot).isDirectory()) realAllowedRoots.add(realRoot);
       } catch {
         // Stale roots are not authorization grants.

@@ -29,6 +29,7 @@ nul
 !/build/
 !/build/installer.nsh
 /release
+/dist/automation-hub/
 
 # electron
 electron/node_modules/

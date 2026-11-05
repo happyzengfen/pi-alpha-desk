@@ -270,6 +270,10 @@ Key entry points:
 - [`lib/file-access.ts`](./lib/file-access.ts) — file-access allow-list boundary
 - [`electron/main.js`](./electron/main.js) — desktop window, tray, local server, and native integration
 
+## Desktop automation
+
+Settings → Automation provides opt-in rules, scheduled runs, durable decision cards and native Pi session continuation, with read/search tools only. See the [automation guide](./docs/automation.zh-CN.md), [integration plan](./docs/agent-autoloop-integration-plan.zh-CN.md) and [implementation checks](./tasks/agent-autoloop.md). Closing to the tray keeps it running; fully quitting stops the owned runtime.
+
 ## Relationship to upstream
 
 This project began from upstream pi-web `v0.7.16` but now deliberately diverges as an Electron-first desktop product. Upstream remains a source for compatible security, SDK, data-integrity, authentication, SSE, and reliability fixes. UI components are adapted selectively rather than replaced wholesale.

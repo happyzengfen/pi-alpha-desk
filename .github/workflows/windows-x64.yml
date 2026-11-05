@@ -42,6 +42,18 @@ jobs:
       - name: Verify Windows x64 package
         run: node scripts/verify-windows-package.mjs
 
+      - name: Probe packaged Electron SQLite and automation sidecar
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $unpacked = (Resolve-Path "release/win-unpacked").Path
+          $exe = Get-ChildItem $unpacked -Filter "*.exe" |
+            Where-Object { $_.Name -ne "elevate.exe" } |
+            Select-Object -First 1
+          if (-not $exe) { throw "Packaged application executable not found" }
+          node scripts/verify-automation-package.mjs --dir (Join-Path $unpacked "resources/app") --probe --runtime $exe.FullName --embedded --platform win32 --arch x64
+          if ($LASTEXITCODE -ne 0) { throw "Packaged automation runtime probe failed" }
+
       - name: Smoke test packaged application
         shell: pwsh
         run: |
@@ -146,6 +158,41 @@ jobs:
             }
             Get-Process "运维数字化Ai助手" -ErrorAction SilentlyContinue |
               Stop-Process -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Smoke test actual Windows x64 workspace renderer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $exe = Get-ChildItem "release/win-unpacked" -Filter "*.exe" |
+            Where-Object { $_.Name -ne "elevate.exe" } |
+            Select-Object -First 1
+          if (-not $exe) { throw "Packaged application executable not found" }
+          $stdout = Join-Path $env:RUNNER_TEMP "pi-x64-startup.log"
+          $stderr = Join-Path $env:RUNNER_TEMP "pi-x64-startup-stderr.log"
+          $env:PI_WEB_BENCHMARK = "1"
+          $env:PI_WEB_BENCHMARK_USER_DATA = Join-Path $env:RUNNER_TEMP "pi-x64-user-data"
+          $env:PI_CODING_AGENT_DIR = Join-Path $env:RUNNER_TEMP "pi-x64-agent"
+          $env:PI_OFFLINE = "1"
+          New-Item -ItemType Directory -Force $env:PI_WEB_BENCHMARK_USER_DATA, $env:PI_CODING_AGENT_DIR | Out-Null
+          $process = Start-Process -FilePath $exe.FullName -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          try {
+            if (-not $process.WaitForExit(120000)) { throw "Workspace renderer did not finish startup within 120 seconds" }
+            $process.Refresh()
+            if ($process.ExitCode -ne 0) { throw "Application exited with code $($process.ExitCode)" }
+            if (-not (Select-String -Path $stdout -Pattern 'PI_WEB_STARTUP_METRIC.*renderer-interactive' -Quiet)) {
+              throw "Application did not report an interactive workspace renderer"
+            }
+            Get-Content $stdout
+          } catch {
+            Get-Content $stdout -ErrorAction SilentlyContinue
+            throw
+          } finally {
+            if (-not $process.HasExited) {
+              taskkill /PID $process.Id /T /F | Out-Host
+              $global:LASTEXITCODE = 0
+            }
+            Get-Content $stderr -ErrorAction SilentlyContinue
           }
 
       - name: Upload Windows x64 artifacts

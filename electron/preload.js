@@ -28,4 +28,11 @@ contextBridge.exposeInMainWorld("piDesktop", {
   // Absolute path of a dragged-in File (webUtils is the only sanctioned way
   // to recover paths from drop payloads since File.path was removed).
   getPathForFile: (file) => webUtils.getPathForFile(file),
+  getAutomationStatus: () => ipcRenderer.invoke("automation:status"),
+  setAutomationEnabled: (enabled) => ipcRenderer.invoke("automation:set-enabled", enabled),
+  onAutomationOpen: (callback) => {
+    const listener = (_event, detail) => callback(detail);
+    ipcRenderer.on("automation:open", listener);
+    return () => ipcRenderer.removeListener("automation:open", listener);
+  },
 });

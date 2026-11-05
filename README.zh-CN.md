@@ -320,6 +320,8 @@ public/               图标、字体相关资源和文件图标主题
 
 ## 相关文档
 
+- [桌面自动化：规则、待决定、定时复查与恢复](./docs/automation.zh-CN.md)
+- [Agent Autoloop 集成计划](./docs/agent-autoloop-integration-plan.zh-CN.md)
 - [构建、安装与发布说明](./docs/release.md)
 - [本地开发与使用手册](./docs/local-development.zh-CN.md)
 - [2026-08-09 更新记录](./docs/2026-08-09-183710.md)

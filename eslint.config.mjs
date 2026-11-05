@@ -7,8 +7,12 @@ const eslintConfig = [
     ignores: [
       "ref-repos/**",
       "release/**",
+      "release-*/**",
+      "outputs/**",
       ".next/**",
       "bundled-skills/**",
+      "automation-hub/upstream/**",
+      "dist/automation-hub/**",
       // Tracked one-off diagnostics are not production or test sources.
       "scripts/electron-diag.js",
       "scripts/pill-test-main.js",

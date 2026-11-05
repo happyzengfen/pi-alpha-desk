@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { verifyMacPackage } from "./verify-macos-package.mjs";
+import { AUTOMATION_REQUIRED_FILES, AUTOMATION_SUPERVISOR_FILES } from "./verify-automation-package.mjs";
 
 function makeFixture(t, { machine = 0x0100000c, omit = null } = {}) {
   const release = fs.mkdtempSync(path.join(os.tmpdir(), "pi-web-mac-package-"));
@@ -38,6 +39,14 @@ function makeFixture(t, { machine = 0x0100000c, omit = null } = {}) {
     ["bundled-plugins/manifest.json", "{}"],
     ["public/icon-mac.png", "icon"],
   ];
+  required.push(...AUTOMATION_SUPERVISOR_FILES.map((file) => [file, "module.exports = {};\n"]));
+  for (const file of AUTOMATION_REQUIRED_FILES) {
+    const content = file === "build.json" ? JSON.stringify({ version: 1, sourceHash: "a".repeat(64) })
+      : file === "package.json" ? JSON.stringify({ type: "module" })
+        : file === "upstream/LICENSE" ? "MIT License\nCopyright (c) fixture\n"
+          : file === "upstream/SOURCE.md" ? `Commit: \`${"b".repeat(40)}\`\n` : "export {};\n";
+    required.push([`dist/automation-hub/${file}`, content]);
+  }
   fs.mkdirSync(path.dirname(executable), { recursive: true });
   const header = Buffer.alloc(8);
   header.writeUInt32LE(0xfeedfacf, 0);
@@ -57,7 +66,22 @@ function makeFixture(t, { machine = 0x0100000c, omit = null } = {}) {
 }
 
 test("accepts a complete macOS arm64 package", (t) => {
-  assert.equal(verifyMacPackage(makeFixture(t)).machine, "arm64");
+  const result = verifyMacPackage(makeFixture(t));
+  assert.equal(result.machine, "arm64");
+  assert.equal(result.automation.assets, "complete");
+  assert.equal(result.automation.runtime, "not-probed");
+});
+
+test("rejects missing macOS automation supervisor, compiled host, SQL, contract and provenance", (t) => {
+  for (const file of [...AUTOMATION_SUPERVISOR_FILES, ...AUTOMATION_REQUIRED_FILES.map((file) => `dist/automation-hub/${file}`)]) {
+    assert.throws(() => verifyMacPackage(makeFixture(t, { omit: file })), (error) => error.message.includes(file.split("/").join(path.sep)));
+  }
+});
+
+test("checks the compiled macOS automation import closure", (t) => {
+  const release = makeFixture(t);
+  fs.writeFileSync(path.join(release, "运维数字化Ai助手.app", "Contents", "Resources", "app", "dist", "automation-hub", "host", "main.mjs"), 'import "./missing.mjs";\n');
+  assert.throws(() => verifyMacPackage(release), /Automation module is missing/);
 });
 
 test("accepts a complete macOS x64 package", (t) => {

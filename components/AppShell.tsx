@@ -10,6 +10,7 @@ import { FileViewer } from "./FileViewer";
 import { TabBar, type Tab } from "./TabBar";
 import { SettingsModal, type SettingsTab } from "./SettingsModal";
 import { AppTitleBar } from "./AppTitleBar";
+import { useAutomations, type AutomationFocus } from "./AutomationPanel";
 import { ProjectTrustDialog } from "./ProjectTrustDialog";
 import { useTheme } from "@/hooks/useTheme";
 import { useAudio } from "@/hooks/useAudio";
@@ -94,6 +95,13 @@ export function AppShell() {
   const [explorerRefreshKey, setExplorerRefreshKey] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("models");
+  const automations = useAutomations();
+  const [automationFocus, setAutomationFocus] = useState<AutomationFocus | null>(null);
+  useEffect(() => window.piDesktop?.onAutomationOpen?.((detail) => {
+    setAutomationFocus(detail);
+    setSettingsTab("automations");
+    setSettingsOpen(true);
+  }), []);
   const [modelsRefreshKey, setModelsRefreshKey] = useState(0);
   const [projectTrust, setProjectTrust] = useState<ProjectTrustStatus | null>(null);
   const [projectTrustDialogOpen, setProjectTrustDialogOpen] = useState(false);
@@ -659,6 +667,15 @@ export function AppShell() {
     setSettingsTab(tab);
     setSettingsOpen(true);
   }, []);
+  const openAutomationSession = useCallback((session: string) => {
+    const id = session.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})(?:\.jsonl)?$/i)?.[1];
+    if (!id) return;
+    void fetch("/api/sessions").then((response) => response.ok ? response.json() as Promise<{ sessions: SessionInfo[] }> : null)
+      .then((data) => {
+        const found = data?.sessions.find((item) => item.id === id);
+        if (found) { handleSelectSession(found); setSettingsOpen(false); }
+      }).catch(() => {});
+  }, [handleSelectSession]);
 
   const sidebarContent = (
     <>
@@ -727,6 +744,8 @@ export function AppShell() {
         rightPanelOpen={rightPanelOpen}
         onToggleFilePanel={() => setRightPanelOpen((v) => !v)}
         onOpenSettings={() => openSettings("models")}
+        onOpenAutomations={() => { setAutomationFocus(null); openSettings("automations"); }}
+        automationAttention={automations.snapshot?.state?.cards.length ?? 0}
         sessionTitle={sessionTitle}
         onWorkspaceControlsHostChange={setTitleWorkspaceControlsHost}
       />
@@ -933,6 +952,9 @@ export function AppShell() {
         }}
         onModelsSavedAction={() => setModelsRefreshKey((k) => k + 1)}
         onSessionReloadedAction={() => setSessionKey((k) => k + 1)}
+        automations={automations}
+        automationFocus={automationFocus}
+        onOpenAutomationSession={openAutomationSession}
       />
     )}
     </div>

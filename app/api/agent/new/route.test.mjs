@@ -27,8 +27,8 @@ test("accepts only real directories inside existing allowed roots", () => {
   const fixture = createFixture();
   try {
     const roots = new Set([fixture.allowedRoot]);
-    assert.equal(resolveAllowedNewSessionCwd(fixture.allowedRoot, roots), realpathSync(fixture.allowedRoot));
-    assert.equal(resolveAllowedNewSessionCwd(fixture.allowedChild, roots), realpathSync(fixture.allowedChild));
+    assert.equal(resolveAllowedNewSessionCwd(fixture.allowedRoot, roots), realpathSync.native(fixture.allowedRoot));
+    assert.equal(resolveAllowedNewSessionCwd(fixture.allowedChild, roots), realpathSync.native(fixture.allowedChild));
     assert.equal(resolveAllowedNewSessionCwd(fixture.outsideDirectory, roots), null);
     assert.equal(resolveAllowedNewSessionCwd(fixture.file, roots), null);
   } finally {

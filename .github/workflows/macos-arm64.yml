@@ -69,6 +69,17 @@ jobs:
           --dir "${{ matrix.unpacked_directory }}"
           --arch "${{ matrix.architecture }}"
 
+      - name: Probe packaged macOS Electron SQLite and automation sidecar
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_bundle="$(find '${{ matrix.unpacked_directory }}' -name '*.app' -type d -prune | head -n 1)"
+          test -n "$app_bundle"
+          app_bundle="$(cd "$app_bundle" && pwd)"
+          app_binary="$(find "$app_bundle/Contents/MacOS" -type f -perm -111 | head -n 1)"
+          test -x "$app_binary"
+          node scripts/verify-automation-package.mjs --dir "$app_bundle/Contents/Resources/app" --probe --runtime "$app_binary" --embedded --platform darwin --arch '${{ matrix.architecture }}'
+
       - name: Smoke test packaged application
         shell: bash
         run: |
@@ -142,6 +153,16 @@ jobs:
           node scripts/verify-linux-package.mjs
           --dir "${{ matrix.unpacked_directory }}"
           --arch "${{ matrix.architecture }}"
+
+      - name: Probe packaged Linux Electron SQLite and automation sidecar
+        shell: bash
+        run: |
+          set -euo pipefail
+          executable_name="$(node -p "require('./package.json').build.linux.executableName || require('./package.json').name.split('/').pop()")"
+          unpacked="$(cd '${{ matrix.unpacked_directory }}' && pwd)"
+          app_binary="$unpacked/$executable_name"
+          test -x "$app_binary"
+          node scripts/verify-automation-package.mjs --dir "$unpacked/resources/app" --probe --runtime "$app_binary" --embedded --platform linux --arch '${{ matrix.architecture }}'
 
       - name: Smoke test packaged application
         shell: bash

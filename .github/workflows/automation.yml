@@ -1,0 +1,146 @@
+name: Automation runtime
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  automation:
+    name: Node 24 automation (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04
+          - macos-15
+          - windows-2025
+    env:
+      PI_OFFLINE: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile sidecar assets
+        run: npm run automation:build
+
+      - name: Check sidecar TypeScript
+        run: npm run typecheck:automation
+
+      - name: Test core, worker, native SDK, API, supervisor and package boundaries
+        run: >-
+          node --test --test-concurrency=1
+          "automation-hub/**/*.test.mjs"
+          "lib/automation/**/*.test.mjs"
+          electron/automation-host.test.mjs
+          scripts/verify-automation-package.test.mjs
+          scripts/verify-windows-package.test.mjs
+
+      - name: Verify compiled assets and actual Node 24 sidecar startup
+        run: node scripts/verify-automation-package.mjs --dir . --probe
+
+      - name: Probe installed Electron SQLite and built sidecar on this platform and architecture
+        run: node scripts/verify-automation-package.mjs --dir . --probe --electron
+
+  windows-ia32-runtime:
+    name: Windows ia32 runtime and workspace
+    runs-on: windows-2025
+    timeout-minutes: 60
+    env:
+      ELECTRON_INSTALL_ARCH: ia32
+      PI_OFFLINE: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up host Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies with the actual Windows ia32 Electron binary
+        run: npm ci
+
+      - name: Compile sidecar assets
+        run: npm run automation:build
+
+      - name: Verify matching ia32 Electron SQLite capability and sidecar startup
+        run: >-
+          node scripts/verify-automation-package.mjs --dir . --probe --electron
+          --platform win32 --arch ia32
+
+      - name: Build Windows ia32 unpacked application without publishing installers
+        run: node scripts/build-release.mjs --target=dir --arch=ia32 --output=release-ia32 --no-prune --no-zip
+
+      - name: Verify ia32 package resources and packaged runtime capability
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $unpacked = (Resolve-Path "release-ia32/win-ia32-unpacked").Path
+          node scripts/verify-windows-package.mjs --dir $unpacked --arch ia32
+          if ($LASTEXITCODE -ne 0) { throw "Windows ia32 structure verification failed" }
+          $exe = Get-ChildItem $unpacked -Filter "*.exe" |
+            Where-Object { $_.Name -ne "elevate.exe" } |
+            Select-Object -First 1
+          if (-not $exe) { throw "Packaged ia32 executable not found" }
+          node scripts/verify-automation-package.mjs --dir (Join-Path $unpacked "resources/app") --probe --runtime $exe.FullName --embedded --platform win32 --arch ia32
+          if ($LASTEXITCODE -ne 0) { throw "Packaged ia32 runtime capability probe failed" }
+
+      - name: Smoke test actual ia32 workspace renderer with capability-checked automation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $exe = Get-ChildItem "release-ia32/win-ia32-unpacked" -Filter "*.exe" |
+            Where-Object { $_.Name -ne "elevate.exe" } |
+            Select-Object -First 1
+          if (-not $exe) { throw "Packaged ia32 executable not found" }
+          $stdout = Join-Path $env:RUNNER_TEMP "pi-ia32-startup.log"
+          $stderr = Join-Path $env:RUNNER_TEMP "pi-ia32-startup-stderr.log"
+          $env:PI_WEB_BENCHMARK = "1"
+          $env:PI_WEB_BENCHMARK_USER_DATA = Join-Path $env:RUNNER_TEMP "pi-ia32-user-data"
+          $env:PI_CODING_AGENT_DIR = Join-Path $env:RUNNER_TEMP "pi-ia32-agent"
+          New-Item -ItemType Directory -Force $env:PI_WEB_BENCHMARK_USER_DATA, $env:PI_CODING_AGENT_DIR | Out-Null
+          $process = Start-Process -FilePath $exe.FullName -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          try {
+            if (-not $process.WaitForExit(120000)) { throw "ia32 workspace renderer did not finish startup within 120 seconds" }
+            $process.Refresh()
+            if ($process.ExitCode -ne 0) { throw "ia32 application exited with code $($process.ExitCode)" }
+            if (-not (Select-String -Path $stdout -Pattern 'PI_WEB_STARTUP_METRIC.*renderer-interactive' -Quiet)) {
+              throw "ia32 application did not report an interactive workspace renderer"
+            }
+            Get-Content $stdout
+          } catch {
+            Get-Content $stdout -ErrorAction SilentlyContinue
+            throw
+          } finally {
+            if (-not $process.HasExited) {
+              taskkill /PID $process.Id /T /F | Out-Host
+              $global:LASTEXITCODE = 0
+            }
+            Get-Content $stderr -ErrorAction SilentlyContinue
+          }
+
+      - name: Upload ia32 startup evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-ia32-startup-evidence
+          if-no-files-found: warn
+          path: ${{ runner.temp }}/pi-ia32-*.log
