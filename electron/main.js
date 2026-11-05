@@ -689,6 +689,10 @@ app.on("activate", () => {
   if (mainWindow === null) {
     createWindow();
     mainWindow.loadURL(serverUrl);
+  } else {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    if (!mainWindow.isVisible()) mainWindow.show();
+    mainWindow.focus();
   }
 });
 
