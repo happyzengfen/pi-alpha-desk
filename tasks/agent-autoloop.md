@@ -6,8 +6,8 @@
 - [x] P1：hub、原生 Pi、事件、outbox 与目录互斥主链路通过；异步启动锁、并发 viewer/repair 模式切换与关闭中拒绝新执行已修复并通过独立复审及最终回归。
 - [x] P2：持久卡片、同会话回答、会话变化暂停、认证等待、已开始异常分流与原业务结果核实通过最终真实 SDK/Hub 和浏览器闭环。
 - [x] P3：周期/预约、取消排序、持久互斥、十次退避上限、真实一分钟超时、预算与无进展保护通过最终回归。
-- [ ] P4：原生实测已覆盖默认关闭、桥接启用、关窗后台执行与持久 ask；窗口激活缺陷已在 `0df5739` 修复并过增量门禁。签名测试包已就绪，Mac 再次锁屏，恢复复测、托盘、通知点击、退出/重开与桌面交互仍未完成。
-- [ ] P5：非原生部分已验收，`0df5739` 新增量的三平台 CI 与 ia32 实际包也通过；原生 Main/Renderer 性能包已准备但尚未实测，不能将阶段标为全部完成。
+- [ ] P4：原生默认关闭/启用、关窗后台问答、同窗口恢复、Quit/重开及同会话回答均通过，主题/双语/键盘/最小化/缩放也已实测。`fd71599` 修复快捷键退出重入并通过新版原生复测；通知投递/点击、托盘恢复和标题栏拖拽仍未验收。
+- [x] P5：故障、备份、打包与性能验证通过；六轮原生启动及关闭/空闲/并发聊天采样完成。`fd71599` 本地 Electron 38/38、真实 Cmd+Q 与增量 CI 七个实际作业全部通过，含 ia32 资源/Hub/Renderer；P4 的三项正向原生证据仍未完成，完整首版不标为已全部验收。
 
 ## 已取得的证据
 
@@ -73,3 +73,13 @@
 - 完整目标恢复 active 后，原生库存一度可用，主代理实测 `4f` 隔离应用的默认关闭、真实桥接启用、关窗隐藏及后台持久 ask。激活已有隐藏窗口未恢复的问题被定位到 main 的 null-only 分支，独立范围复审确认属于 P4；`0df5739` 最小补齐 restore/show/focus，不启动新窗口/服务/owner。三个实际 VM 回归先红后绿，本地 Node22/24 各 488/488、Electron 37/37，[Quality](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41939682950) 与 [Automation](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41939682786) 全部七个 job 实际成功，见[收据](/tmp/pi-alpha-final-ci-0df5739f.json)。
 - 旧通知尝试 OS 返回 UNError1，没有 shown/click，且 fixture 存在 bundle 未完成签名和启动时主动 isSupported 的观测副作用；旧尝试保留而不算通知通过。新建私有资源全部物化、无早期主动探测的独立包，完整 Electron 来源为 `0df`、Next 复用未变 `4f` BuildID；仅私有副本正常签名后严格 deep/strict 验证实际通过，外部源哈希不变。不是正式 DMG/notarization 证明。
 - 新签名包启动前 Mac 再次锁屏，CUA 阻止启动，状态 events/prefs/descriptor 均空、Provider 0。已发送就绪后的解锁请求，继续等待；不借 VM/签名/旧 native 局部结果认定恢复、托盘/通知/退出或原生性能通过。详细方法、版本和限制见[验证报告](../docs/automation-validation.zh-CN.md)。
+
+## 解锁后的原生验收与退出增量
+
+- 用户确认解锁后，主代理实际启动上述严格签名的 `0df5739` 隔离包，完成默认关闭、UI 启用、真实 Pi 请求、关窗隐藏后保存 ask、Finder 正常打开恢复同一窗口、实际应用菜单 Quit、重开恢复同卡，以及在原生 UI 选择蓝色后沿用原会话完成。仅两次本地 Provider 请求，没有重复资料核对；卡片完成，owner/checkpoint 清空。
+- 两次已启用状态 Quit 各约 258ms；全部自有 Main/Next/Hub 和测试 Provider 均已退出，descriptor 删除。浅色英文、深色中文、Tab/Return、最小化/Finder 恢复及原生缩放均有实际操作收据。见[原生生命周期汇总](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-native-lifecycle-signed-K7xAyK/native-lifecycle-final-receipt.json)。
+- 新签名包的三条系统通知仍被 OS 拒绝，没有 show/click；签名完整性通过不等于系统授予通知权限，拒绝的具体原因未定。原生收件箱 fallback 已通过，但不能替代通知正向验收。托盘菜单未获得可操作的原生控件；实际拖拽未产生窗口位置变化，两者均保留未验收。
+- 基线 `d588f0e` 与集成包各三个全新配置的原生启动、普通聊天及自动化空闲/并发场景完成。帧间隔 p95 为 17.4–17.6ms，所采集流式区间没有超过 50ms 的帧间隔或 long task；实际界面持续增长且侧边栏可操作。RSS、采样窗口与限制见[原生性能汇总](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-native-perf-873lc9x8/native-performance-summary.json)，不把小样本解释为普遍性能保证。
+- 性能期间发现 `0df5739` 在默认关闭时 Cmd+Q 关闭窗口但保留 Main。`fd71599` 将宿主停止后的第二次 Quit 延到下一事件循环，避免 Electron 原生回调微任务重入；保留原有 2500ms 有界停止。旧源码的定点回归实际失败，修复后定点 10/10、Electron 38/38、Lint/diff 通过，独立复审无阻断项。
+- 在仅更新 Electron 文件、保留原 Next Build ID 的新私有配置中，主代理再次实际 Cmd+Q：默认关闭 136ms、启用后 149ms，Main、Renderer、Next 和 Hub 均退出。见[增量原生退出收据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-native-perf-873lc9x8/incremental-native-quit-fd71599.json)。原性能数据仍归属 `0df5739`，不重写成新版本完整性能复测。
+- `fd71599` 的 [Quality](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41953447027) 与 [Automation](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41953447033) 七个 job 实际全部成功。普通三平台各 489 项、488 通过及 1 项条件跳过；Node24 自动化 Mac/Linux 各 166/166，Windows 165 通过及 1 项 POSIX 跳过；三平台实际 Node/Electron Hub 探针及 ia32 包资源/Renderer 通过，见[完整收据](/tmp/pi-alpha-final-ci-fd71599.json)。最终全部 51 个记录的应用 PID、Provider 和测试端口均清理；未合并或发布。

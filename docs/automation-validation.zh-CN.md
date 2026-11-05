@@ -1,7 +1,7 @@
 # 自动化集成：本地生产验证记录
 
 > 日期：2026-11-05  
-> 结果：非原生验收完成；原生实测已验证默认关闭、桥接启用和关窗后台执行，并发现及修复窗口激活缺陷。新源码 `0df5739` 的三平台 CI 已通过；剩余原生实机及性能验收因 Mac 再次锁屏未完成。
+> 结果：P0–P3 与 P5 已验收，原生后台问答、退出恢复及性能采样完成。激活及 Quit 重入问题分别在 `0df5739`、`fd71599` 修复；新版 Cmd+Q 和增量 CI 七个实际作业全部通过。P4 的通知投递/点击、托盘恢复与标题栏拖拽仍未验收，完整首版保持未全部完成。
 
 ## 版本与环境
 
@@ -161,15 +161,72 @@
 
 随后准备全新独立 bundleId、Agent/userData 与 Provider 的测试包，移除启动时主动通知探测，完整复制 Git `0df5739` 的 Electron 文件并复用源码未变的 `4f6995f` Next 生产包（Build ID `x06Cvi8lO9QZHdBnrTP5L`）。外部资源只复制进自有 bundle，遵循正式包排除项；仅对私有 nested bundles 和 outer app 正常 ad-hoc 签名。严格验证 `codesign --verify --deep --strict --verbose=4` 实际退出 0，Info.plist 已绑定、资源已封装，外部工作区、依赖与旧 release 的关键哈希不变。见[最终签名及来源收据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-native-lifecycle-signed-K7xAyK/final-signing-receipt.json)。这不是 Developer ID、notarization 或正式 DMG 发布证明。
 
-签名包准备完成后，主代理调用 CUA 启动该应用时 Mac 再次锁屏，工具在启动前拒绝操作。只读状态确认 events 为空、偏好/descriptor 不存在、Provider 请求为 0，签名应用尚未启动。原生恢复、托盘操作、实际通知投递/点击、Quit/重开、桌面交互与 Main/Renderer 性能仍待实机验证；不能用签名校验、VM 回归或旧 fixture 的部分成功代替。原生性能的对称被动 observer 和基线/当前包已准备但尚未运行，未重复此前服务端实验。
+签名包准备完成时 Mac 再次锁屏，最初启动被工具拒绝，events、偏好和 descriptor 均空、Provider 为 0。随后用户确认解锁，主代理已完成下节记录的实际原生操作。历史阻塞不再适用于后台问答、Quit/重开与性能；通知、托盘和拖拽仍有独立的未验收原因。
 
-## 早期原生桌面验证限制
+## 解锁后的严格签名包原生实测
+
+2026-11-05，主代理通过 CUA 操作 `Pi Automation Proof Signed.app`，运行 Electron `0df5739` 与源码未变的 Next `4f6995f` / Build ID `x06Cvi8lO9QZHdBnrTP5L`。使用独立 bundleId、Agent/userData、loopback 服务与模型，无用户模型或付费请求。
+
+1. 原生界面确认默认关闭，实际点击启用；保存 manual fixture 规则后，由原生“立即运行”触发真实 Pi SDK 请求。
+2. 点击原生关闭按钮隐藏窗口；释放本地 Provider 后，后台完成并保存 ask。Finder 正常打开恢复原窗口，同 Main/Renderer/Next/Hub、同 window id，没有新 owner 或重复请求。
+3. 实际应用菜单 Quit 后约 258ms 完成，Main/Next/Hub 均退出、descriptor 删除，enabled 偏好保留。再次正常打开，原 ask 的 id/version、绑定 session 与执行结果保留，Provider 仍仅一次。
+4. 在原生“待决定”点击推荐的蓝色，第二轮在同一 session 完成，Provider 总计两次；卡片完成、待答数为 0，owner/checkpoint 清空。第二次实际 Quit 约 258ms，连同测试 Provider 均清理。
+5. 实际检查浅色英文、深色中文、Tab/Return 切换分区、最小化后 Finder 恢复及原生 Zoom。原生截图与逐项事实收录于[生命周期最终收据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-native-lifecycle-signed-K7xAyK/native-lifecycle-final-receipt.json)。
+
+此包实际创建三条 Notification，三次均收到 `Notifications are not allowed for this application`，show/click/任务定位事件均为 0。严格签名校验通过，但仍为 ad-hoc；`spctl` 拒绝也不能独立证明通知拒绝的唯一原因。[Apple 签名策略说明](https://developer.apple.com/library/archive/technotes/tn2206/_index.html)区分系统服务各自的信任策略，[Electron 签名说明](https://www.electronjs.org/docs/latest/tutorial/code-signing#macos-apis-that-require-code-signing)说明 ad-hoc 的 API 行为限制。因此仅确认本环境未获通知授权，不据此宣称产品源码缺陷或必须采用某种签名。无通知时的原生收件箱已真实完成问答，但正向投递及点击定位仍待允许通知的环境补验。
+
+工具未获得可操作的托盘控件；窗口隐藏时坐标操作被工具以 `noWindowsAvailable` 拒绝，未产生托盘输入。标题栏实际拖拽也没有普通窗口 bounds 变化；不能将尝试计为通过。Finder 恢复不冒充托盘 Show 或 second-instance。另发现读取本应用 AX 会激活隐藏窗口，故后台隐藏与 Finder 恢复的证据在重新读取本应用 AX 前，使用自有测试包的被动日志核实。
+
+## 原生 Main / Renderer 性能
+
+基线为 `d588f0e` / Build ID `iVpcT1mb2Bjz6c38CF7Lt`；集成组为 Electron `0df5739` 与 Next `4f6995f` / Build ID `x06Cvi8lO9QZHdBnrTP5L`。各三个全新私有配置，实际 CUA 启动 HTTP 工作区并操作控件。两组仅追加相同的被动 rAF、PerformanceObserver 与每秒 IPC/进程记录，不访问 DOM、桥接业务 API，不用 CDP/eval 驱动操作。原始 preload 前缀及 main 字节均有来源记录；工作区 `.next` 未参与。
+
+| 三次启动的中位数 | 基线 | 集成、自动化关闭 |
+|---|---:|---:|
+| Main 入口至首个 HTTP 页面加载 | 1967.3ms | 1750.0ms |
+| OS 进程创建至首个 HTTP 页面加载 | 2231.4ms | 2169.3ms |
+| Main RSS | 142.1MiB | 166.2MiB |
+| Renderer RSS | 131.9MiB | 145.3MiB |
+| Next RSS | 200.5MiB | 182.9MiB |
+
+页面加载不是 React TTI。RSS 快照距加载为 6.5–23.6 秒，采样时刻、GC、压缩/共享映射和缓存均有影响；这些内存数值仅描述本次观察，不能相加当作独占物理内存或单独判定回归。集成组较快的加载也不解释为普遍加速。
+
+| 实际聊天场景 | Provider 流持续时间 | 帧间隔 p95 | Main / Renderer / Hub RSS 中位数 |
+|---|---:|---:|---|
+| 基线 | 20.559s | 17.5ms | 113.6 / 153.3 / — MiB |
+| 集成、关闭自动化 | 20.513s | 17.4ms | 110.5 / 162.2 / — MiB |
+| 集成、自动化空闲 | 20.517s | 17.5ms | 102.8 / 147.3 / 59.1 MiB |
+| 集成、自动化与聊天并发 | 20.535s 重叠 | 17.5ms | 98.5 / 150.7 / 41.3 MiB |
+
+关闭、空闲、并发均实际观察到可见文本增长与侧边栏响应；被采集流式区间没有超过 50ms 的 rAF 间隔或 long task。另有独立 20 秒宿主空闲采样。并发组的 25 秒声明观察窗包含执行前操作；与真实双 Provider 流的严格交集为 **15.365 秒**，含 15 次 RSS 与 840 帧。完整 Provider 重叠的被动 rAF 为 1200 帧，后段没有额外 RSS，表中内存只取已采集的交集。首次并发尝试保留原始记录，但不当作确定的 UI 增长证据；表中采用第二次实际目击的路径。
+
+这组本地固定负载没有观察到明显流式帧节奏退化；小样本、观察器开销、不同采样时刻、单次交互及本地 Provider 限制仍适用，不覆盖远端模型、长会话或其他机器。EventTiming 的 16ms 阈值及多条同一次点击事件不能当作全面的输入延迟分布。完整区间、输入事件与各角色 RSS 见[原生性能汇总](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-native-perf-873lc9x8/native-performance-summary.json)。
+
+第二次并发的普通聊天结束后，后台请求仍在输出时，主代理实际点击原生菜单 Quit：约 **283ms** 退出；自动化请求在退出期间断开，没有完成事件。历史采样记录的 41 个自有 PID 均已退出，测试 Provider 正常关闭。该性能实验不替代仍缺失的通知/托盘/拖拽验收。
+
+## fd71599：原生快捷键退出修复
+
+性能实测发现：`0df5739` 在默认关闭时 Cmd+Q 两次进入 `before-quit` 后仅关闭窗口，Main 仍存活；随后打开应用创建了第二个窗口并加载已停止的服务。该第二窗口不计入启动采样。[Electron 43.2 原生退出实现](https://github.com/electron/electron/blob/v43.2.0/shell/browser/browser.cc#L104)在回调后提交取消结果，其[事件调用器](https://github.com/electron/electron/blob/v43.2.0/shell/common/gin_helper/event_emitter_caller.cc#L20)允许排空微任务；日志与快速 `stop().finally(app.quit)` 重入、外层取消覆盖退出状态的机制吻合。
+
+`fd71599` 仅把停止完成后的 Quit 放到 `setImmediate` 下一事件循环，保留 2500ms/force 参数与既有清理。VM 使用真实微任务 checkpoint 模拟取消提交顺序：旧源码仅目标行为回归失败，修复后定点 **10/10**、Electron **38/38**，Lint/diff 通过，独立复审无阻断项。见[红绿回归收据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-native-quit-reentry-BUoL8S/receipt.json)。
+
+历史 `0df` 包来源与 main 字节先冻结，再仅更新自有未封装测试副本的两个 Electron 文件，Next/observer/preload 不变。两个新私有配置由主代理实际 Cmd+Q：默认关闭 **136ms**，启用后 **149ms**；各 Main/Chromium/Next 与启用组 Hub 均退出，端口关闭、descriptor 删除。见[新版原生退出收据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-native-perf-873lc9x8/incremental-native-quit-fd71599.json)。这属于退出增量实测，不把前述三次性能或严格签名结果重归属给 `fd71599`。包括增量复测在内，51 个记录的应用 PID、测试 Provider 与八个私有服务端口最终均已清理。
+
+该 head 关联的 [Quality](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41953447027) 与 [Automation](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41953447033) 已完成，**七个 job 实际步骤全部成功**。实际 checkout 为 GitHub 将 head `fd71599` 合入基线 `d588f0e` 的 PR synthetic merge `a1766b7`，完整日志与产物 metadata 均保留此归属。
+
+- Quality 三平台各 **489 项 / 488 通过 / 0 失败 / 1 项条件跳过**，TypeScript、Lint 与 whitespace 检查成功。
+- Node24 自动化 macOS/Linux 各 **166/166**；Windows **165/166**，仅跳过 POSIX SIGTERM 场景，IPC disconnect 与实际 Windows Node/Electron SQLite/Hub 探针通过。
+- [ia32 实际包](https://github.com/happyzengfen/pi-alpha-desk/actions/runs/41953447033/job/127002572204) 完成 unpacked 构建、资源校验、包内 Electron43.2 / Node24.18 / win32-ia32 的 SQLite 与 Hub 探针；真实 Renderer 加载为 **7653.84ms**，artifact **13382895006** 已上传。此指标不替代本机桌面交互。
+
+见[增量 CI 完整收据](/tmp/pi-alpha-final-ci-fd71599.json)。独立范围复审允许据此关闭 P5，保留 P4 的三项未验收证据；不因此合并、发布或宣布完整目标已完成。
+
+## 早期原生桌面验证限制（历史记录）
 
 已准备临时 Electron.app、打包资源布局和独立 userData，并尝试加载真实主页。CUA 返回“Mac is locked and automatic unlock could not unlock it”；该尝试未产生主进程校验日志或 BrowserWindow 加载记录，真实 HTTP 文档等待超时后已清理测试进程。
 
-因此，本次仍未验证：原生桥接的默认关闭与启用、托盘隐藏后执行、Electron Quit 清理、系统通知投递及点击聚焦，以及主进程/Renderer RSS、帧间隔和界面流式响应性。需在 Mac 解锁后补做；这次本机原生尝试不提供 Windows、ia32 或 Linux 的原生交互结论。
+截至该次早期尝试，尚未验证原生桥接的默认关闭与启用、托盘隐藏后执行、Electron Quit 清理、系统通知投递及点击聚焦，以及主进程/Renderer RSS、帧间隔和界面流式响应性。随后解锁后的实测结果以上文新记录为准；本机原生结果不提供 Windows、ia32 或 Linux 的原生交互结论。
 
-最终服务端性能验证后，主代理再次调用原生应用库存，仍返回 `apps=[]` 和 Mac 锁屏错误，见[最新原生阻塞收据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-final-production-dnbnpyya/native-blocker-latest.json)。后续浏览器复验仅证明 IAB 界面闭环；上述原生交互、标题栏/窗口控制回归与 Main/Renderer 性能仍保持未验收。前文远端平台段落提供独立的包级结论，不改变本段原生范围。
+当时最终服务端性能验证后，主代理调用原生应用库存仍返回 `apps=[]` 和 Mac 锁屏错误，见[历史原生阻塞收据](/var/folders/rp/vlhgt2yj19v0wpz56zm5czrw0000gn/T/pi-final-production-dnbnpyya/native-blocker-latest.json)。当时的浏览器复验只证明 IAB 闭环；后续原生结果已单独记录，没有将浏览器或远端包级结果冒充本机原生交互。
 
 ## 原始本地证据
 
