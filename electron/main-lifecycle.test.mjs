@@ -54,14 +54,18 @@ function lifecycle() {
     setTimeout,
     setImmediate,
   };
-  vm.runInNewContext(`${source}\n globalThis.lifecycle = {
+  vm.createContext(context, { microtaskMode: "afterEvaluate" });
+  vm.runInContext(`${source}\n globalThis.lifecycle = {
     createWindow,
     setOwners(server, supervisor) { serverProcess = server; automationSupervisor = supervisor; },
     snapshot() { return { window: mainWindow, server: serverProcess, supervisor: automationSupervisor }; }
   };`, context);
   const server = {}, supervisor = {};
   context.lifecycle.setOwners(server, supervisor);
-  return { app, windows, calls, server, supervisor, ...context.lifecycle };
+  return {
+    app, windows, calls, server, supervisor, ...context.lifecycle,
+    evaluate(script) { return vm.runInContext(script, context); },
+  };
 }
 
 test("native activation restores the same window after close hides it, without restarting owned services", () => {
@@ -102,6 +106,45 @@ test("native activation creates and loads a window only when none exists", () =>
   assert.equal(fixture.snapshot().server, fixture.server);
   assert.equal(fixture.snapshot().supervisor, fixture.supervisor);
   assert.deepEqual(fixture.calls, { serverStarts: 0, supervisorStarts: 0 });
+});
+
+test("native quit exits after a stopped automation host settles during the before-quit callback", async () => {
+  const fixture = lifecycle();
+  fixture.createWindow();
+  const window = fixture.snapshot().window;
+  let serverStops = 0;
+  fixture.setOwners(
+    { kill() { serverStops++; } },
+    fixture.evaluate(`({
+      stop(options) {
+        this.options = options;
+        this.calls = (this.calls ?? 0) + 1;
+        return Promise.resolve();
+      }
+    })`),
+  );
+  let nativeQuitting = false;
+  let windowsClosing = false;
+  fixture.app.quit = () => {
+    let prevented = false;
+    fixture.app.nativeQuitEvent = { preventDefault() { prevented = true; } };
+    // Electron drains native callback microtasks before committing cancellation.
+    fixture.evaluate(`app.emit("before-quit", app.nativeQuitEvent)`);
+    nativeQuitting = !prevented;
+    if (nativeQuitting) windowsClosing = true;
+  };
+
+  fixture.app.quit();
+  await new Promise(setImmediate);
+  assert.equal(windowsClosing, true);
+  window.emit("closed");
+  fixture.app.emit("window-all-closed");
+  assert.equal(nativeQuitting, true, "The native quit must survive the original cancelled callback");
+  assert.equal(fixture.snapshot().window, null);
+  assert.equal(serverStops, 1);
+  assert.equal(fixture.snapshot().supervisor.calls, 1);
+  assert.equal(fixture.snapshot().supervisor.options.timeoutMs, 2_500);
+  assert.equal(fixture.snapshot().supervisor.options.force, true);
 });
 
 test("unexpected server exits surface diagnostics and quit instead of hiding the window", () => {

@@ -701,7 +701,8 @@ app.on("before-quit", (event) => {
   if (automationSupervisor && !automationShutdown) {
     event.preventDefault();
     automationShutdown = true;
-    void automationSupervisor.stop({ timeoutMs: 2_500, force: true }).finally(() => app.quit());
+    // Let Electron finish cancelling the native quit before retrying it.
+    void automationSupervisor.stop({ timeoutMs: 2_500, force: true }).finally(() => setImmediate(() => app.quit()));
     return;
   }
   if (tray) {
